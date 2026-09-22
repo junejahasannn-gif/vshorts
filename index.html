@@ -1,147 +1,273 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vshorts - Free AI Reel Maker</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-  <script>
-    tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], display: ['Space Grotesk', 'sans-serif'] } } } }
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ViralTap - 1-Min Reel Maker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0B0F19; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; backdrop-filter: blur(10px); }
+        .tap-btn { transition: all 0.2s; cursor: pointer; }
+        .tap-btn:active { transform: scale(0.92); }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .mic-active { animation: pulse-red 1.5s infinite; background-color: rgba(239, 68, 68, 0.2); border-color: red; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    </style>
 </head>
-<body class="bg-[#0b0c10] text-gray-100 font-sans min-h-screen pb-10 antialiased">
+<body class="min-h-screen flex flex-col items-center p-3 pb-10">
 
-  <!-- Header -->
-  <header class="sticky top-0 z-40 bg-[#0b0c10]/80 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-2.5">
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-cyan-400 flex items-center justify-center">
-        <span class="material-symbols-outlined text-white text-[19px]">auto_awesome</span>
-      </div>
-      <span class="font-display font-bold text-xl tracking-tight text-white">V<span class="text-cyan-400">shorts</span></span>
-    </div>
-    <span class="px-2 py-0.5 text-[11px] font-bold tracking-wider rounded bg-white/10 text-gray-200" id="limitDisplay">3 Left Today</span>
-  </header>
-
-  <!-- Main Content -->
-  <main class="max-w-md mx-auto px-4 pt-6 space-y-6">
-    <div class="text-center space-y-3">
-      <h1 class="text-2xl font-display font-extrabold text-white leading-tight">
-        1 Minute me <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400">Viral Reels</span> Banayein
-      </h1>
-      <p class="text-sm text-gray-400">Hindi ya Hinglish me topic likho, AI automatically script aur video flow bana dega.</p>
-    </div>
-
-    <!-- Input Area -->
-    <div class="p-4 rounded-2xl bg-gradient-to-b from-[#181926] to-[#12131d] border border-white/10 shadow-xl space-y-4">
-      <div class="flex items-center gap-2 text-sm font-semibold text-white">
-        <span class="material-symbols-outlined text-violet-400 text-base">edit_note</span>
-        <span>Topic ya Idea Likhein</span>
-      </div>
-      <textarea id="topicInput" rows="3" class="w-full bg-[#0d0e15] border border-white/10 rounded-xl p-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-cyan-500" placeholder="Jaise: Motivation reel, joke, ya business ad..."></textarea>
-      
-      <button id="generateBtn" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 hover:opacity-95 text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all">
-        <span class="material-symbols-outlined">auto_awesome</span> Generate 1-Minute Reel
-      </button>
-    </div>
-
-    <!-- Output Area -->
-    <div id="outputSection" class="hidden p-4 rounded-2xl bg-[#12131d] border border-white/10 space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2 text-xs font-semibold text-white">
-          <span class="material-symbols-outlined text-emerald-400">check_circle</span>
-          <span>Aapki Script Ready Hai</span>
+    <div class="w-full max-w-md mx-auto">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center py-4">
+            <h1 class="text-2xl font-extrabold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">⚡ ViralTap</h1>
+            <div class="flex items-center gap-2">
+                <div class="bg-gray-800 px-3 py-1.5 rounded-full text-xs font-bold border border-gray-700">
+                    <span class="text-yellow-400">⚡</span> <span id="creditCount">3</span> Credits
+                </div>
+                <button onclick="openSettings()" class="bg-gray-800 p-2 rounded-full border border-gray-600 tap-btn">⚙️</button>
+            </div>
         </div>
-      </div>
-      <div id="scriptContent" class="p-3 rounded-xl bg-[#0b0c11] border border-white/5 text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
-        <!-- Script yahan aayegi -->
-      </div>
-      <button class="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 font-medium text-xs mt-2" onclick="alert('Video Maker Feature Coming Soon!')">
-        Proceed to Video Generation
-      </button>
+
+        <!-- Main Headline -->
+        <div class="text-center mb-5 mt-2">
+            <h2 class="text-3xl font-black mb-1">अब 1 मिनट में<br><span class="text-pink-500">वायरल रील्स</span> बनाएं</h2>
+            <p class="text-gray-400 text-xs">AI से बनाई गई रील्स इंस्टा और यूट्यूब पर डालें</p>
+        </div>
+
+        <!-- Language Selector -->
+        <div class="flex gap-2 overflow-x-auto hide-scroll py-2 mb-4">
+            <button onclick="setLang('Hindi')" class="lang-btn border border-pink-500 bg-pink-500/10 text-pink-400 px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap">🇮🇳 Hindi</button>
+            <button onclick="setLang('Hinglish')" class="lang-btn border border-gray-700 bg-gray-800 text-gray-400 px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap">📝 Hinglish</button>
+            <button onclick="setLang('Gujarati')" class="lang-btn border border-gray-700 bg-gray-800 text-gray-400 px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap">ઢોકળા ગુજરાતી</button>
+        </div>
+
+        <!-- Voice & Text Input -->
+        <div class="glass-card p-3 mb-4">
+            <div class="flex items-center gap-2">
+                <input type="text" id="voiceInputBox" placeholder="Idea likho... ya Mic dabao ➔" class="w-full bg-transparent border-none text-sm outline-none text-white placeholder-gray-400">
+                <button id="micBtn" onclick="startVoiceInput()" class="p-3 bg-pink-600 rounded-xl text-white shadow-lg tap-btn">🎙️</button>
+            </div>
+        </div>
+
+        <!-- Categories / Mood -->
+        <div class="grid grid-cols-2 gap-3 mb-5">
+            <button onclick="generateVideo('Drill Rap / Hip-Hop Track')" class="tap-btn glass-card p-4 flex flex-col items-center hover:bg-red-900/20 border-red-500/20">
+                <span class="text-3xl mb-1">🔥</span><span class="font-semibold text-xs text-red-200">Drill Rap</span>
+            </button>
+            <button onclick="generateVideo('Action Anime Teaser Scene')" class="tap-btn glass-card p-4 flex flex-col items-center hover:bg-blue-900/20 border-blue-500/20">
+                <span class="text-3xl mb-1">⚔️</span><span class="font-semibold text-xs text-blue-200">Anime Action</span>
+            </button>
+            <button onclick="generateVideo('Deep Dark Voiceover Poetry')" class="tap-btn glass-card p-4 flex flex-col items-center hover:bg-purple-900/20 border-purple-500/20">
+                <span class="text-3xl mb-1">🎙️</span><span class="font-semibold text-xs text-purple-200">Dark Poetry</span>
+            </button>
+            <button onclick="generateVideo('Movie/Series Story Recap')" class="tap-btn glass-card p-4 flex flex-col items-center hover:bg-green-900/20 border-green-500/20">
+                <span class="text-3xl mb-1">🎬</span><span class="font-semibold text-xs text-green-200">Movie Recap</span>
+            </button>
+        </div>
+
+        <!-- Copyright Banner -->
+        <div class="bg-green-900/30 border border-green-500/40 text-green-400 text-xs font-semibold p-2.5 rounded-lg text-center mb-5">
+            🛡️ 100% कॉपीराइट फ्री - बेझिझक Upload करें
+        </div>
+
+        <!-- Generate Button -->
+        <button onclick="checkAndGenerate()" class="w-full bg-gradient-to-r from-pink-500 to-orange-500 p-4 rounded-xl font-bold text-white shadow-[0_5px_20px_rgba(236,72,153,0.3)] tap-btn text-lg mb-6">
+            जनरेट करें (1 क्रेडिट) 🚀
+        </button>
+
+        <!-- Result Area -->
+        <div id="loading" class="hidden text-center text-cyan-400 font-bold animate-pulse text-sm mb-4">
+            AI Viral Script likh raha hai... ⏳
+        </div>
+        <div id="resultArea" class="hidden glass-card p-4 border-cyan-500/30 mb-8">
+            <h3 class="font-bold text-cyan-400 mb-3 flex justify-between items-center text-sm">
+                ✅ Script Ready 
+                <div class="flex gap-2">
+                    <button onclick="copyText()" class="text-xs bg-gray-700 px-3 py-1.5 rounded text-white tap-btn">📋 Copy</button>
+                    <button onclick="shareWhatsApp()" class="text-xs bg-green-600 px-3 py-1.5 rounded text-white tap-btn">💬 Share</button>
+                </div>
+            </h3>
+            <div id="output" class="text-sm text-gray-300 whitespace-pre-wrap h-48 overflow-y-auto bg-black/40 p-3 rounded-lg border border-gray-800"></div>
+        </div>
+
+        <!-- Social Proof Gallery -->
+        <div class="mb-10">
+            <h3 class="text-lg font-black mb-4 text-center">10 लाख+ रील्स बन चुकी हैं 🔥</h3>
+            <div class="grid grid-cols-3 gap-2">
+                <div onclick="generateVideo('Hanuman Ji Ansunni Kahani')" class="relative h-28 bg-gray-800 rounded-lg overflow-hidden border border-gray-700 tap-btn">
+                    <img src="https://images.unsplash.com/photo-1614088612140-5e3e26466981?auto=format&fit=crop&w=200&q=80" class="absolute inset-0 w-full h-full object-cover opacity-50">
+                    <div class="absolute bottom-1 left-0 w-full text-center z-20"><p class="text-[10px] font-bold text-orange-400">हनुमान जी</p><p class="text-[9px] text-gray-300">▶ 150K</p></div>
+                </div>
+                <div onclick="generateVideo('UFC Fight Aggressive Recap')" class="relative h-28 bg-gray-800 rounded-lg overflow-hidden border border-gray-700 tap-btn">
+                    <img src="https://images.unsplash.com/photo-1555597673-b21d5c935865?auto=format&fit=crop&w=200&q=80" class="absolute inset-0 w-full h-full object-cover opacity-50">
+                    <div class="absolute bottom-1 left-0 w-full text-center z-20"><p class="text-[10px] font-bold text-red-400">Fight Recap</p><p class="text-[9px] text-gray-300">▶ 940K</p></div>
+                </div>
+                <div onclick="generateVideo('Suspense Thriller Anime Scene')" class="relative h-28 bg-gray-800 rounded-lg overflow-hidden border border-gray-700 tap-btn">
+                    <img src="https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=200&q=80" class="absolute inset-0 w-full h-full object-cover opacity-50">
+                    <div class="absolute bottom-1 left-0 w-full text-center z-20"><p class="text-[10px] font-bold text-cyan-400">Anime Action</p><p class="text-[9px] text-gray-300">▶ 2.1M</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Big CTA Banner -->
+        <div class="bg-gradient-to-br from-pink-500 to-orange-500 p-6 rounded-2xl text-center mb-8 shadow-[0_10px_30px_rgba(236,72,153,0.3)]">
+            <h2 class="text-2xl font-black text-white mb-2 leading-tight">आज ही शुरू करें<br>अपना Viral Journey</h2>
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="bg-white text-pink-600 font-extrabold py-3 px-6 rounded-xl w-full shadow-lg tap-btn mt-2">
+                फ्री में शुरू करें ➔
+            </button>
+        </div>
+
+        <!-- Play Store Badge -->
+        <div class="text-center mb-10">
+            <p class="text-xs font-bold text-gray-400 mb-3">Android App पर Reels बनाएं</p>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Play Store" class="h-10 mx-auto opacity-70 hover:opacity-100 transition-opacity tap-btn">
+        </div>
+
+        <!-- Footer Area -->
+        <footer class="border-t border-gray-800 pt-6 text-gray-400">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <h4 class="font-bold text-gray-200 text-xs mb-3 tracking-wider">LEGAL</h4>
+                    <ul class="text-[11px] space-y-2">
+                        <li><a href="#" class="hover:text-white">📄 About Us</a></li>
+                        <li><a href="#" class="hover:text-white">🛡️ Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white">⚖️ Terms of Service</a></li>
+                        <li><a href="#" class="hover:text-white">📞 Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-gray-200 text-xs mb-3 tracking-wider">CREATOR GUIDES</h4>
+                    <ul class="text-[11px] space-y-2">
+                        <li><a href="#" class="hover:text-white">Drill Rap Scripts</a></li>
+                        <li><a href="#" class="hover:text-white">Anime Reels</a></li>
+                        <li><a href="#" class="hover:text-white">AI Reel Maker</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- SEO Text -->
+            <p class="text-[9px] text-gray-600 mb-4 text-center leading-relaxed">
+                ai se reels kaise banaye • shorts kaise banaen • short reel generator • reels maker ai.
+            </p>
+
+            <div class="text-center text-[9px] text-gray-500 border-t border-gray-800 pt-4">
+                <p class="mb-1">© 2026 ViralTap.in (ViralTap Private Limited).</p>
+                <p class="mb-2">Registered office: Palanpur, Gujarat, India.</p>
+                <p class="font-bold text-gray-400 tracking-widest text-[10px]">BUILT WITH ❤️ BY VIRALTAP</p>
+            </div>
+        </footer>
+
     </div>
-  </main>
 
-  <!-- JavaScript Logic -->
-  <script>
-    function checkLimit() {
-      let today = new Date().toDateString();
-      let usage = JSON.parse(localStorage.getItem("vshortsUsage")) || { date: today, count: 0 };
+    <!-- Settings Modal (Safe API Storage) -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/95 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-gray-900 p-6 rounded-2xl w-full max-w-sm border border-gray-700 relative">
+            <button onclick="closeSettings()" class="absolute top-4 right-4 text-gray-400 text-lg">✕</button>
+            <h3 class="text-lg font-bold mb-2">⚙️ Pro Settings</h3>
+            <p class="text-[10px] text-green-400 mb-4">Aapki API key sirf aapke phone me save hogi. 100% Safe.</p>
+            
+            <label class="text-xs text-gray-400 block mb-1">Gemini API Key:</label>
+            <input type="text" id="apiInput" placeholder="AIzaSy..." class="w-full p-3 rounded-lg bg-black text-white text-sm border border-gray-700 mb-5 outline-none focus:border-pink-500">
+            
+            <button onclick="saveSettings()" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg py-3 text-sm transition-colors">Save Details</button>
+        </div>
+    </div>
 
-      if (usage.date !== today) {
-        usage = { date: today, count: 0 };
-      }
+    <script>
+        // Credits Logic
+        let credits = localStorage.getItem('vt_credits') || 3;
+        let lastDate = localStorage.getItem('vt_date');
+        let today = new Date().toDateString();
+        if(lastDate !== today) { credits = 3; localStorage.setItem('vt_date', today); localStorage.setItem('vt_credits', 3); }
+        document.getElementById('creditCount').innerText = credits;
 
-      document.getElementById('limitDisplay').innerText = `${3 - usage.count} Left Today`;
+        // Language Logic
+        let currentLang = "Hindi";
+        function setLang(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                if(btn.innerText.includes(lang)) {
+                    btn.className = "lang-btn border border-pink-500 bg-pink-500/10 text-pink-400 px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap";
+                } else {
+                    btn.className = "lang-btn border border-gray-700 bg-gray-800 text-gray-400 px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap";
+                }
+            });
+        }
 
-      if (usage.count >= 3) {
-        alert("Aapki aaj ki 3 free limit khatam ho gayi hai. Kal try karein ya Premium lein!");
-        return false;
-      }
-      return true;
-    }
+        // Settings Modal
+        function openSettings() { 
+            document.getElementById('settingsModal').classList.remove('hidden'); 
+            document.getElementById('apiInput').value = localStorage.getItem('gemini_key') || ''; 
+        }
+        function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+        function saveSettings() { 
+            const k = document.getElementById('apiInput').value; 
+            if(k){ localStorage.setItem('gemini_key', k); closeSettings(); alert('Settings Saved Successfully!'); } 
+        }
 
-    function incrementLimit() {
-      let today = new Date().toDateString();
-      let usage = JSON.parse(localStorage.getItem("vshortsUsage")) || { date: today, count: 0 };
-      usage.count += 1;
-      localStorage.setItem("vshortsUsage", JSON.stringify(usage));
-      document.getElementById('limitDisplay').innerText = `${3 - usage.count} Left Today`;
-    }
+        // Voice/Mic Logic
+        function startVoiceInput() {
+            const micBtn = document.getElementById('micBtn');
+            const inputBox = document.getElementById('voiceInputBox');
+            if ('webkitSpeechRecognition' in window) {
+                const recognition = new webkitSpeechRecognition();
+                recognition.lang = 'hi-IN';
+                recognition.onstart = () => { micBtn.classList.add('mic-active'); inputBox.placeholder = "Boliye, AI sun raha hai..."; };
+                recognition.onresult = (e) => { inputBox.value = e.results[0][0].transcript; };
+                recognition.onend = () => { micBtn.classList.remove('mic-active'); };
+                recognition.start();
+            } else { alert("Aapka browser Mic support nahi karta. Type karein."); }
+        }
 
-    checkLimit();
+        function generateVideo(idea) {
+            document.getElementById('voiceInputBox').value = idea;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
-    document.getElementById("generateBtn").addEventListener("click", async () => {
-      const topic = document.getElementById("topicInput").value;
-      
-      if (!topic) {
-        alert("Pehle koi topic toh likho bhai!");
-        return;
-      }
+        // Gemini AI Logic
+        async function checkAndGenerate() {
+            const apiKey = localStorage.getItem('gemini_key');
+            if(!apiKey) { alert('Pehle upar Settings (⚙️) me jakar apni API Key daaliye!'); openSettings(); return; }
+            if(credits <= 0) { alert('Aaj ke free credits khatam! Kal wapas aaiye.'); return; }
 
-      if (!checkLimit()) return; 
+            let userIdea = document.getElementById('voiceInputBox').value || "Random Viral Idea";
+            document.getElementById('resultArea').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
 
-      const btn = document.getElementById("generateBtn");
-      btn.innerHTML = `Generating Script... ⏳`;
-      btn.disabled = true;
+            let prompt = `Act as an expert YouTube Shorts and Reels creator. Write a highly engaging 60-second vertical video script in ${currentLang} for the topic: "${userIdea}". Structure it with [Viral Hook], [Visual Scene], and [Voiceover/Dialogue]. Make it fast-paced, aggressive, and ready to go viral. Do not use asterisks for bolding.`;
 
-      // YAHAN APNI GOOGLE STUDIO KI API KEY DALO 👇
-      const apiKey = "AQ.Ab8RN6K4haOGQIANbQd_zn1yNWsvzq1p-4JS-qshLooAV_y-YQ"; 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error.message);
 
-      const promptText = `Write a viral 1-minute Instagram Reel/YouTube Shorts script in Hindi (written in Hinglish or Hindi) on the topic: "${topic}". 
-      Format strictly like this:
-      [HOOK - 0:00-0:05]: (Catchy opening)
-      [BEAT 1 - 0:06-0:25]: (Main content)
-      [BEAT 2 - 0:26-0:45]: (Climax or fact)
-      [CTA - 0:46-0:58]: (Call to action)
-      Include suggested visuals in brackets.`;
+                credits--;
+                localStorage.setItem('vt_credits', credits);
+                document.getElementById('creditCount').innerText = credits;
+                document.getElementById('output').innerText = data.candidates[0].content.parts[0].text;
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('resultArea').classList.remove('hidden');
+            } catch (err) {
+                alert("Error: API Key galat hai ya block ho gayi hai. Nayi key daalein.");
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
 
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-        });
-
-        const data = await response.json();
-        const scriptOutput = data.candidates[0].content.parts[0].text;
-
-        document.getElementById("scriptContent").innerText = scriptOutput;
-        document.getElementById("outputSection").classList.remove("hidden");
-        incrementLimit();
-
-      } catch (error) {
-        alert("Kuch error aayi hai. Apni API Key check karo!");
-        console.error(error);
-      } finally {
-        btn.innerHTML = `<span class="material-symbols-outlined">auto_awesome</span> Generate 1-Minute Reel`;
-        btn.disabled = false;
-      }
-    });
-  </script>
+        // Copy & Share Actions
+        function copyText() {
+            navigator.clipboard.writeText(document.getElementById('output').innerText);
+            alert("Script Copy ho gayi! Ab record karein.");
+        }
+        function shareWhatsApp() {
+            const text = document.getElementById('output').innerText;
+            const msg = encodeURIComponent("Dekho maine ViralTap se kya script banai hai:\n\n" + text);
+            window.open(`https://api.whatsapp.com/send?text=${msg}`);
+        }
+    </script>
 </body>
 </html>
