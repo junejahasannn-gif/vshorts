@@ -1,8 +1,6 @@
-export const maxDuration = 60;
+import { Sandbox } from "@vercel/sandbox";
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+export const maxDuration = 60;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -11,6 +9,8 @@ export default async function handler(req, res) {
       error: "Only POST requests are allowed."
     });
   }
+
+  let sandbox;
 
   try {
     const body = req.body || {};
@@ -38,12 +38,34 @@ export default async function handler(req, res) {
     }
 
     /*
-     * This endpoint is now ready for the real
-     * image + voice + music + MP4 renderer.
+     * Create a real Vercel Sandbox.
      *
-     * For now we validate and prepare the render job.
-     * No fake MP4 URL is returned.
+     * This is the first real step toward
+     * server-side Remotion MP4 rendering.
      */
+    sandbox = await Sandbox.create({
+      persistent: false,
+      timeout: 10 * 60 * 1000
+    });
+
+    /*
+     * Test that the Sandbox can execute Node.
+     */
+    const test = await sandbox.runCommand({
+      cmd: "node",
+      args: [
+        "-e",
+        'console.log("ViralTap Sandbox OK")'
+      ]
+    });
+
+    const output = await test.stdout();
+
+    if (test.exitCode !== 0) {
+      throw new Error(
+        "Vercel Sandbox Node test failed."
+      );
+    }
 
     const renderJob = {
       id:
@@ -51,7 +73,7 @@ export default async function handler(req, res) {
           .toString(36)
           .slice(2, 8)}`,
 
-      status: "queued",
+      status: "sandbox-ready",
 
       videoType,
 
@@ -61,26 +83,28 @@ export default async function handler(req, res) {
 
       totalScenes: scenes.length,
 
+      sandbox: {
+        ready: true,
+        output: output.trim()
+      },
+
       createdAt:
         new Date().toISOString()
     };
-
-    // Small async delay so the endpoint behaves like
-    // a real render-job creation endpoint.
-    await sleep(100);
 
     return res.status(200).json({
       success: true,
 
       message:
-        "Video render job created successfully.",
+        "ViralTap render sandbox is ready.",
 
       job: renderJob,
 
       /*
-       * Important:
-       * videoUrl is intentionally null until the
-       * actual MP4 renderer is connected.
+       * Still null intentionally.
+       *
+       * MP4 rendering comes in the next step after
+       * the Remotion bundle is connected.
        */
       videoUrl: null,
 
@@ -89,16 +113,30 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error(
-      "RENDER SERVER ERROR:",
+      "VIRALTAP RENDER SERVER ERROR:",
       error
     );
 
     return res.status(500).json({
       success: false,
-      error: "Render server error.",
+      error:
+        "ViralTap render sandbox failed.",
+
       details:
         error?.message ||
         "Unknown error."
     });
+
+  } finally {
+    if (sandbox) {
+      try {
+        await sandbox.stop();
+      } catch (stopError) {
+        console.error(
+          "SANDBOX STOP ERROR:",
+          stopError
+        );
+      }
+    }
   }
 }
