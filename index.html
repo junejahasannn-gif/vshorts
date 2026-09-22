@@ -1,1623 +1,1699 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ViralTap Studio</title>
 
-    <title>ViralTap Studio - AI Season Maker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-    <style>
-        body {
-            background: #070A10;
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: #f7f7f5;
+      color: #111;
+    }
 
-        .glass {
-            background: rgba(255,255,255,0.045);
-            border: 1px solid rgba(255,255,255,0.09);
-            backdrop-filter: blur(14px);
-        }
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
 
-        .tap-btn {
-            transition: transform .12s, opacity .2s;
-        }
+    .page {
+      min-height: 100vh;
+    }
 
-        .tap-btn:active {
-            transform: scale(.97);
-        }
+    .hidden-page {
+      display: none !important;
+    }
 
-        .tap-btn:disabled {
-            opacity: .55;
-            cursor: not-allowed;
-        }
+    .glass {
+      background: rgba(255,255,255,.86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
 
-        @keyframes glow {
-            0%,100% {
-                box-shadow: 0 0 16px rgba(236,72,153,.25);
-            }
-            50% {
-                box-shadow: 0 0 32px rgba(236,72,153,.6);
-            }
-        }
+    .shadow-soft {
+      box-shadow: 0 12px 40px rgba(0,0,0,.08);
+    }
 
-        .glow {
-            animation: glow 2s infinite;
-        }
+    .shadow-card {
+      box-shadow: 0 8px 30px rgba(0,0,0,.06);
+    }
 
-        .episode-card {
-            transition: border-color .2s, transform .2s;
-        }
+    .studio-card {
+      background: #fff;
+      border: 1px solid #e7e7e7;
+      border-radius: 24px;
+    }
 
-        .episode-card:hover {
-            border-color: rgba(236,72,153,.45);
-            transform: translateY(-1px);
-        }
+    .black-btn {
+      background: #111;
+      color: #fff;
+      transition: .2s;
+    }
 
-        .hide-scroll::-webkit-scrollbar {
-            display: none;
-        }
-    </style>
+    .black-btn:hover {
+      background: #292929;
+      transform: translateY(-1px);
+    }
+
+    .outline-btn {
+      border: 1px solid #ddd;
+      background: #fff;
+      transition: .2s;
+    }
+
+    .outline-btn:hover {
+      border-color: #111;
+      background: #fafafa;
+    }
+
+    .option-btn {
+      border: 1px solid #dedede;
+      background: #fff;
+      border-radius: 14px;
+      padding: 11px 14px;
+      transition: .2s;
+      cursor: pointer;
+    }
+
+    .option-btn:hover {
+      border-color: #999;
+    }
+
+    .option-btn.active {
+      background: #111;
+      color: #fff;
+      border-color: #111;
+    }
+
+    .story-card {
+      border: 1px solid #e5e5e5;
+      background: #fff;
+      border-radius: 18px;
+      padding: 15px;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    .story-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.07);
+    }
+
+    .story-card.selected {
+      border: 2px solid #111;
+    }
+
+    .phone-frame {
+      width: min(100%, 390px);
+      aspect-ratio: 9 / 16;
+      background: #111;
+      border-radius: 30px;
+      overflow: hidden;
+      position: relative;
+      margin: auto;
+      box-shadow: 0 20px 55px rgba(0,0,0,.18);
+    }
+
+    .phone-frame video,
+    .phone-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .fake-video {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      color: white;
+      background:
+        radial-gradient(circle at 20% 20%, #444 0, transparent 28%),
+        radial-gradient(circle at 80% 70%, #222 0, transparent 30%),
+        linear-gradient(145deg,#101010,#292929);
+    }
+
+    .play-button {
+      width: 66px;
+      height: 66px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.95);
+      color: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 25px;
+      margin: auto;
+      cursor: pointer;
+    }
+
+    .scene-thumb {
+      min-width: 145px;
+      height: 175px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #181818;
+      color: #fff;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .scene-thumb .thumb-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(145deg,#222,#666);
+    }
+
+    .scene-thumb-content {
+      position: absolute;
+      inset: 0;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .progress-track {
+      height: 8px;
+      background: #e8e8e8;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #111;
+      border-radius: 999px;
+      transition: width .35s ease;
+    }
+
+    .loader-ring {
+      width: 70px;
+      height: 70px;
+      border: 6px solid #e8e8e8;
+      border-top-color: #111;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .fade-in {
+      animation: fadeIn .35s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111;
+      color: #fff;
+      padding: 13px 18px;
+      border-radius: 999px;
+      z-index: 100;
+      display: none;
+      font-size: 14px;
+    }
+
+    @media(max-width:640px) {
+      .studio-card {
+        border-radius: 18px;
+      }
+
+      .scene-thumb {
+        min-width: 125px;
+        height: 155px;
+      }
+    }
+  </style>
 </head>
 
-<body class="min-h-screen">
+<body>
 
-<div class="w-full max-w-md mx-auto px-3 pb-16">
+  <div id="toast" class="toast"></div>
 
-    <!-- HEADER -->
-    <header class="flex justify-between items-center py-4 border-b border-gray-800 mb-5">
+  <!-- ================= HOME ================= -->
+  <section id="homePage" class="page">
 
-        <h1 class="text-xl font-black bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent">
-            ⚡ ViralTap Studio
+    <header class="sticky top-0 z-50 glass border-b border-gray-200">
+      <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
+        <button onclick="showPage('homePage')" class="font-black text-xl tracking-tight">
+          ViralTap<span class="text-gray-500"> Studio</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button onclick="showPage('studioPage')" class="hidden sm:block px-4 py-2 rounded-xl outline-btn text-sm">
+            Create Video
+          </button>
+
+          <button onclick="showPage('funnyPage')" class="px-4 py-2 rounded-xl black-btn text-sm">
+            😂 Funny Reel
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+
+      <section class="max-w-6xl mx-auto px-5 pt-16 pb-12">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-gray-200 text-sm mb-6">
+            ✨ AI Video Creation Studio
+          </div>
+
+          <h1 class="text-5xl sm:text-7xl font-black tracking-tight leading-[.95]">
+            अपनी कहानी को
+            <span class="text-gray-400">वीडियो में बदलें।</span>
+          </h1>
+
+          <p class="mt-6 text-lg text-gray-600 max-w-2xl">
+            Story लिखिए, language और style चुनिए और अपनी AI Reel तैयार कीजिए।
+            Funny videos भी बनाएं और अपनी original stories भी।
+          </p>
+        </div>
+
+        <div class="mt-10 studio-card shadow-soft p-5 sm:p-7">
+          <label class="block font-bold text-lg mb-3">
+            वीडियो के लिए स्टोरी लिखिए
+          </label>
+
+          <textarea
+            id="homeStory"
+            rows="6"
+            placeholder="जैसे: एक लड़का अपने दोस्त को मज़ेदार तरीके से prank करता है..."
+            class="w-full border border-gray-200 rounded-2xl p-4 outline-none focus:border-black resize-none"
+          ></textarea>
+
+          <div class="mt-4 flex flex-col sm:flex-row gap-3">
+            <button onclick="openNormalStudio()" class="black-btn rounded-2xl px-6 py-4 font-bold">
+              🎬 वीडियो बनाएं
+            </button>
+
+            <button onclick="showPage('funnyPage')" class="outline-btn rounded-2xl px-6 py-4 font-bold">
+              😂 Funny Reel Banao
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="max-w-6xl mx-auto px-5 pb-20">
+        <div class="grid md:grid-cols-3 gap-5">
+
+          <div class="studio-card p-6">
+            <div class="text-3xl mb-4">📝</div>
+            <h3 class="font-bold text-xl">Story to Video</h3>
+            <p class="text-gray-500 mt-2">
+              अपनी कहानी लिखिए और video plan तैयार कीजिए।
+            </p>
+          </div>
+
+          <div class="studio-card p-6">
+            <div class="text-3xl mb-4">😂</div>
+            <h3 class="font-bold text-xl">Funny Reels</h3>
+            <p class="text-gray-500 mt-2">
+              Ready-made jokes से fast comedy reels बनाएं।
+            </p>
+          </div>
+
+          <div class="studio-card p-6">
+            <div class="text-3xl mb-4">🎙️</div>
+            <h3 class="font-bold text-xl">Voice + Music</h3>
+            <p class="text-gray-500 mt-2">
+              Voiceover और background music अपने हिसाब से चुनें।
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="border-t border-gray-200 bg-white">
+      <div class="max-w-6xl mx-auto px-5 py-10">
+        <div class="flex flex-col md:flex-row justify-between gap-8">
+
+          <div>
+            <div class="font-black text-xl">ViralTap Studio</div>
+            <p class="text-gray-500 mt-2">
+              AI Video Creation Platform
+            </p>
+          </div>
+
+          <div>
+            <div class="font-bold mb-2">Support</div>
+            <a href="https://wa.me/916353068575" target="_blank" class="block text-gray-600 hover:text-black">
+              WhatsApp: +91 63530 68575
+            </a>
+            <a href="mailto:junejahasannn@gmail.com" class="block text-gray-600 hover:text-black mt-1">
+              junejahasannn@gmail.com
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </footer>
+
+  </section>
+
+
+  <!-- ================= NORMAL STUDIO ================= -->
+  <section id="studioPage" class="page hidden-page">
+
+    <header class="sticky top-0 z-50 glass border-b border-gray-200">
+      <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
+        <button onclick="showPage('homePage')" class="font-bold">
+          ← GO BACK
+        </button>
+        <div class="font-black">Video Studio</div>
+        <div class="w-16"></div>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-5 py-8">
+
+      <div class="mb-6">
+        <div class="text-sm text-gray-500">VIDEO CREATION</div>
+        <h1 class="text-3xl sm:text-4xl font-black mt-1">
+          वीडियो के लिए स्टोरी लिखिए
+        </h1>
+      </div>
+
+      <div class="grid lg:grid-cols-[1.3fr_.7fr] gap-6">
+
+        <div class="studio-card p-5 sm:p-7">
+
+          <label class="font-bold">आपकी स्टोरी</label>
+
+          <textarea
+            id="normalStory"
+            rows="7"
+            placeholder="यहाँ अपनी कहानी या video idea लिखें..."
+            class="mt-3 w-full border border-gray-200 rounded-2xl p-4 resize-none outline-none focus:border-black"
+          ></textarea>
+
+          <div class="mt-7">
+
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-bold">वीडियो भाषा</h2>
+              <span id="normalLanguageLabel" class="text-sm text-gray-500">
+                Hindi
+              </span>
+            </div>
+
+            <div class="flex flex-wrap gap-2" id="normalLanguages"></div>
+
+          </div>
+
+          <div class="mt-7">
+            <h2 class="font-bold mb-3">अस्पेक्ट रेशियो</h2>
+
+            <div class="grid grid-cols-2 gap-3">
+              <button class="option-btn active" data-ratio="9:16" onclick="selectOption(this,'normalRatio')">
+                9:16
+              </button>
+
+              <button class="option-btn" data-ratio="16:9" onclick="selectOption(this,'normalRatio')">
+                16:9
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-7">
+            <h2 class="font-bold mb-3">वीडियो की अवधि</h2>
+
+            <div class="grid grid-cols-3 gap-3">
+              <button class="option-btn" data-duration="30" onclick="selectOption(this,'normalDuration')">
+                30 sec
+              </button>
+
+              <button class="option-btn active" data-duration="60" onclick="selectOption(this,'normalDuration')">
+                1 min
+              </button>
+
+              <button class="option-btn" data-duration="180" onclick="selectOption(this,'normalDuration')">
+                3 min
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+
+        <div class="studio-card p-5 sm:p-7 h-fit">
+
+          <h2 class="font-bold text-xl">Voice & Music</h2>
+
+          <div class="mt-5 p-4 rounded-2xl bg-gray-50">
+            <div class="text-sm text-gray-500">आवाज़</div>
+            <div class="flex items-center justify-between mt-2">
+              <span class="font-bold" id="normalVoiceText">Ankit</span>
+              <button onclick="changeVoice('normalVoiceText')" class="text-sm underline">
+                Change
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-3 p-4 rounded-2xl bg-gray-50">
+            <div class="text-sm text-gray-500">बैकग्राउंड म्यूजिक</div>
+            <div class="flex items-center justify-between mt-2">
+              <span class="font-bold" id="normalMusicText">City of the Wolf</span>
+              <button onclick="changeMusic('normalMusicText')" class="text-sm underline">
+                Change
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-3 p-4 rounded-2xl bg-gray-50">
+            <div class="text-sm text-gray-500">ब्रांडिंग</div>
+
+            <div class="mt-2 flex items-center justify-between gap-3">
+              <span id="normalBrandText" class="font-bold text-sm">
+                Insta / FB पेज नाम जोड़ें
+              </span>
+
+              <button onclick="editBrand('normalBrandText')" class="text-sm underline">
+                Edit
+              </button>
+            </div>
+          </div>
+
+          <button onclick="generateNormalVideo()" class="black-btn w-full rounded-2xl py-4 mt-6 font-black">
+            🎬 वीडियो बनाएं
+          </button>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </section>
+
+
+  <!-- ================= FUNNY STUDIO ================= -->
+  <section id="funnyPage" class="page hidden-page">
+
+    <header class="sticky top-0 z-50 glass border-b border-gray-200">
+      <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
+        <button onclick="showPage('homePage')" class="font-bold">
+          ← GO BACK
+        </button>
+
+        <div class="font-black">Funny Reel Studio</div>
+
+        <div class="text-sm font-bold">
+          😂 FUNNY
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-5 py-8">
+
+      <div class="mb-7">
+        <div class="text-sm text-gray-500">FUNNY REEL MAKER</div>
+        <h1 class="text-3xl sm:text-4xl font-black mt-1">
+          Funny Reel Banao 😂
+        </h1>
+      </div>
+
+      <div class="grid lg:grid-cols-[1.25fr_.75fr] gap-6">
+
+        <div class="studio-card p-5 sm:p-7">
+
+          <div>
+            <h2 class="font-bold text-lg">भाषा</h2>
+            <div id="funnyLanguages" class="flex flex-wrap gap-2 mt-3"></div>
+          </div>
+
+
+          <div class="mt-8">
+
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="font-bold text-lg">😂 तैयार जोक्स चुनें</h2>
+                <p class="text-sm text-gray-500 mt-1">
+                  27 मज़ेदार जोक्स उपलब्ध
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-4 grid sm:grid-cols-2 gap-3">
+
+              <div class="story-card selected" onclick="selectJoke(this,'जब दोस्त बोले: भाई तू बदल गया है...')">
+                😂 <span class="font-bold">दोस्ती वाला Joke</span>
+              </div>
+
+              <div class="story-card" onclick="selectJoke(this,'जब माँ ने कहा: बेटा मेहमान आ रहे हैं...')">
+                😂 <span class="font-bold">माँ वाला Joke</span>
+              </div>
+
+              <div class="story-card" onclick="selectJoke(this,'जब मोबाइल की battery 1% हो और charger दूर हो...')">
+                🔋 <span class="font-bold">Mobile Joke</span>
+              </div>
+
+              <div class="story-card" onclick="selectJoke(this,'जब दोस्त ने कहा: बस 5 मिनट में पहुँच रहा हूँ...')">
+                🚗 <span class="font-bold">5 Minute वाला Joke</span>
+              </div>
+
+            </div>
+
+            <textarea
+              id="funnyJoke"
+              rows="4"
+              class="mt-4 w-full border border-gray-200 rounded-2xl p-4 resize-none outline-none focus:border-black"
+              placeholder="अपना joke भी लिख सकते हैं..."
+            >जब दोस्त बोले: भाई तू बदल गया है...</textarea>
+
+          </div>
+
+
+          <div class="mt-8">
+
+            <h2 class="font-bold text-lg">अस्पेक्ट रेशियो</h2>
+
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <button class="option-btn active" data-ratio="9:16" onclick="selectOption(this,'funnyRatio')">
+                9:16
+              </button>
+
+              <button class="option-btn" data-ratio="16:9" onclick="selectOption(this,'funnyRatio')">
+                16:9
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="studio-card p-5 sm:p-7 h-fit">
+
+          <div class="p-5 rounded-2xl bg-gray-50">
+            <div class="text-3xl">🎬</div>
+
+            <h2 class="font-black text-xl mt-3">
+              फ़ास्ट जोक वीडियो
+            </h2>
+
+            <p class="text-sm text-gray-500 mt-2">
+              8 3D Cartoon-style फ्रेम्स • तेज़ ट्रांज़िशन • कॉमेडी एक्सप्रेशन
+            </p>
+          </div>
+
+
+          <div class="mt-4 p-4 rounded-2xl bg-gray-50">
+            <div class="text-sm text-gray-500">आवाज़</div>
+
+            <div class="flex justify-between items-center mt-2">
+              <span id="funnyVoiceText" class="font-bold">Ankit</span>
+
+              <button onclick="changeVoice('funnyVoiceText')" class="text-sm underline">
+                Change
+              </button>
+            </div>
+          </div>
+
+
+          <div class="mt-3 p-4 rounded-2xl bg-gray-50">
+            <div class="text-sm text-gray-500">
+              बैकग्राउंड म्यूजिक
+            </div>
+
+            <div class="flex justify-between items-center mt-2">
+              <span id="funnyMusicText" class="font-bold">
+                cartoon-music-2
+              </span>
+
+              <button onclick="changeMusic('funnyMusicText')" class="text-sm underline">
+                Change
+              </button>
+            </div>
+          </div>
+
+
+          <div class="mt-3 p-4 rounded-2xl bg-gray-50">
+
+            <div class="text-sm text-gray-500">
+              ब्रांडिंग
+            </div>
+
+            <div class="flex justify-between items-center mt-2 gap-3">
+              <span id="funnyBrandText" class="font-bold text-sm">
+                Insta / FB पेज नाम जोड़ें
+              </span>
+
+              <button onclick="editBrand('funnyBrandText')" class="text-sm underline">
+                Edit
+              </button>
+            </div>
+
+          </div>
+
+
+          <button onclick="generateFunnyVideo()" class="black-btn w-full rounded-2xl py-4 mt-6 font-black">
+            🎬 जोक वीडियो बनाएं (1 Credit)
+          </button>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </section>
+
+
+  <!-- ================= GENERATING PAGE ================= -->
+  <section id="generatingPage" class="page hidden-page">
+
+    <main class="min-h-screen flex items-center justify-center px-5">
+
+      <div class="w-full max-w-xl text-center">
+
+        <div class="loader-ring"></div>
+
+        <div class="mt-8 text-sm text-gray-500">
+          AI VIDEO CREATION
+        </div>
+
+        <h1 class="text-3xl sm:text-4xl font-black mt-2">
+          वीडियो तैयार हो रही है...
         </h1>
 
-        <span class="bg-green-500/10 text-green-400 px-3 py-1.5 rounded-full text-[11px] font-bold border border-green-500/20">
-            ♾️ Unlimited Free
-        </span>
+        <p id="generationMessage" class="text-gray-500 mt-3">
+          आपकी वीडियो बनाई जा रही है
+        </p>
 
+        <div class="mt-8 progress-track">
+          <div id="generationBar" class="progress-bar"></div>
+        </div>
+
+        <div class="flex justify-between text-sm mt-3">
+          <span id="generationStep">Starting...</span>
+          <span id="generationPercent">0%</span>
+        </div>
+
+        <div class="mt-8 text-left studio-card p-5">
+
+          <div class="flex gap-3 py-3 border-b border-gray-100">
+            <span>📝</span>
+            <span>Joke / Story तैयार किया जा रहा है</span>
+          </div>
+
+          <div class="flex gap-3 py-3 border-b border-gray-100">
+            <span>🎨</span>
+            <span>AI frames तैयार किए जा रहे हैं</span>
+          </div>
+
+          <div class="flex gap-3 py-3 border-b border-gray-100">
+            <span>🎙️</span>
+            <span>Voiceover तैयार किया जा रहा है</span>
+          </div>
+
+          <div class="flex gap-3 py-3">
+            <span>🎬</span>
+            <span>Video finalise की जा रही है</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+  </section>
+
+
+  <!-- ================= RESULT PAGE ================= -->
+  <section id="resultPage" class="page hidden-page">
+
+    <header class="sticky top-0 z-50 glass border-b border-gray-200">
+      <div class="max-w-5xl mx-auto px-5 py-4">
+
+        <div class="flex items-center justify-between">
+
+          <button onclick="showPage('homePage')" class="font-bold">
+            ← GO BACK
+          </button>
+
+          <div class="font-black">
+            Video Ready
+          </div>
+
+          <div class="w-16"></div>
+
+        </div>
+
+        <div class="flex mt-5 border-b border-gray-200">
+
+          <button
+            id="scenesTab"
+            onclick="switchResultTab('scenes')"
+            class="px-5 py-3 font-bold border-b-2 border-black"
+          >
+            SCENES
+          </button>
+
+          <button
+            id="previewTab"
+            onclick="switchResultTab('preview')"
+            class="px-5 py-3 text-gray-500"
+          >
+            PREVIEW
+          </button>
+
+        </div>
+
+      </div>
     </header>
 
 
-    <!-- ========================= -->
-    <!-- STEP 1 : IDEA -->
-    <!-- ========================= -->
+    <main class="max-w-5xl mx-auto px-5 py-8">
 
-    <section id="stepInput" class="space-y-4">
+      <!-- SCENES -->
+      <div id="scenesView">
 
-        <div class="text-center pt-1 pb-2">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
 
-            <h2 class="text-3xl font-black leading-tight">
-                अब 1 मिनट में
-                <br>
-                <span class="text-pink-500">AI Season</span> बनाएं
-            </h2>
-
-            <p class="text-gray-400 text-xs mt-2">
-                Idea → Connected Episodes → Full Scripts
-            </p>
-
-        </div>
-
-
-        <!-- IDEA -->
-        <div class="glass p-4 rounded-2xl">
-
-            <label class="text-xs text-pink-400 font-bold block mb-2">
-                STORY IDEA
-            </label>
-
-            <textarea
-                id="videoIdea"
-                rows="4"
-                class="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-sm text-white outline-none focus:border-pink-500 resize-none"
-                placeholder="Apni story ka idea likhiye...&#10;&#10;Example: Ek young shikari ko jungle mein ek aisa raaz milta hai jo uske poore gaon ko khatre mein daal deta hai."
-            ></textarea>
-
-        </div>
-
-
-        <!-- PRESETS -->
-        <div class="grid grid-cols-2 gap-2">
-
-            <button
-                onclick="setPreset('Ek young shikari ko jungle mein ek purana raaz milta hai jo uske gaon ke liye bahut bada khatra ban jata hai.')"
-                class="glass p-3 rounded-xl text-left tap-btn"
-            >
-                <span class="block font-bold text-pink-400 text-xs">
-                    🏹 Shikari Mystery
-                </span>
-
-                <span class="text-[10px] text-gray-400">
-                    Cinematic Series
-                </span>
-            </button>
-
-
-            <button
-                onclick="setPreset('Ek normal ladke ki life tab badal jaati hai jab use ek mysterious power milti hai aur powerful enemies uske peeche pad jaate hain.')"
-                class="glass p-3 rounded-xl text-left tap-btn"
-            >
-                <span class="block font-bold text-orange-400 text-xs">
-                    ⚡ Superpower Story
-                </span>
-
-                <span class="text-[10px] text-gray-400">
-                    Action + Mystery
-                </span>
-            </button>
-
-        </div>
-
-
-        <!-- EPISODE COUNT -->
-        <div class="glass p-4 rounded-2xl">
-
-            <label class="text-xs text-gray-300 font-bold block mb-2">
-                SEASON LENGTH
-            </label>
-
-            <div class="grid grid-cols-2 gap-2">
-
-                <button
-                    id="tenEpisodes"
-                    onclick="selectEpisodeCount(10)"
-                    class="episodeCountBtn bg-pink-600 border border-pink-400 p-3 rounded-xl text-sm font-bold"
-                >
-                    10 Episodes
-                    <span class="block text-[10px] text-pink-100 mt-1">
-                        Standard Season
-                    </span>
-                </button>
-
-                <button
-                    id="twentyEpisodes"
-                    onclick="selectEpisodeCount(20)"
-                    class="episodeCountBtn glass p-3 rounded-xl text-sm font-bold"
-                >
-                    20 Episodes
-                    <span class="block text-[10px] text-gray-400 mt-1">
-                        Long Season
-                    </span>
-                </button>
-
+          <div>
+            <div class="text-sm text-gray-500">
+              GENERATED VIDEO
             </div>
 
-            <p class="text-[10px] text-gray-500 mt-2">
-                Note: current Gemini backend generation is configured for 10 episodes.
+            <h1 class="text-3xl font-black mt-1">
+              Scenes
+            </h1>
+
+            <p id="sceneSummary" class="text-gray-500 mt-1">
+              7 scenes • 45s total
             </p>
+          </div>
+
+          <div class="font-bold text-sm">
+            FEEDBACK
+          </div>
 
         </div>
 
 
-        <!-- GENERATE -->
-        <button
-            id="generateButton"
-            onclick="startSeasonGeneration()"
-            class="w-full bg-gradient-to-r from-pink-600 to-rose-500 py-4 rounded-2xl font-extrabold shadow-lg tap-btn text-base glow"
-        >
-            Generate AI Season 🚀
-        </button>
+        <div class="studio-card p-5 sm:p-7 mt-6">
 
-    </section>
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-5">
+
+            <div>
+              <div class="text-sm text-gray-500">
+                VIDEO READY
+              </div>
+
+              <div class="text-4xl font-black mt-1">
+                100%
+              </div>
+
+              <div class="text-gray-500">
+                Complete
+              </div>
+            </div>
+
+            <button onclick="switchResultTab('preview')" class="black-btn rounded-2xl px-7 py-4 font-black">
+              ▶ PLAY VIDEO
+            </button>
+
+          </div>
+
+        </div>
 
 
+        <div class="mt-7">
 
-    <!-- ========================= -->
-    <!-- STEP 2 : SEASON -->
-    <!-- ========================= -->
+          <h2 class="font-bold text-xl mb-4">
+            Generated Scenes
+          </h2>
 
-    <section id="stepSeason" class="hidden space-y-4">
+          <div id="sceneList" class="flex gap-4 overflow-x-auto pb-4"></div>
 
-        <!-- SEASON HEADER -->
-        <div class="glass p-4 rounded-2xl">
+        </div>
 
-            <div class="flex items-center justify-between gap-3">
+      </div>
 
-                <div class="min-w-0">
 
-                    <p class="text-[10px] text-pink-400 font-bold uppercase">
-                        AI SEASON
-                    </p>
+      <!-- PREVIEW -->
+      <div id="previewView" class="hidden">
 
-                    <h2
-                        id="seasonTitle"
-                        class="text-xl font-black mt-1 break-words"
-                    >
-                        Untitled Season
-                    </h2>
+        <div class="grid lg:grid-cols-[1fr_.85fr] gap-8 items-start">
+
+          <div>
+
+            <div class="phone-frame">
+
+              <div id="previewVideoArea" class="fake-video">
+
+                <div>
+
+                  <div class="play-button" onclick="playPreview()">
+                    ▶
+                  </div>
+
+                  <div class="mt-5 font-bold text-lg">
+                    Your AI Video
+                  </div>
+
+                  <div class="text-sm text-gray-300 mt-1">
+                    Preview
+                  </div>
 
                 </div>
 
-                <span
-                    id="episodeTotal"
-                    class="flex-shrink-0 bg-pink-500/15 text-pink-400 border border-pink-500/20 px-2 py-1 rounded-lg text-[10px] font-bold"
-                >
-                    10 EP
-                </span>
+              </div>
 
             </div>
 
+            <div class="flex items-center justify-center gap-4 mt-4">
 
-            <p
-                id="seasonLogline"
-                class="text-xs text-gray-400 mt-3 leading-relaxed"
-            ></p>
+              <button onclick="changeSpeed(-0.25)" class="outline-btn px-4 py-2 rounded-xl">
+                −
+              </button>
 
-        </div>
+              <span id="speedText" class="font-bold">
+                1×
+              </span>
 
-
-        <!-- CHARACTERS -->
-        <div
-            id="charactersBox"
-            class="glass p-4 rounded-2xl hidden"
-        >
-
-            <div class="flex items-center justify-between mb-3">
-
-                <h3 class="text-sm font-bold">
-                    🎭 Characters
-                </h3>
-
-                <span class="text-[10px] text-gray-500">
-                    Continuity
-                </span>
+              <button onclick="changeSpeed(0.25)" class="outline-btn px-4 py-2 rounded-xl">
+                +
+              </button>
 
             </div>
 
-            <div
-                id="charactersList"
-                class="space-y-2"
-            ></div>
-
-        </div>
-
-
-        <!-- EPISODES -->
-        <div>
-
-            <div class="flex justify-between items-center mb-2">
-
-                <h3 class="text-sm font-bold">
-                    🎬 Episodes
-                </h3>
-
-                <span class="text-[10px] text-gray-500">
-                    Connected Story
-                </span>
-
+            <div class="text-center mt-3 text-sm text-gray-500">
+              <span id="currentTime">0:00</span>
+              /
+              <span id="totalTime">0:45</span>
             </div>
 
-            <div
-                id="episodesList"
-                class="space-y-3 max-h-[65vh] overflow-y-auto pr-1 hide-scroll"
-            ></div>
-
-        </div>
+          </div>
 
 
-        <!-- FINALE -->
-        <div
-            id="finaleBox"
-            class="glass p-4 rounded-2xl hidden"
-        >
+          <div>
 
-            <h3 class="text-sm font-bold text-pink-400">
-                🏁 Season Finale
-            </h3>
+            <div class="studio-card p-5">
 
-            <p
-                id="seasonFinale"
-                class="text-xs text-gray-300 mt-2 leading-relaxed"
-            ></p>
+              <button
+                onclick="downloadVideo()"
+                class="black-btn w-full rounded-2xl py-4 font-black"
+              >
+                ↓ Download Video
+              </button>
 
-            <div
-                id="season2Box"
-                class="mt-4 pt-3 border-t border-gray-800"
-            >
-
-                <h4 class="text-xs font-bold text-orange-400">
-                    🔥 Season 2 Hook
-                </h4>
-
-                <p
-                    id="season2Hook"
-                    class="text-xs text-gray-400 mt-1 leading-relaxed"
-                ></p>
-
-            </div>
-
-        </div>
-
-
-        <!-- BACK -->
-        <button
-            onclick="backToInput()"
-            class="w-full text-center text-xs text-gray-500 py-3"
-        >
-            ← Idea Change Karein
-        </button>
-
-    </section>
-
-
-
-    <!-- ========================= -->
-    <!-- STEP 3 : EPISODE DETAIL -->
-    <!-- ========================= -->
-
-    <section id="stepEpisode" class="hidden space-y-4">
-
-        <button
-            onclick="backToSeason()"
-            class="text-xs text-gray-500 py-1"
-        >
-            ← Back to Episodes
-        </button>
-
-
-        <div class="glass p-4 rounded-2xl">
-
-            <div class="flex items-center justify-between gap-2">
-
-                <span
-                    id="detailEpisodeNumber"
-                    class="text-[10px] text-pink-400 font-bold uppercase"
-                >
-                    Episode 1
-                </span>
-
-                <span
-                    id="detailCliffTag"
-                    class="bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2 py-1 rounded-lg text-[9px] font-bold"
-                >
-                    CLIFFHANGER
-                </span>
-
-            </div>
-
-            <h2
-                id="detailTitle"
-                class="text-2xl font-black mt-2"
-            >
-                Episode Title
-            </h2>
-
-            <p
-                id="detailSummary"
-                class="text-xs text-gray-400 mt-2 leading-relaxed"
-            ></p>
-
-        </div>
-
-
-        <!-- HOOK -->
-        <div class="glass p-4 rounded-2xl">
-
-            <h3 class="text-xs font-bold text-pink-400">
-                🎯 OPENING HOOK
-            </h3>
-
-            <p
-                id="detailHook"
-                class="text-sm text-gray-200 mt-2 leading-relaxed"
-            ></p>
-
-        </div>
-
-
-        <!-- SCRIPT -->
-        <div class="glass p-4 rounded-2xl">
-
-            <div class="flex justify-between items-center">
-
-                <h3 class="text-xs font-bold text-cyan-400">
-                    🎙️ COMPLETE SCRIPT
-                </h3>
+              <div class="grid grid-cols-2 gap-3 mt-3">
 
                 <button
-                    onclick="speakEpisode()"
-                    class="bg-pink-600/20 text-pink-400 border border-pink-500/20 px-2 py-1 rounded-lg text-[10px] tap-btn"
+                  onclick="instagramShare()"
+                  class="outline-btn rounded-2xl py-3 font-bold"
                 >
-                    🔊 Listen
+                  📸 Instagram
                 </button>
 
+                <button
+                  onclick="whatsappShare()"
+                  class="outline-btn rounded-2xl py-3 font-bold"
+                >
+                  📱 WhatsApp
+                </button>
+
+              </div>
+
+              <button
+                onclick="fullScreenPreview()"
+                class="outline-btn w-full rounded-2xl py-3 mt-3 font-bold"
+              >
+                ⛶ Full Screen
+              </button>
+
+              <button
+                onclick="reportVideo()"
+                class="w-full py-3 mt-2 text-gray-500 text-sm"
+              >
+                🚩 Report
+              </button>
+
             </div>
 
-            <div
-                id="detailScript"
-                class="text-sm text-gray-200 mt-3 leading-7 whitespace-pre-line"
-            ></div>
 
-        </div>
+            <div class="studio-card p-5 mt-4">
 
+              <h3 class="font-black">
+                Video Details
+              </h3>
 
-        <!-- DIALOGUE -->
-        <div class="glass p-4 rounded-2xl">
+              <div class="mt-4 space-y-3">
 
-            <h3 class="text-xs font-bold text-yellow-400">
-                💬 IMPORTANT DIALOGUE
-            </h3>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Voice</span>
+                  <span class="font-bold" id="resultVoice">
+                    Voiceover
+                  </span>
+                </div>
 
-            <div
-                id="detailDialogue"
-                class="text-sm text-gray-300 mt-2 leading-6 whitespace-pre-line"
-            ></div>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Music</span>
+                  <span class="font-bold" id="resultMusic">
+                    Background
+                  </span>
+                </div>
 
-        </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Caption</span>
+                  <span class="font-bold">
+                    Add Text
+                  </span>
+                </div>
 
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Page Name</span>
+                  <span class="font-bold">
+                    Brand
+                  </span>
+                </div>
 
-        <!-- CLIFFHANGER -->
-        <div class="glass p-4 rounded-2xl border border-orange-500/20">
+                <div class="flex justify-between">
+                  <span class="text-gray-500">Logo</span>
+                  <span class="font-bold">
+                    Brand Logo
+                  </span>
+                </div>
 
-            <h3 class="text-xs font-bold text-orange-400">
-                🔥 ENDING CLIFFHANGER
-            </h3>
+              </div>
 
-            <p
-                id="detailCliffhanger"
-                class="text-sm text-gray-200 mt-2 leading-relaxed"
-            ></p>
-
-        </div>
-
-
-        <!-- NAVIGATION -->
-        <div class="grid grid-cols-2 gap-2">
-
-            <button
-                id="previousEpisode"
-                onclick="previousEpisode()"
-                class="glass py-3 rounded-xl text-xs font-bold tap-btn"
-            >
-                ← Previous
-            </button>
-
-            <button
-                id="nextEpisode"
-                onclick="nextEpisode()"
-                class="bg-pink-600 py-3 rounded-xl text-xs font-bold tap-btn"
-            >
-                Next →
-            </button>
-
-        </div>
-
-    </section>
-
-
-
-    <!-- ========================= -->
-    <!-- STEP 4 : OLD RENDER DEMO -->
-    <!-- ========================= -->
-
-    <section id="stepRender" class="hidden text-center py-14 space-y-6">
-
-        <div class="w-24 h-24 mx-auto relative flex items-center justify-center">
-
-            <div class="absolute inset-0 border-4 border-pink-500/20 rounded-full"></div>
-
-            <div class="absolute inset-0 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-
-            <span
-                id="renderPercent"
-                class="text-xl font-black text-pink-400"
-            >
-                4%
-            </span>
-
-        </div>
-
-        <div>
-
-            <h3 class="text-lg font-bold mb-1">
-                VIDEO RENDERING
-            </h3>
-
-            <p
-                id="renderStatus"
-                class="text-xs text-gray-400 font-mono"
-            >
-                Preparing...
-            </p>
-
-        </div>
-
-        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-
-            <div
-                id="progressBar"
-                class="bg-gradient-to-r from-pink-500 to-orange-400 h-full transition-all"
-                style="width:4%"
-            ></div>
-
-        </div>
-
-    </section>
-
-
-
-    <!-- ========================= -->
-    <!-- STEP 5 : PREVIEW -->
-    <!-- ========================= -->
-
-    <section id="stepPreview" class="hidden space-y-4">
-
-        <div class="glass p-5 rounded-2xl text-center">
-
-            <div class="text-4xl mb-3">
-                🎬
             </div>
 
-            <h2 class="text-xl font-black">
-                Season Ready
-            </h2>
-
-            <p
-                id="previewText"
-                class="text-xs text-gray-400 mt-2"
-            ></p>
+          </div>
 
         </div>
 
-        <button
-            onclick="resetStudio()"
-            class="w-full bg-gradient-to-r from-pink-600 to-rose-500 py-4 rounded-2xl font-bold tap-btn"
-        >
-            ↺ Nayi Season Banayein
-        </button>
+      </div>
 
-    </section>
+    </main>
 
-</div>
+  </section>
 
 
+  <script>
 
-<script>
+    /* ================= DATA ================= */
 
-    // ==========================================
-    // GLOBAL STATE
-    // ==========================================
+    const languages = [
+      "Hindi",
+      "English",
+      "Bengali",
+      "Punjabi",
+      "Gujarati",
+      "Kannada",
+      "Malayalam",
+      "Marathi",
+      "Tamil",
+      "Telugu",
+      "Urdu",
+      "Odia"
+    ];
 
-    let currentTopic = "";
+    let selectedNormalLanguage = "Hindi";
+    let selectedFunnyLanguage = "Hindi";
 
-    let seasonData = null;
+    let normalRatio = "9:16";
+    let funnyRatio = "9:16";
 
-    let episodes = [];
+    let normalDuration = 60;
 
-    let selectedEpisodeIndex = 0;
+    let selectedJoke =
+      "जब दोस्त बोले: भाई तू बदल गया है...";
 
-    let selectedEpisodeCount = 10;
+    let currentVideoType = "normal";
 
-    let renderTimer = null;
+    let videoDuration = 45;
+
+    let playbackSpeed = 1;
 
 
+    /* ================= PAGE ================= */
 
-    // ==========================================
-    // EPISODE COUNT
-    // ==========================================
+    function showPage(id) {
 
-    function selectEpisodeCount(count) {
+      document.querySelectorAll(".page").forEach(page => {
+        page.classList.add("hidden-page");
+      });
 
-        selectedEpisodeCount = count;
+      document.getElementById(id).classList.remove("hidden-page");
 
-        const ten = document.getElementById("tenEpisodes");
-        const twenty = document.getElementById("twentyEpisodes");
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
 
-        ten.classList.remove("bg-pink-600", "border-pink-400");
-        twenty.classList.remove("bg-pink-600", "border-pink-400");
 
-        ten.classList.add("glass");
-        twenty.classList.add("glass");
+    /* ================= LANGUAGE UI ================= */
 
-        if (count === 10) {
+    function renderLanguages(containerId, type) {
 
-            ten.classList.remove("glass");
-            ten.classList.add("bg-pink-600", "border-pink-400");
+      const container = document.getElementById(containerId);
+
+      container.innerHTML = "";
+
+      languages.forEach(language => {
+
+        const button = document.createElement("button");
+
+        button.className =
+          "option-btn " +
+          ((type === "normal"
+            ? selectedNormalLanguage
+            : selectedFunnyLanguage) === language
+            ? "active"
+            : "");
+
+        button.textContent = language;
+
+        button.onclick = () => {
+
+          if (type === "normal") {
+            selectedNormalLanguage = language;
+            document.getElementById("normalLanguageLabel").textContent = language;
+            renderLanguages("normalLanguages", "normal");
+          } else {
+            selectedFunnyLanguage = language;
+            renderLanguages("funnyLanguages", "funny");
+          }
+
+        };
+
+        container.appendChild(button);
+
+      });
+
+    }
+
+
+    renderLanguages("normalLanguages", "normal");
+    renderLanguages("funnyLanguages", "funny");
+
+
+    /* ================= HOME → NORMAL ================= */
+
+    function openNormalStudio() {
+
+      const story = document.getElementById("homeStory").value.trim();
+
+      document.getElementById("normalStory").value = story;
+
+      showPage("studioPage");
+
+    }
+
+
+    /* ================= OPTIONS ================= */
+
+    function selectOption(button, type) {
+
+      const parent = button.parentElement;
+
+      parent.querySelectorAll(".option-btn").forEach(btn => {
+        btn.classList.remove("active");
+      });
+
+      button.classList.add("active");
+
+      if (type === "normalRatio") {
+        normalRatio = button.dataset.ratio;
+      }
+
+      if (type === "funnyRatio") {
+        funnyRatio = button.dataset.ratio;
+      }
+
+      if (type === "normalDuration") {
+        normalDuration = Number(button.dataset.duration);
+      }
+
+    }
+
+
+    /* ================= JOKES ================= */
+
+    function selectJoke(card, joke) {
+
+      document.querySelectorAll(".story-card").forEach(item => {
+        item.classList.remove("selected");
+      });
+
+      card.classList.add("selected");
+
+      selectedJoke = joke;
+
+      document.getElementById("funnyJoke").value = joke;
+
+    }
+
+
+    /* ================= VOICE ================= */
+
+    function changeVoice(elementId) {
+
+      const voices = [
+        "Ankit",
+        "Swara",
+        "Aarav",
+        "Neha"
+      ];
+
+      const current =
+        document.getElementById(elementId).textContent.trim();
+
+      const index = voices.indexOf(current);
+
+      const next =
+        voices[(index + 1) % voices.length];
+
+      document.getElementById(elementId).textContent = next;
+
+      showToast("Voice changed to " + next);
+
+    }
+
+
+    /* ================= MUSIC ================= */
+
+    function changeMusic(elementId) {
+
+      const music = [
+        "cartoon-music-2",
+        "City of the Wolf",
+        "Funny Bounce",
+        "Comedy Beat"
+      ];
+
+      const current =
+        document.getElementById(elementId).textContent.trim();
+
+      const index = music.indexOf(current);
+
+      const next =
+        music[(index + 1) % music.length];
+
+      document.getElementById(elementId).textContent = next;
+
+      showToast("Music changed to " + next);
+
+    }
+
+
+    /* ================= BRANDING ================= */
+
+    function editBrand(elementId) {
+
+      const current =
+        document.getElementById(elementId).textContent.trim();
+
+      const name = prompt(
+        "Instagram / Facebook Page Name:",
+        current === "Insta / FB पेज नाम जोड़ें"
+          ? ""
+          : current
+      );
+
+      if (name !== null && name.trim()) {
+
+        document.getElementById(elementId).textContent =
+          name.trim();
+
+      }
+
+    }
+
+
+    /* ================= GENERATE ================= */
+
+    function generateFunnyVideo() {
+
+      const joke =
+        document.getElementById("funnyJoke").value.trim();
+
+      if (!joke) {
+        showToast("पहले कोई joke चुनें या लिखें");
+        return;
+      }
+
+      currentVideoType = "funny";
+
+      startGeneration();
+
+    }
+
+
+    async function generateNormalVideo() {
+
+      const story =
+        document.getElementById("normalStory").value.trim();
+
+      if (!story) {
+        showToast("पहले अपनी story लिखें");
+        return;
+      }
+
+      currentVideoType = "normal";
+
+      startGeneration();
+
+    }
+
+
+    /* ================= GENERATION ================= */
+
+    function startGeneration() {
+
+      showPage("generatingPage");
+
+      let progress = 0;
+
+      const bar =
+        document.getElementById("generationBar");
+
+      const percent =
+        document.getElementById("generationPercent");
+
+      const step =
+        document.getElementById("generationStep");
+
+      const message =
+        document.getElementById("generationMessage");
+
+      const steps = [
+        ["Story तैयार की जा रही है...", 15],
+        ["AI frames बनाए जा रहे हैं...", 38],
+        ["Voiceover तैयार हो रहा है...", 62],
+        ["Background music जोड़ा जा रहा है...", 80],
+        ["Video finalise हो रही है...", 95],
+        ["Video ready!", 100]
+      ];
+
+      let index = 0;
+
+      const interval = setInterval(() => {
+
+        if (index >= steps.length) {
+
+          clearInterval(interval);
+
+          setTimeout(() => {
+
+            prepareResult();
+
+            showPage("resultPage");
+
+          }, 700);
+
+          return;
+
+        }
+
+        const [text, target] = steps[index];
+
+        progress = target;
+
+        bar.style.width = progress + "%";
+
+        percent.textContent = progress + "%";
+
+        step.textContent = text;
+
+        message.textContent =
+          currentVideoType === "funny"
+            ? "आपकी Funny Reel बनाई जा रही है"
+            : "आपकी AI Video बनाई जा रही है";
+
+        index++;
+
+      }, 850);
+
+    }
+
+
+    /* ================= RESULT ================= */
+
+    function prepareResult() {
+
+      videoDuration =
+        currentVideoType === "funny"
+          ? 45
+          : normalDuration === 30
+            ? 30
+            : normalDuration === 180
+              ? 180
+              : 45;
+
+      document.getElementById("totalTime").textContent =
+        formatTime(videoDuration);
+
+      document.getElementById("currentTime").textContent =
+        "0:00";
+
+      const sceneCount =
+        currentVideoType === "funny"
+          ? 7
+          : videoDuration <= 30
+            ? 5
+            : 7;
+
+      document.getElementById("sceneSummary").textContent =
+        `${sceneCount} scenes • ${formatTime(videoDuration)} total`;
+
+      createScenes(sceneCount);
+
+      if (currentVideoType === "funny") {
+
+        document.getElementById("resultVoice").textContent =
+          document.getElementById("funnyVoiceText").textContent;
+
+        document.getElementById("resultMusic").textContent =
+          document.getElementById("funnyMusicText").textContent;
+
+      } else {
+
+        document.getElementById("resultVoice").textContent =
+          document.getElementById("normalVoiceText").textContent;
+
+        document.getElementById("resultMusic").textContent =
+          document.getElementById("normalMusicText").textContent;
+
+      }
+
+      switchResultTab("scenes");
+
+    }
+
+
+    function createScenes(count) {
+
+      const container =
+        document.getElementById("sceneList");
+
+      container.innerHTML = "";
+
+      const durations = [];
+
+      let remaining = videoDuration;
+
+      for (let i = 0; i < count; i++) {
+
+        let duration;
+
+        if (i === count - 1) {
+
+          duration = remaining;
 
         } else {
 
-            twenty.classList.remove("glass");
-            twenty.classList.add("bg-pink-600", "border-pink-400");
-
-        }
-
-    }
-
-
-
-    // ==========================================
-    // PRESET
-    // ==========================================
-
-    function setPreset(text) {
-
-        document.getElementById("videoIdea").value = text;
-
-    }
-
-
-
-    // ==========================================
-    // GENERATE SEASON
-    // ==========================================
-
-    async function startSeasonGeneration() {
-
-        const input = document.getElementById("videoIdea");
-
-        const button = document.getElementById("generateButton");
-
-        const idea = input.value.trim();
-
-
-        if (!idea) {
-
-            alert("Pehle koi story idea likhiye!");
-
-            return;
-
-        }
-
-
-        currentTopic = idea;
-
-
-        button.disabled = true;
-
-        button.innerText =
-            "AI Season Generate Ho Raha Hai... ⏳";
-
-
-        try {
-
-            const response = await fetch(
-                "/api/generate-script",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        idea: idea,
-                        episodeCount: selectedEpisodeCount,
-                        language: "Hinglish",
-                        genre: "Cinematic Story"
-                    })
-                }
-            );
-
-
-            const rawText = await response.text();
-
-            let data = {};
-
-            try {
-
-                data = JSON.parse(rawText);
-
-            } catch {
-
-                throw new Error(
-                    "Server ne valid JSON response nahi diya.\n\n" +
-                    rawText.slice(0, 1000)
-                );
-
-            }
-
-
-            if (!response.ok || !data.success) {
-
-                let errorMessage =
-                    data.error ||
-                    `Request failed (${response.status})`;
-
-
-                if (data.details) {
-
-                    let details = data.details;
-
-                    if (typeof details !== "string") {
-
-                        details =
-                            JSON.stringify(details, null, 2);
-
-                    }
-
-
-                    errorMessage +=
-                        "\n\nDETAILS:\n" +
-                        details.slice(0, 3000);
-
-                }
-
-
-                throw new Error(errorMessage);
-
-            }
-
-
-            if (
-                !Array.isArray(data.episodes) ||
-                data.episodes.length === 0
-            ) {
-
-                throw new Error(
-                    "Gemini ne episodes return nahi kiye."
-                );
-
-            }
-
-
-            seasonData = data;
-
-            episodes = data.episodes;
-
-
-            showSeason(data);
-
-
-        } catch (error) {
-
-            console.error(
-                "Season generation error:",
-                error
-            );
-
-
-            alert(
-                "❌ AI Season Generation Failed\n\n" +
-                error.message
-            );
-
-        } finally {
-
-            button.disabled = false;
-
-            button.innerText =
-                "Generate AI Season 🚀";
-
-        }
-
-    }
-
-
-
-    // ==========================================
-    // SHOW SEASON
-    // ==========================================
-
-    function showSeason(data) {
-
-        document
-            .getElementById("stepInput")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepEpisode")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepSeason")
-            .classList.remove("hidden");
-
-
-        document.getElementById("seasonTitle").innerText =
-            data.seasonTitle || "Untitled Season";
-
-
-        document.getElementById("seasonLogline").innerText =
-            data.logline ||
-            data.overallStory ||
-            "";
-
-
-        document.getElementById("episodeTotal").innerText =
-            `${episodes.length} EP`;
-
-
-        showCharacters(data.characters || []);
-
-        showEpisodes();
-
-        showFinale(data);
-
-    }
-
-
-
-    // ==========================================
-    // CHARACTERS
-    // ==========================================
-
-    function showCharacters(characters) {
-
-        const box =
-            document.getElementById("charactersBox");
-
-        const list =
-            document.getElementById("charactersList");
-
-
-        if (!characters.length) {
-
-            box.classList.add("hidden");
-
-            return;
-
-        }
-
-
-        box.classList.remove("hidden");
-
-        list.innerHTML = "";
-
-
-        characters.forEach(character => {
-
-            const card =
-                document.createElement("div");
-
-
-            card.className =
-                "bg-black/30 rounded-xl p-3 border border-gray-800";
-
-
-            const name =
-                escapeHTML(
-                    character.name ||
-                    "Character"
-                );
-
-
-            const role =
-                escapeHTML(
-                    character.role ||
-                    ""
-                );
-
-
-            const personality =
-                escapeHTML(
-                    character.personality ||
-                    ""
-                );
-
-
-            card.innerHTML = `
-
-                <div class="flex justify-between gap-2">
-
-                    <span class="text-xs font-bold text-white">
-                        ${name}
-                    </span>
-
-                    <span class="text-[9px] text-pink-400">
-                        ${role}
-                    </span>
-
-                </div>
-
-                <p class="text-[10px] text-gray-500 mt-1">
-                    ${personality}
-                </p>
-
-            `;
-
-
-            list.appendChild(card);
-
-        });
-
-    }
-
-
-
-    // ==========================================
-    // SHOW EPISODES
-    // ==========================================
-
-    function showEpisodes() {
-
-        const list =
-            document.getElementById("episodesList");
-
-
-        list.innerHTML = "";
-
-
-        episodes.forEach((episode, index) => {
-
-            const card =
-                document.createElement("button");
-
-
-            card.type = "button";
-
-            card.className =
-                "episode-card glass w-full text-left p-4 rounded-2xl tap-btn";
-
-
-            const title =
-                escapeHTML(
-                    episode.title ||
-                    `Episode ${index + 1}`
-                );
-
-
-            const summary =
-                escapeHTML(
-                    episode.summary ||
-                    ""
-                );
-
-
-            const cliffhanger =
-                escapeHTML(
-                    episode.cliffhanger ||
-                    ""
-                );
-
-
-            card.innerHTML = `
-
-                <div class="flex items-center gap-3">
-
-                    <div class="w-11 h-11 flex-shrink-0 rounded-xl bg-pink-600/15 border border-pink-500/20 flex items-center justify-center">
-
-                        <span class="text-xs font-black text-pink-400">
-                            ${index + 1}
-                        </span>
-
-                    </div>
-
-
-                    <div class="flex-1 min-w-0">
-
-                        <p class="text-[9px] text-pink-400 font-bold uppercase">
-                            EPISODE ${index + 1}
-                        </p>
-
-                        <h3 class="text-sm font-bold text-white mt-0.5">
-                            ${title}
-                        </h3>
-
-                    </div>
-
-                    <span class="text-gray-500 text-lg">
-                        →
-                    </span>
-
-                </div>
-
-
-                <p class="text-[11px] text-gray-400 mt-3 leading-relaxed">
-                    ${summary}
-                </p>
-
-
-                ${
-                    cliffhanger
-                    ? `
-                        <div class="mt-3 pt-2 border-t border-gray-800">
-
-                            <span class="text-[9px] text-orange-400 font-bold">
-                                🔥 CLIFFHANGER
-                            </span>
-
-                            <p class="text-[10px] text-gray-500 mt-1 line-clamp-2">
-                                ${cliffhanger}
-                            </p>
-
-                        </div>
-                    `
-                    : ""
-                }
-
-            `;
-
-
-            card.onclick = () => {
-
-                openEpisode(index);
-
-            };
-
-
-            list.appendChild(card);
-
-        });
-
-    }
-
-
-
-    // ==========================================
-    // OPEN EPISODE
-    // ==========================================
-
-    function openEpisode(index) {
-
-        if (!episodes[index]) return;
-
-
-        selectedEpisodeIndex = index;
-
-
-        const episode =
-            episodes[index];
-
-
-        document
-            .getElementById("stepSeason")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepEpisode")
-            .classList.remove("hidden");
-
-
-        document.getElementById(
-            "detailEpisodeNumber"
-        ).innerText =
-            `Episode ${index + 1}`;
-
-
-        document.getElementById(
-            "detailTitle"
-        ).innerText =
-            episode.title ||
-            `Episode ${index + 1}`;
-
-
-        document.getElementById(
-            "detailSummary"
-        ).innerText =
-            episode.summary || "";
-
-
-        document.getElementById(
-            "detailHook"
-        ).innerText =
-            episode.hook || "";
-
-
-        document.getElementById(
-            "detailScript"
-        ).innerText =
-            episode.script || "";
-
-
-        document.getElementById(
-            "detailDialogue"
-        ).innerText =
-            episode.dialogue || "";
-
-
-        document.getElementById(
-            "detailCliffhanger"
-        ).innerText =
-            episode.cliffhanger || "";
-
-
-        const previous =
-            document.getElementById(
-                "previousEpisode"
-            );
-
-
-        const next =
-            document.getElementById(
-                "nextEpisode"
-            );
-
-
-        previous.disabled =
-            index === 0;
-
-
-        next.disabled =
-            index === episodes.length - 1;
-
-
-        next.innerText =
-            index === episodes.length - 1
-            ? "Season Finale ✓"
-            : "Next →";
-
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
-
-    }
-
-
-
-    // ==========================================
-    // NEXT EPISODE
-    // ==========================================
-
-    function nextEpisode() {
-
-        if (
-            selectedEpisodeIndex <
-            episodes.length - 1
-        ) {
-
-            openEpisode(
-                selectedEpisodeIndex + 1
+          duration =
+            Math.max(
+              3,
+              Math.round(
+                remaining / (count - i) * 10
+              ) / 10
             );
 
         }
 
-    }
+        remaining =
+          Math.max(
+            0,
+            Math.round(
+              (remaining - duration) * 10
+            ) / 10
+          );
+
+        durations.push(duration);
+
+      }
 
 
+      durations.forEach((duration, index) => {
 
-    // ==========================================
-    // PREVIOUS EPISODE
-    // ==========================================
+        const card =
+          document.createElement("div");
 
-    function previousEpisode() {
+        card.className = "scene-thumb";
 
-        if (
-            selectedEpisodeIndex > 0
-        ) {
+        card.innerHTML = `
+          <div class="thumb-bg"></div>
 
-            openEpisode(
-                selectedEpisodeIndex - 1
+          <div class="scene-thumb-content">
+            <div class="flex justify-between">
+              <span class="bg-white/20 px-2 py-1 rounded-lg text-xs">
+                THUMB
+              </span>
+
+              <span class="text-xs">
+                ${duration}s
+              </span>
+            </div>
+
+            <div>
+              <div class="text-2xl font-black">
+                #${index + 1}
+              </div>
+
+              <div class="text-xs text-white/70 mt-1">
+                ${currentVideoType === "funny"
+                  ? "Comedy Scene"
+                  : "AI Scene"}
+              </div>
+            </div>
+          </div>
+        `;
+
+        card.onclick = () => {
+
+          document.getElementById("currentTime").textContent =
+            formatTime(
+              Math.round(
+                durations
+                  .slice(0, index)
+                  .reduce((a,b) => a+b, 0)
+              )
             );
 
-        }
+          showToast(`Scene #${index + 1} selected`);
+
+        };
+
+        container.appendChild(card);
+
+      });
 
     }
 
 
+    /* ================= RESULT TABS ================= */
 
-    // ==========================================
-    // BACK TO SEASON
-    // ==========================================
+    function switchResultTab(tab) {
 
-    function backToSeason() {
+      const scenes =
+        document.getElementById("scenesView");
 
-        stopVoice();
+      const preview =
+        document.getElementById("previewView");
 
+      const scenesTab =
+        document.getElementById("scenesTab");
 
-        document
-            .getElementById("stepEpisode")
-            .classList.add("hidden");
+      const previewTab =
+        document.getElementById("previewTab");
 
+      if (tab === "scenes") {
 
-        document
-            .getElementById("stepSeason")
-            .classList.remove("hidden");
+        scenes.classList.remove("hidden");
+        preview.classList.add("hidden");
 
+        scenesTab.className =
+          "px-5 py-3 font-bold border-b-2 border-black";
 
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
+        previewTab.className =
+          "px-5 py-3 text-gray-500";
 
-    }
+      } else {
 
+        scenes.classList.add("hidden");
+        preview.classList.remove("hidden");
 
+        previewTab.className =
+          "px-5 py-3 font-bold border-b-2 border-black";
 
-    // ==========================================
-    // FINALE
-    // ==========================================
+        scenesTab.className =
+          "px-5 py-3 text-gray-500";
 
-    function showFinale(data) {
-
-        const box =
-            document.getElementById("finaleBox");
-
-
-        const finale =
-            data.seasonFinale || "";
-
-
-        const season2 =
-            data.season2Hook || "";
-
-
-        if (!finale && !season2) {
-
-            box.classList.add("hidden");
-
-            return;
-
-        }
-
-
-        box.classList.remove("hidden");
-
-
-        document.getElementById(
-            "seasonFinale"
-        ).innerText =
-            finale;
-
-
-        document.getElementById(
-            "season2Hook"
-        ).innerText =
-            season2;
-
-
-        if (!season2) {
-
-            document
-                .getElementById("season2Box")
-                .classList.add("hidden");
-
-        } else {
-
-            document
-                .getElementById("season2Box")
-                .classList.remove("hidden");
-
-        }
+      }
 
     }
 
 
+    /* ================= SPEED ================= */
 
-    // ==========================================
-    // SPEAK EPISODE
-    // ==========================================
+    function changeSpeed(amount) {
 
-    function speakEpisode() {
-
-        if (
-            !("speechSynthesis" in window)
-        ) {
-
-            alert(
-                "Is browser me voice support available nahi hai."
-            );
-
-            return;
-
-        }
-
-
-        const episode =
-            episodes[selectedEpisodeIndex];
-
-
-        if (!episode) return;
-
-
-        window.speechSynthesis.cancel();
-
-
-        const text =
-            [
-                episode.hook,
-                episode.script,
-                episode.dialogue,
-                episode.cliffhanger
-            ]
-            .filter(Boolean)
-            .join(" ");
-
-
-        const utterance =
-            new SpeechSynthesisUtterance(text);
-
-
-        utterance.lang = "hi-IN";
-
-        utterance.rate = 0.95;
-
-        utterance.pitch = 1;
-
-
-        window.speechSynthesis.speak(
-            utterance
+      playbackSpeed =
+        Math.min(
+          2,
+          Math.max(
+            .5,
+            playbackSpeed + amount
+          )
         );
 
-    }
-
-
-
-    // ==========================================
-    // BACK TO INPUT
-    // ==========================================
-
-    function backToInput() {
-
-        stopVoice();
-
-
-        document
-            .getElementById("stepSeason")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepEpisode")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepInput")
-            .classList.remove("hidden");
+      document.getElementById("speedText").textContent =
+        playbackSpeed % 1 === 0
+          ? playbackSpeed + "×"
+          : playbackSpeed.toFixed(2) + "×";
 
     }
 
 
+    /* ================= PREVIEW ================= */
 
-    // ==========================================
-    // HTML SECURITY
-    // ==========================================
+    function playPreview() {
 
-    function escapeHTML(value) {
-
-        return String(value)
-
-            .replaceAll("&", "&amp;")
-
-            .replaceAll("<", "&lt;")
-
-            .replaceAll(">", "&gt;")
-
-            .replaceAll('"', "&quot;")
-
-            .replaceAll("'", "&#039;");
+      showToast(
+        "Preview player तैयार है — actual rendered video connect होने पर यहाँ playback होगा."
+      );
 
     }
 
 
+    function fullScreenPreview() {
 
-    // ==========================================
-    // DEMO RENDER
-    // ==========================================
+      const element =
+        document.getElementById("previewVideoArea");
 
-    function startVideoRendering() {
-
-        document
-            .getElementById("stepSeason")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepEpisode")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepRender")
-            .classList.remove("hidden");
-
-
-        let progress = 4;
-
-
-        const bar =
-            document.getElementById(
-                "progressBar"
-            );
-
-
-        const percent =
-            document.getElementById(
-                "renderPercent"
-            );
-
-
-        const status =
-            document.getElementById(
-                "renderStatus"
-            );
-
-
-        if (renderTimer) {
-
-            clearInterval(renderTimer);
-
-        }
-
-
-        renderTimer =
-            setInterval(() => {
-
-                progress +=
-                    Math.floor(
-                        Math.random() * 8
-                    ) + 5;
-
-
-                if (progress >= 100) {
-
-                    progress = 100;
-
-
-                    clearInterval(
-                        renderTimer
-                    );
-
-
-                    renderTimer = null;
-
-
-                    bar.style.width =
-                        "100%";
-
-
-                    percent.innerText =
-                        "100%";
-
-
-                    status.innerText =
-                        "Demo render complete";
-
-
-                    setTimeout(
-                        showPreview,
-                        500
-                    );
-
-
-                    return;
-
-                }
-
-
-                bar.style.width =
-                    progress + "%";
-
-
-                percent.innerText =
-                    progress + "%";
-
-
-                if (progress < 35) {
-
-                    status.innerText =
-                        "Preparing scenes...";
-
-                } else if (progress < 65) {
-
-                    status.innerText =
-                        "Preparing AI voice...";
-
-                } else if (progress < 90) {
-
-                    status.innerText =
-                        "Stitching episodes...";
-
-                } else {
-
-                    status.innerText =
-                        "Finalizing video...";
-
-                }
-
-            }, 400);
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      }
 
     }
 
 
+    /* ================= DOWNLOAD ================= */
 
-    // ==========================================
-    // PREVIEW
-    // ==========================================
+    function downloadVideo() {
 
-    function showPreview() {
-
-        document
-            .getElementById("stepRender")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepPreview")
-            .classList.remove("hidden");
-
-
-        document.getElementById(
-            "previewText"
-        ).innerText =
-            `${seasonData?.seasonTitle || "Your Season"} — ${episodes.length} episodes generated successfully.`;
+      showToast(
+        "Actual MP4 rendering backend connect होने के बाद Download शुरू होगा."
+      );
 
     }
 
 
+    function instagramShare() {
 
-    // ==========================================
-    // STOP VOICE
-    // ==========================================
-
-    function stopVoice() {
-
-        if (
-            "speechSynthesis" in window
-        ) {
-
-            window.speechSynthesis.cancel();
-
-        }
+      window.open(
+        "https://www.instagram.com/",
+        "_blank"
+      );
 
     }
 
 
+    function whatsappShare() {
 
-    // ==========================================
-    // RESET
-    // ==========================================
+      const text =
+        "Maine ViralTap Studio se ek AI video banayi 🎬";
 
-    function resetStudio() {
-
-        stopVoice();
-
-
-        if (renderTimer) {
-
-            clearInterval(
-                renderTimer
-            );
-
-            renderTimer = null;
-
-        }
-
-
-        currentTopic = "";
-
-        seasonData = null;
-
-        episodes = [];
-
-        selectedEpisodeIndex = 0;
-
-
-        document.getElementById(
-            "videoIdea"
-        ).value = "";
-
-
-        document
-            .getElementById("stepPreview")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepRender")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepEpisode")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepSeason")
-            .classList.add("hidden");
-
-
-        document
-            .getElementById("stepInput")
-            .classList.remove("hidden");
-
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-        });
+      window.open(
+        "https://wa.me/?text=" +
+        encodeURIComponent(text),
+        "_blank"
+      );
 
     }
 
-</script>
+
+    function reportVideo() {
+
+      const email =
+        "mailto:junejahasannn@gmail.com?subject=Video Report";
+
+      window.location.href = email;
+
+    }
+
+
+    /* ================= UTILS ================= */
+
+    function formatTime(seconds) {
+
+      seconds = Math.round(seconds);
+
+      const minutes =
+        Math.floor(seconds / 60);
+
+      const secs =
+        seconds % 60;
+
+      return (
+        minutes +
+        ":" +
+        String(secs).padStart(2,"0")
+      );
+
+    }
+
+
+    function showToast(message) {
+
+      const toast =
+        document.getElementById("toast");
+
+      toast.textContent = message;
+
+      toast.style.display = "block";
+
+      clearTimeout(window.toastTimer);
+
+      window.toastTimer =
+        setTimeout(() => {
+
+          toast.style.display = "none";
+
+        }, 3000);
+
+    }
+
+  </script>
 
 </body>
 </html>
