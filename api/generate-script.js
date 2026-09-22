@@ -14,24 +14,12 @@ export default async function handler(req, res) {
     if (!apiKey) {
       return res.status(500).json({
         success: false,
-        error: "GEMINI_API_KEY is not configured in Vercel Environment Variables."
+        error: "GEMINI_API_KEY missing in Vercel."
       });
     }
 
     const body = req.body || {};
-
     const idea = String(body.idea || "").trim();
-
-    const requestedEpisodes = Number(body.episodeCount || 10);
-
-    const episodeCount =
-      requestedEpisodes === 20 ? 20 : 10;
-
-    const language =
-      String(body.language || "Hinglish").trim();
-
-    const genre =
-      String(body.genre || "Cinematic Story").trim();
 
     if (!idea) {
       return res.status(400).json({
@@ -41,106 +29,39 @@ export default async function handler(req, res) {
     }
 
     const prompt = `
-You are a professional Indian web-series writer and showrunner.
+Create a connected Indian cinematic web-series season for this idea:
 
-Create a COMPLETE connected fictional season for the ViralTap Studio AI video maker.
-
-USER IDEA:
 ${idea}
 
-GENRE:
-${genre}
+Create EXACTLY 10 episodes.
 
-LANGUAGE:
-${language}
+Each episode must continue the same story.
 
-NUMBER OF EPISODES:
-EXACTLY ${episodeCount}
+Create 3-6 consistent characters.
 
-IMPORTANT:
+Every episode needs:
+- episode number
+- title
+- summary
+- hook
+- substantial spoken narration
+- dialogue
+- cliffhanger
 
-This is NOT a tiny reel script.
+Episode 1 introduces the world and main conflict.
+Episodes 2-4 build the conflict.
+Episodes 5-7 reveal important secrets.
+Episodes 8-9 build toward the final confrontation.
+Episode 10 resolves the main conflict and may contain a logical Season 2 hook.
 
-Create a complete ${episodeCount}-episode season.
+Do NOT make the episodes tiny.
+Do NOT finish the entire story in Episode 1.
+Write natural Indian Hinglish.
+Make it cinematic and suitable for AI voice narration.
 
-The story must continue from Episode 1 all the way to Episode ${episodeCount}.
+Return ONLY valid JSON.
 
-Every episode must move the story forward.
-
-Do not finish the entire story in Episode 1.
-
-Do not write:
-"Aaj ki kahani..."
-"Ek din..."
-"And then a twist..."
-unless it naturally belongs to the story.
-
-Make the writing feel like a professional Indian cinematic web-series.
-
-CHARACTER CONTINUITY:
-
-Create 3-6 important characters.
-
-Keep their names, personalities, relationships and backgrounds consistent throughout the season.
-
-STORY STRUCTURE:
-
-Episode 1:
-Introduce the main character, world and central problem.
-End with a strong reason to watch Episode 2.
-
-Episodes 2-4:
-Build the mystery/conflict.
-
-Episodes 5-7:
-Major revelations, danger and emotional development.
-
-Episodes 8-${Math.max(8, episodeCount - 2)}:
-Escalate toward the main confrontation.
-
-Episode ${Math.max(9, episodeCount - 1)}:
-Major confrontation begins.
-
-Episode ${episodeCount}:
-Season finale.
-Resolve the main season conflict.
-Leave a logical optional hook for Season 2.
-
-EVERY EPISODE MUST HAVE:
-
-- Episode number
-- Strong title
-- Short summary
-- Opening hook
-- Complete spoken narration/script
-- Important dialogue
-- Ending cliffhanger
-
-SCRIPT LENGTH:
-
-Do NOT make each episode 2-3 sentences.
-
-Each episode should contain enough natural spoken material for a proper short-form episode.
-
-The narration must be ready for AI voice generation.
-
-Use natural Indian ${language}.
-
-Make dialogue emotional and cinematic.
-
-Use suspense, mystery, action, emotion or comedy according to the story.
-
-Do not repeat the same lines between episodes.
-
-Each episode must end with a meaningful cliffhanger.
-
-RETURN ONLY VALID JSON.
-
-Do NOT use markdown.
-Do NOT use code fences.
-Do NOT write anything outside the JSON.
-
-Return exactly this structure:
+Use exactly this structure:
 
 {
   "seasonTitle": "string",
@@ -171,9 +92,8 @@ Return exactly this structure:
   "season2Hook": "string"
 }
 
-IMPORTANT:
-The episodes array MUST contain EXACTLY ${episodeCount} episodes.
-Episode numbers must be 1 through ${episodeCount}.
+The episodes array MUST contain exactly 10 episodes.
+Episode numbers must be 1 through 10.
 `;
 
     const response = await fetch(
@@ -195,9 +115,8 @@ Episode numbers must be 1 through ${episodeCount}.
             }
           ],
           generationConfig: {
-            temperature: 0.9,
-            topP: 0.95,
-            maxOutputTokens: 30000,
+            temperature: 0.8,
+            maxOutputTokens: 20000,
             responseMimeType: "application/json"
           }
         })
@@ -206,13 +125,13 @@ Episode numbers must be 1 through ${episodeCount}.
 
     const responseText = await response.text();
 
+    // IMPORTANT: show the real Gemini error
     if (!response.ok) {
-      console.error("Gemini API ERROR:", responseText);
+      console.error("GEMINI ERROR:", responseText);
 
-      return res.status(response.status).json({
+      return res.status(500).json({
         success: false,
-        error: "Gemini API request failed.",
-        geminiStatus: response.status,
+        error: `Gemini API failed (${response.status})`,
         details: responseText
       });
     }
@@ -221,11 +140,11 @@ Episode numbers must be 1 through ${episodeCount}.
 
     try {
       geminiData = JSON.parse(responseText);
-    } catch (error) {
+    } catch {
       return res.status(500).json({
         success: false,
-        error: "Invalid response received from Gemini.",
-        details: responseText
+        error: "Gemini returned invalid server response.",
+        details: responseText.slice(0, 3000)
       });
     }
 
@@ -238,8 +157,8 @@ Episode numbers must be 1 through ${episodeCount}.
     if (!generatedText) {
       return res.status(500).json({
         success: false,
-        error: "Gemini returned an empty response.",
-        details: JSON.stringify(geminiData)
+        error: "Gemini returned empty response.",
+        details: JSON.stringify(geminiData).slice(0, 5000)
       });
     }
 
@@ -247,69 +166,52 @@ Episode numbers must be 1 through ${episodeCount}.
 
     try {
       season = JSON.parse(generatedText);
-    } catch (error) {
-      console.error("Season JSON parse error:", error);
-
+    } catch {
       return res.status(500).json({
         success: false,
-        error: "Gemini returned invalid season JSON.",
-        details: generatedText.slice(0, 3000)
+        error: "Gemini returned invalid JSON.",
+        details: generatedText.slice(0, 5000)
       });
     }
 
-    if (!season || !Array.isArray(season.episodes)) {
+    if (!Array.isArray(season.episodes)) {
       return res.status(500).json({
         success: false,
-        error: "Gemini response does not contain episodes."
+        error: "Gemini response has no episodes.",
+        details: JSON.stringify(season).slice(0, 5000)
       });
     }
 
-    if (season.episodes.length !== episodeCount) {
+    if (season.episodes.length !== 10) {
       return res.status(500).json({
         success: false,
-        error:
-          `Gemini generated ${season.episodes.length} episodes instead of ${episodeCount}.`
+        error: `Gemini generated ${season.episodes.length} episodes instead of 10.`
       });
     }
 
-    season.episodes = season.episodes.map((episode, index) => ({
+    const episodes = season.episodes.map((ep, index) => ({
       episode: index + 1,
-      title: episode.title || `Episode ${index + 1}`,
-      summary: episode.summary || "",
-      hook: episode.hook || "",
-      script: episode.script || "",
-      dialogue: episode.dialogue || "",
-      cliffhanger: episode.cliffhanger || "",
+      title: ep.title || `Episode ${index + 1}`,
+      summary: ep.summary || "",
+      hook: ep.hook || "",
+      script: ep.script || "",
+      dialogue: ep.dialogue || "",
+      cliffhanger: ep.cliffhanger || "",
       scenes: []
     }));
 
     return res.status(200).json({
       success: true,
-
       seasonTitle: season.seasonTitle || "Untitled Season",
-
       logline: season.logline || "",
-
       overallStory: season.overallStory || "",
-
       characters: Array.isArray(season.characters)
         ? season.characters
         : [],
-
-      episodes: season.episodes,
-
-      totalEpisodes: season.episodes.length,
-
+      episodes,
+      totalEpisodes: episodes.length,
       seasonFinale: season.seasonFinale || "",
-
-      season2Hook: season.season2Hook || "",
-
-      // Compatibility with old frontend
-      title: season.seasonTitle || "Untitled Season",
-
-      scenes: [],
-
-      totalDuration: 0
+      season2Hook: season.season2Hook || ""
     });
 
   } catch (error) {
@@ -318,7 +220,7 @@ Episode numbers must be 1 through ${episodeCount}.
     return res.status(500).json({
       success: false,
       error: "Server error.",
-      details: error?.message || "Unknown server error"
+      details: error?.message || "Unknown error"
     });
   }
 }
