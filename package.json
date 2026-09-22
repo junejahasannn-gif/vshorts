@@ -10,8 +10,9 @@
   "dependencies": {
     "@remotion/player": "latest",
     "@vercel/blob": "latest",
-    "remotion": "latest",
+    "@vercel/sandbox": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "remotion": "latest"
   }
 }
