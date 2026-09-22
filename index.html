@@ -3,257 +3,1077 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ViralTap - Professional AI Reel Maker</title>
+
+    <title>ViralTap - AI Reel Maker</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
-        body { background-color: #0A0E17; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); }
-        .tap-btn { transition: transform 0.1s; cursor: pointer; }
-        .tap-btn:active { transform: scale(0.96); }
-        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 15px rgba(236,72,153,0.4); } 50% { box-shadow: 0 0 30px rgba(236,72,153,0.8); } }
-        .glow-box { animation: pulse-glow 2s infinite; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
+        body {
+            background-color: #0A0E17;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .glass {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(12px);
+        }
+
+        .tap-btn {
+            transition: transform 0.1s;
+            cursor: pointer;
+        }
+
+        .tap-btn:active {
+            transform: scale(0.96);
+        }
+
+        @keyframes pulse-glow {
+            0%,100% {
+                box-shadow: 0 0 15px rgba(236,72,153,0.35);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(236,72,153,0.75);
+            }
+        }
+
+        .glow-box {
+            animation: pulse-glow 2s infinite;
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
+
 <body class="min-h-screen flex flex-col items-center p-3 pb-16">
 
-    <div class="w-full max-w-md mx-auto">
-        
-        <!-- Header -->
-        <div class="flex justify-between items-center py-3 border-b border-gray-800 mb-4">
-            <h1 class="text-xl font-black bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent">⚡ ViralTap Studio</h1>
-            <div class="flex items-center gap-2">
-                <span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">♾️ Unlimited Free</span>
-            </div>
+<div class="w-full max-w-md mx-auto">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center py-3 border-b border-gray-800 mb-4">
+
+        <h1 class="text-xl font-black bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent">
+            ⚡ ViralTap Studio
+        </h1>
+
+        <span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">
+            ♾️ Unlimited Free
+        </span>
+
+    </div>
+
+
+    <!-- STEP 1 -->
+    <div id="stepInput" class="space-y-4">
+
+        <div class="text-center py-2">
+
+            <h2 class="text-2xl font-black mb-1">
+                अब 1 मिनट में
+                <br>
+                <span class="text-pink-500">वायरल रील्स</span> बनाएं
+            </h2>
+
+            <p class="text-gray-400 text-xs">
+                AI automatic scenes aur video render karega
+            </p>
+
         </div>
 
-        <!-- STEP 1: IDEA & CATEGORY SELECTION -->
-        <div id="stepInput" class="space-y-4">
-            <div class="text-center py-2">
-                <h2 class="text-2xl font-black mb-1">अब 1 मिनट में<br><span class="text-pink-500">वायरल रील्स</span> बनाएं</h2>
-                <p class="text-gray-400 text-xs">AI automatic scenes aur video render karega</p>
-            </div>
 
-            <div class="glass p-4 rounded-2xl shadow-xl">
-                <label class="text-xs text-pink-400 font-bold block mb-2">REEL TOPIC / IDEA</label>
-                <textarea id="videoIdea" rows="3" class="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-sm text-white outline-none focus:border-pink-500" placeholder="Apna idea likhiye (Jaise: Koor shikari ki kahani ya Drill Rap)..."></textarea>
-            </div>
+        <!-- IDEA -->
+        <div class="glass p-4 rounded-2xl shadow-xl">
 
-            <!-- Preset Categories -->
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="setPreset('Koor Shikari Vikram ki Kahani')" class="glass p-3 rounded-xl text-left text-xs hover:border-pink-500/50 tap-btn">
-                    <span class="block font-bold text-pink-400">🏹 Shikari Vikram</span>
-                    <span class="text-[10px] text-gray-400">Cinematic Story</span>
-                </button>
-                <button onclick="setPreset('🔥 Haryanvi / Punjabi Drill Rap Anthem')" class="glass p-3 rounded-xl text-left text-xs hover:border-pink-500/50 tap-btn">
-                    <span class="block font-bold text-orange-400">🔥 Drill Rap Beat</span>
-                    <span class="text-[10px] text-gray-400">Music & Lyrics</span>
-                </button>
-            </div>
+            <label class="text-xs text-pink-400 font-bold block mb-2">
+                REEL TOPIC / IDEA
+            </label>
 
-            <button onclick="startSceneGeneration()" class="w-full bg-gradient-to-r from-pink-600 to-rose-500 py-4 rounded-2xl font-extrabold text-white shadow-lg tap-btn text-base mt-2 glow-box">
-                Scenes Generate Karein ➔
-            </button>
+            <textarea
+                id="videoIdea"
+                rows="3"
+                class="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-sm text-white outline-none focus:border-pink-500"
+                placeholder="Apna idea likhiye (Jaise: Ek shikari ki kahani, motivation, love story, horror story...)"
+            ></textarea>
+
         </div>
 
-        <!-- STEP 2: SCENES MANAGEMENT SCREEN -->
-        <div id="stepScenes" class="hidden space-y-4">
-            <div class="flex justify-between items-center bg-gray-900 p-3 rounded-xl border border-gray-800">
-                <span class="text-xs font-bold text-gray-300" id="sceneCountText">7 scenes • 45s total</span>
-                <span class="bg-pink-500/20 text-pink-400 text-[10px] px-2 py-0.5 rounded font-bold border border-pink-500/30">READY TO STITCH</span>
-            </div>
 
-            <div id="scenesList" class="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-                <!-- Dynamically populated scenes -->
-            </div>
+        <!-- PRESETS -->
+        <div class="grid grid-cols-2 gap-2">
 
-            <button onclick="startVideoRendering()" class="w-full bg-gradient-to-r from-green-600 to-emerald-500 py-4 rounded-2xl font-extrabold text-white shadow-lg tap-btn text-base glow-box">
-                Stitch & Render Video 🚀
+            <button
+                onclick="setPreset('Koor Shikari Vikram ki Kahani')"
+                class="glass p-3 rounded-xl text-left text-xs hover:border-pink-500/50 tap-btn"
+            >
+                <span class="block font-bold text-pink-400">
+                    🏹 Shikari Vikram
+                </span>
+
+                <span class="text-[10px] text-gray-400">
+                    Cinematic Story
+                </span>
             </button>
+
+
+            <button
+                onclick="setPreset('🔥 Haryanvi / Punjabi Drill Rap Anthem')"
+                class="glass p-3 rounded-xl text-left text-xs hover:border-pink-500/50 tap-btn"
+            >
+                <span class="block font-bold text-orange-400">
+                    🔥 Drill Rap Beat
+                </span>
+
+                <span class="text-[10px] text-gray-400">
+                    Music & Lyrics
+                </span>
+            </button>
+
         </div>
 
-        <!-- STEP 3: RENDERING PROGRESS SCREEN -->
-        <div id="stepRender" class="hidden text-center py-14 space-y-6">
-            <div class="w-24 h-24 mx-auto relative flex items-center justify-center">
-                <div class="absolute inset-0 border-4 border-pink-500/20 rounded-full"></div>
-                <div class="absolute inset-0 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-                <span id="renderPercent" class="text-xl font-black text-pink-400">4%</span>
-            </div>
-            <div>
-                <h3 class="text-lg font-bold mb-1">GENERATING VIDEO</h3>
-                <p id="renderStatus" class="text-xs text-gray-400 font-mono">Stitching Scenes 0/7...</p>
-            </div>
-            <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
-                <div id="progressBar" class="bg-gradient-to-r from-pink-500 to-orange-400 h-full w-[4%] transition-all duration-300"></div>
-            </div>
+
+        <!-- GENERATE BUTTON -->
+        <button
+            id="generateButton"
+            onclick="startSceneGeneration()"
+            class="w-full bg-gradient-to-r from-pink-600 to-rose-500 py-4 rounded-2xl font-extrabold text-white shadow-lg tap-btn text-base mt-2 glow-box"
+        >
+            Scenes Generate Karein ➔
+        </button>
+
+    </div>
+
+
+
+    <!-- STEP 2 -->
+    <div id="stepScenes" class="hidden space-y-4">
+
+        <div class="flex justify-between items-center bg-gray-900 p-3 rounded-xl border border-gray-800">
+
+            <span
+                class="text-xs font-bold text-gray-300"
+                id="sceneCountText"
+            >
+                0 scenes • 0s total
+            </span>
+
+            <span class="bg-pink-500/20 text-pink-400 text-[10px] px-2 py-0.5 rounded font-bold border border-pink-500/30">
+                READY TO STITCH
+            </span>
+
         </div>
 
-        <!-- STEP 4: PREVIEW & DOWNLOAD SCREEN -->
-        <div id="stepPreview" class="hidden space-y-4">
-            <div class="relative w-full h-[380px] bg-black rounded-2xl overflow-hidden border border-gray-800 shadow-2xl flex items-center justify-center">
-                <img id="previewImage" src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600" class="absolute inset-0 w-full h-full object-cover opacity-85">
-                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30"></div>
-                
-                <!-- Play Overlay -->
-                <div id="playOverlay" class="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer" onclick="togglePlayState()">
-                    <div id="playIcon" class="w-16 h-16 bg-pink-600/90 rounded-full flex items-center justify-center text-2xl shadow-lg pl-1">▶</div>
-                </div>
 
-                <!-- Subtitle Box -->
-                <div class="absolute bottom-16 left-4 right-4 bg-black/75 backdrop-blur-md p-3 rounded-xl border border-white/10 text-center">
-                    <p id="previewSubtitle" class="text-sm font-bold text-yellow-300 leading-snug">Shikari ka aakhiri shikaar: Ek bhayanak sabak!</p>
-                </div>
+        <!-- SCENES -->
+        <div
+            id="scenesList"
+            class="space-y-3 max-h-[55vh] overflow-y-auto pr-1"
+        ></div>
 
-                <!-- Footer video info -->
-                <div class="absolute bottom-2 left-3 right-3 flex justify-between text-[10px] text-gray-300 font-mono">
-                    <span id="videoTimer">0:21 / 0:45</span>
-                    <span>1080p HD ⚡</span>
-                </div>
-            </div>
 
-            <!-- Editing Customization Buttons -->
-            <div class="grid grid-cols-4 gap-2 text-center">
-                <button onclick="speakText('Swara AI voice active. Yeh aapki reel ke liye natural voiceover hai.')" class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn">
-                    <span class="block text-base">🎙️</span>Voiceover
-                </button>
-                <button onclick="alert('Music: Cinematic Thriller Beat active')" class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn">
-                    <span class="block text-base">🎵</span>Music
-                </button>
-                <button onclick="alert('Captions: Auto-sync subtitles enabled')" class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn">
-                    <span class="block text-base">💬</span>Captions
-                </button>
-                <button onclick="alert('Brand: HasrinShorts / JUNO Watermark added')" class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn">
-                    <span class="block text-base">✨</span>Brand
-                </button>
-            </div>
+        <!-- RENDER -->
+        <button
+            onclick="startVideoRendering()"
+            class="w-full bg-gradient-to-r from-green-600 to-emerald-500 py-4 rounded-2xl font-extrabold text-white shadow-lg tap-btn text-base glow-box"
+        >
+            Stitch & Render Video 🚀
+        </button>
 
-            <!-- Direct Download Button -->
-            <button onclick="triggerFileDownload()" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 py-4 rounded-2xl font-extrabold text-white shadow-xl tap-btn text-base flex items-center justify-center gap-2 glow-box">
-                <span>⬇️ Download Video (Instagram pe post kare)</span>
-            </button>
-            
-            <button onclick="resetStudio()" class="w-full text-center text-xs text-gray-500 py-2 hover:text-gray-300">
-                ↺ Nayi Video Banayein
-            </button>
+
+        <!-- BACK -->
+        <button
+            onclick="backToInput()"
+            class="w-full text-center text-xs text-gray-500 py-2"
+        >
+            ← Idea Change Karein
+        </button>
+
+    </div>
+
+
+
+    <!-- STEP 3 -->
+    <div id="stepRender" class="hidden text-center py-14 space-y-6">
+
+        <div class="w-24 h-24 mx-auto relative flex items-center justify-center">
+
+            <div class="absolute inset-0 border-4 border-pink-500/20 rounded-full"></div>
+
+            <div class="absolute inset-0 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+
+            <span
+                id="renderPercent"
+                class="text-xl font-black text-pink-400"
+            >
+                4%
+            </span>
+
+        </div>
+
+
+        <div>
+
+            <h3 class="text-lg font-bold mb-1">
+                GENERATING VIDEO
+            </h3>
+
+            <p
+                id="renderStatus"
+                class="text-xs text-gray-400 font-mono"
+            >
+                Preparing scenes...
+            </p>
+
+        </div>
+
+
+        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+
+            <div
+                id="progressBar"
+                class="bg-gradient-to-r from-pink-500 to-orange-400 h-full w-[4%] transition-all duration-300"
+            ></div>
+
         </div>
 
     </div>
 
-    <script>
-        let currentTopic = "";
 
-        function setPreset(txt) {
-            document.getElementById('videoIdea').value = txt;
+
+    <!-- STEP 4 -->
+    <div id="stepPreview" class="hidden space-y-4">
+
+        <!-- PREVIEW -->
+        <div class="relative w-full h-[380px] bg-black rounded-2xl overflow-hidden border border-gray-800 shadow-2xl flex items-center justify-center">
+
+            <img
+                id="previewImage"
+                src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800"
+                class="absolute inset-0 w-full h-full object-cover opacity-85"
+                alt="Video preview"
+            >
+
+            <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30"></div>
+
+
+            <!-- PLAY -->
+            <div
+                id="playOverlay"
+                class="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer"
+                onclick="togglePlayState()"
+            >
+
+                <div
+                    id="playIcon"
+                    class="w-16 h-16 bg-pink-600/90 rounded-full flex items-center justify-center text-2xl shadow-lg pl-1"
+                >
+                    ▶
+                </div>
+
+            </div>
+
+
+            <!-- SUBTITLE -->
+            <div class="absolute bottom-16 left-4 right-4 bg-black/75 backdrop-blur-md p-3 rounded-xl border border-white/10 text-center">
+
+                <p
+                    id="previewSubtitle"
+                    class="text-sm font-bold text-yellow-300 leading-snug"
+                >
+                    Aapki AI reel ready hai!
+                </p>
+
+            </div>
+
+
+            <!-- INFO -->
+            <div class="absolute bottom-2 left-3 right-3 flex justify-between text-[10px] text-gray-300 font-mono">
+
+                <span id="videoTimer">
+                    0:00 / 0:00
+                </span>
+
+                <span>
+                    1080p HD ⚡
+                </span>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- TOOLS -->
+        <div class="grid grid-cols-4 gap-2 text-center">
+
+            <button
+                onclick="speakCurrentTopic()"
+                class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn"
+            >
+                <span class="block text-base">🎙️</span>
+                Voiceover
+            </button>
+
+
+            <button
+                onclick="showToolMessage('Music', 'Cinematic music option ready')"
+                class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn"
+            >
+                <span class="block text-base">🎵</span>
+                Music
+            </button>
+
+
+            <button
+                onclick="showToolMessage('Captions', 'Auto captions option ready')"
+                class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn"
+            >
+                <span class="block text-base">💬</span>
+                Captions
+            </button>
+
+
+            <button
+                onclick="showToolMessage('Brand', 'Brand watermark option ready')"
+                class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn"
+            >
+                <span class="block text-base">✨</span>
+                Brand
+            </button>
+
+        </div>
+
+
+
+        <!-- DOWNLOAD -->
+        <button
+            onclick="triggerFileDownload()"
+            class="w-full bg-gradient-to-r from-pink-600 to-rose-600 py-4 rounded-2xl font-extrabold text-white shadow-xl tap-btn text-base flex items-center justify-center gap-2 glow-box"
+        >
+            <span>
+                ⬇️ Download Video
+            </span>
+        </button>
+
+
+        <!-- NEW VIDEO -->
+        <button
+            onclick="resetStudio()"
+            class="w-full text-center text-xs text-gray-500 py-2 hover:text-gray-300"
+        >
+            ↺ Nayi Video Banayein
+        </button>
+
+    </div>
+
+</div>
+
+
+
+<script>
+
+    // ==========================================
+    // GLOBAL VARIABLES
+    // ==========================================
+
+    let currentTopic = "";
+    let generatedScenes = [];
+    let totalDuration = 0;
+    let playing = false;
+    let renderTimer = null;
+
+
+
+    // ==========================================
+    // PRESET
+    // ==========================================
+
+    function setPreset(text) {
+
+        document.getElementById("videoIdea").value = text;
+
+    }
+
+
+
+    // ==========================================
+    // GENERATE SCENES
+    // ==========================================
+
+    async function startSceneGeneration() {
+
+        const input = document.getElementById("videoIdea");
+
+        const button = document.getElementById("generateButton");
+
+        const idea = input.value.trim();
+
+
+        if (!idea) {
+
+            alert("Pehle koi topic ya idea likhiye!");
+
+            return;
+
         }
 
-        function startSceneGeneration() {
-            let idea = document.getElementById('videoIdea').value.trim();
-            if(!idea) { alert('Pehle koi topic ya idea likhiye!'); return; }
-            currentTopic = idea;
 
-            document.getElementById('stepInput').classList.add('hidden');
-            document.getElementById('stepScenes').classList.remove('hidden');
+        currentTopic = idea;
 
-            let list = document.getElementById('scenesList');
-            list.innerHTML = `
-                <div class="glass p-3 rounded-xl flex items-center gap-3 border-pink-500/30">
-                    <div class="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=150" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1">
-                        <span class="text-[10px] text-pink-400 font-bold uppercase">Thumbnail / Hook</span>
-                        <h4 class="text-xs font-bold text-gray-200">${idea} - Shuruat!</h4>
-                        <span class="text-[10px] text-gray-400">⏱️ 3.3s • 🎙️ Voice Active</span>
-                    </div>
-                </div>
-                <div class="glass p-3 rounded-xl flex items-center gap-3">
-                    <div class="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=150" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1">
-                        <span class="text-[10px] text-cyan-400 font-bold uppercase">Scene #1</span>
-                        <h4 class="text-xs font-bold text-gray-200">Khatarnak mod aur asli sachai...</h4>
-                        <span class="text-[10px] text-gray-400">⏱️ 6.9s • 🎙️ Voice Active</span>
-                    </div>
-                </div>
-                <div class="glass p-3 rounded-xl flex items-center gap-3">
-                    <div class="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src="https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=150" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1">
-                        <span class="text-[10px] text-cyan-400 font-bold uppercase">Scene #2</span>
-                        <h4 class="text-xs font-bold text-gray-200">Climax aur final twist!</h4>
-                        <span class="text-[10px] text-gray-400">⏱️ 7.2s • 🎙️ Voice Active</span>
-                    </div>
-                </div>
-            `;
-        }
 
-        function startVideoRendering() {
-            document.getElementById('stepScenes').classList.add('hidden');
-            document.getElementById('stepRender').classList.remove('hidden');
+        button.disabled = true;
 
-            let p = 4;
-            let bar = document.getElementById('progressBar');
-            let txt = document.getElementById('renderPercent');
-            let status = document.getElementById('renderStatus');
+        button.innerText = "AI Scenes Generate Ho Rahe Hain... ⏳";
 
-            let timer = setInterval(() => {
-                p += Math.floor(Math.random() * 10) + 6;
-                if(p >= 100) {
-                    p = 100;
-                    clearInterval(timer);
-                    setTimeout(() => {
-                        document.getElementById('stepRender').classList.add('hidden');
-                        document.getElementById('stepPreview').classList.remove('hidden');
-                        document.getElementById('previewSubtitle').innerText = currentTopic + " - Yeh raha aapka viral scene!";
-                    }, 400);
+
+        try {
+
+            const response = await fetch(
+                "/api/generate-script",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        idea: idea
+                    })
                 }
-                bar.style.width = p + '%';
-                txt.innerText = p + '%';
-                if(p < 40) status.innerText = "Stitching Scenes 2/7...";
-                else if(p < 80) status.innerText = "Adding AI Voiceover & Captions...";
-                else status.innerText = "Finalizing 1080p MP4 Video...";
-            }, 250);
-        }
+            );
 
-        let playing = false;
-        function togglePlayState() {
-            playing = !playing;
-            let ov = document.getElementById('playOverlay');
-            if(playing) {
-                ov.style.opacity = '0';
-                speakText(currentTopic || "Shikari ka aakhiri shikaar: Ek bhayanak sabak!");
-            } else {
-                ov.style.opacity = '1';
-                window.speechSynthesis.cancel();
+
+            const data = await response.json();
+
+
+            if (!response.ok || !data.success) {
+
+                throw new Error(
+                    data.error || "Scene generation failed"
+                );
+
             }
-        }
 
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                let utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'hi-IN';
-                utterance.rate = 1.0;
-                window.speechSynthesis.speak(utterance);
+
+            generatedScenes = data.scenes || [];
+
+            totalDuration = data.totalDuration || 0;
+
+
+            if (!generatedScenes.length) {
+
+                throw new Error(
+                    "AI ne koi scenes return nahi kiye."
+                );
+
             }
+
+
+            showScenes(
+                generatedScenes,
+                totalDuration
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Generation error:",
+                error
+            );
+
+
+            alert(
+                "❌ Scene generation failed.\n\n" +
+                error.message
+            );
+
+
+        } finally {
+
+            button.disabled = false;
+
+            button.innerText =
+                "Scenes Generate Karein ➔";
+
         }
 
-        function triggerFileDownload() {
-            alert('🎉 Video Ready! Aapke device me MP4 download ho raha hai. Isey Instagram Reels par daal kar viral karo!');
-            let a = document.createElement('a');
-            a.href = '#';
-            a.download = 'ViralTap_Studio_Reel.mp4';
-            document.body.appendChild(a);
+    }
+
+
+
+    // ==========================================
+    // SHOW SCENES
+    // ==========================================
+
+    function showScenes(scenes, duration) {
+
+        document
+            .getElementById("stepInput")
+            .classList.add("hidden");
+
+
+        document
+            .getElementById("stepScenes")
+            .classList.remove("hidden");
+
+
+        document
+            .getElementById("sceneCountText")
+            .innerText =
+                `${scenes.length} scenes • ${duration}s total`;
+
+
+        const list =
+            document.getElementById("scenesList");
+
+
+        list.innerHTML = "";
+
+
+        scenes.forEach(
+            (scene, index) => {
+
+                const card =
+                    document.createElement("div");
+
+
+                card.className =
+                    "glass p-3 rounded-xl flex items-center gap-3";
+
+
+                const image =
+                    index === 0
+                    ? "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=200"
+                    : "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=200";
+
+
+                const title =
+                    scene.title ||
+                    `Scene #${index + 1}`;
+
+
+                const narration =
+                    scene.narration ||
+                    "AI scene generated";
+
+
+                const sceneDuration =
+                    scene.duration ||
+                    5;
+
+
+                card.innerHTML = `
+
+                    <div class="w-14 h-14 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+
+                        <img
+                            src="${image}"
+                            class="w-full h-full object-cover"
+                            alt="Scene"
+                        >
+
+                    </div>
+
+
+                    <div class="flex-1 min-w-0">
+
+                        <span class="text-[10px] text-cyan-400 font-bold uppercase">
+
+                            ${escapeHTML(title)}
+
+                        </span>
+
+
+                        <h4 class="text-xs font-bold text-gray-200 mt-1">
+
+                            ${escapeHTML(narration)}
+
+                        </h4>
+
+
+                        <span class="text-[10px] text-gray-400">
+
+                            ⏱️ ${sceneDuration}s
+                            • 🎙️ Voice Ready
+
+                        </span>
+
+                    </div>
+
+                `;
+
+
+                list.appendChild(card);
+
+            }
+        );
+
+    }
+
+
+
+    // ==========================================
+    // HTML SECURITY
+    // ==========================================
+
+    function escapeHTML(value) {
+
+        return String(value)
+
+            .replaceAll("&", "&amp;")
+
+            .replaceAll("<", "&lt;")
+
+            .replaceAll(">", "&gt;")
+
+            .replaceAll('"', "&quot;")
+
+            .replaceAll("'", "&#039;");
+
+    }
+
+
+
+    // ==========================================
+    // BACK TO INPUT
+    // ==========================================
+
+    function backToInput() {
+
+        document
+            .getElementById("stepScenes")
+            .classList.add("hidden");
+
+
+        document
+            .getElementById("stepInput")
+            .classList.remove("hidden");
+
+    }
+
+
+
+    // ==========================================
+    // RENDER VIDEO
+    // ==========================================
+
+    function startVideoRendering() {
+
+        document
+            .getElementById("stepScenes")
+            .classList.add("hidden");
+
+
+        document
+            .getElementById("stepRender")
+            .classList.remove("hidden");
+
+
+        let progress = 4;
+
+
+        const bar =
+            document.getElementById("progressBar");
+
+
+        const percent =
+            document.getElementById("renderPercent");
+
+
+        const status =
+            document.getElementById("renderStatus");
+
+
+        bar.style.width =
+            progress + "%";
+
+
+        percent.innerText =
+            progress + "%";
+
+
+        status.innerText =
+            "Preparing AI scenes...";
+
+
+        if (renderTimer) {
+
+            clearInterval(renderTimer);
+
         }
 
-        function resetStudio() {
+
+        renderTimer =
+            setInterval(
+                () => {
+
+                    progress +=
+                        Math.floor(
+                            Math.random() * 8
+                        ) + 5;
+
+
+                    if (progress >= 100) {
+
+                        progress = 100;
+
+                        clearInterval(
+                            renderTimer
+                        );
+
+                        renderTimer = null;
+
+
+                        bar.style.width =
+                            "100%";
+
+
+                        percent.innerText =
+                            "100%";
+
+
+                        status.innerText =
+                            "Video ready!";
+
+
+                        setTimeout(
+                            showPreview,
+                            500
+                        );
+
+
+                        return;
+
+                    }
+
+
+                    bar.style.width =
+                        progress + "%";
+
+
+                    percent.innerText =
+                        progress + "%";
+
+
+                    if (progress < 35) {
+
+                        status.innerText =
+                            "Preparing AI scenes...";
+
+                    } else if (progress < 65) {
+
+                        status.innerText =
+                            "Adding AI Voiceover & Captions...";
+
+                    } else if (progress < 90) {
+
+                        status.innerText =
+                            "Stitching scenes...";
+
+                    } else {
+
+                        status.innerText =
+                            "Finalizing 1080p video...";
+
+                    }
+
+                },
+                350
+            );
+
+    }
+
+
+
+    // ==========================================
+    // PREVIEW
+    // ==========================================
+
+    function showPreview() {
+
+        document
+            .getElementById("stepRender")
+            .classList.add("hidden");
+
+
+        document
+            .getElementById("stepPreview")
+            .classList.remove("hidden");
+
+
+        document
+            .getElementById("previewSubtitle")
+            .innerText =
+                currentTopic +
+                " - Yeh raha aapka AI scene!";
+
+
+        document
+            .getElementById("videoTimer")
+            .innerText =
+                "0:00 / " +
+                formatTime(totalDuration);
+
+
+        playing = false;
+
+    }
+
+
+
+    // ==========================================
+    // FORMAT TIME
+    // ==========================================
+
+    function formatTime(seconds) {
+
+        seconds =
+            Number(seconds) || 0;
+
+
+        const minutes =
+            Math.floor(seconds / 60);
+
+
+        const remaining =
+            Math.floor(seconds % 60);
+
+
+        return (
+            minutes +
+            ":" +
+            String(remaining).padStart(2, "0")
+        );
+
+    }
+
+
+
+    // ==========================================
+    // PLAY / PAUSE
+    // ==========================================
+
+    function togglePlayState() {
+
+        playing = !playing;
+
+
+        const overlay =
+            document.getElementById(
+                "playOverlay"
+            );
+
+
+        const icon =
+            document.getElementById(
+                "playIcon"
+            );
+
+
+        if (playing) {
+
+            overlay.style.opacity = "0";
+
+            icon.innerText = "⏸️";
+
+            speakCurrentTopic();
+
+        } else {
+
+            overlay.style.opacity = "1";
+
+            icon.innerText = "▶";
+
+            stopVoice();
+
+        }
+
+    }
+
+
+
+    // ==========================================
+    // VOICE
+    // ==========================================
+
+    function speakCurrentTopic() {
+
+        if (!("speechSynthesis" in window)) {
+
+            alert(
+                "Aapke browser me voice support available nahi hai."
+            );
+
+            return;
+
+        }
+
+
+        window.speechSynthesis.cancel();
+
+
+        let text =
+            currentTopic;
+
+
+        if (
+            generatedScenes.length
+        ) {
+
+            text =
+                generatedScenes
+                    .map(
+                        scene =>
+                            scene.narration || ""
+                    )
+                    .join(" ");
+
+        }
+
+
+        const utterance =
+            new SpeechSynthesisUtterance(
+                text
+            );
+
+
+        utterance.lang =
+            "hi-IN";
+
+
+        utterance.rate =
+            1;
+
+
+        utterance.pitch =
+            1;
+
+
+        window.speechSynthesis.speak(
+            utterance
+        );
+
+    }
+
+
+
+    function stopVoice() {
+
+        if (
+            "speechSynthesis" in window
+        ) {
+
             window.speechSynthesis.cancel();
-            document.getElementById('stepPreview').classList.add('hidden');
-            document.getElementById('stepInput').classList.remove('hidden');
-            document.getElementById('videoIdea').value = '';
+
         }
-    </script>
+
+    }
+
+
+
+    // ==========================================
+    // TOOLS
+    // ==========================================
+
+    function showToolMessage(
+        title,
+        message
+    ) {
+
+        alert(
+            "✨ " +
+            title +
+            "\n\n" +
+            message +
+            "."
+        );
+
+    }
+
+
+
+    // ==========================================
+    // DOWNLOAD
+    // ==========================================
+
+    function triggerFileDownload() {
+
+        alert(
+            "🎉 Preview ready!\n\n" +
+            "Real MP4 rendering/download backend next step me connect hoga."
+        );
+
+    }
+
+
+
+    // ==========================================
+    // RESET
+    // ==========================================
+
+    function resetStudio() {
+
+        stopVoice();
+
+
+        if (renderTimer) {
+
+            clearInterval(
+                renderTimer
+            );
+
+            renderTimer = null;
+
+        }
+
+
+        currentTopic = "";
+
+        generatedScenes = [];
+
+        totalDuration = 0;
+
+        playing = false;
+
+
+        document
+            .getElementById("stepPreview")
+            .classList.add("hidden");
+
+
+        document
+            .getElementById("stepRender")
+            .classList.add("hidden");
+
+
+        document
+            .getElementById("stepScenes")
+            .classList.add("hidden");
+
+
+        document
+            .getElementById("stepInput")
+            .classList.remove("hidden");
+
+
+        document
+            .getElementById("videoIdea")
+            .value = "";
+
+
+        document
+            .getElementById("scenesList")
+            .innerHTML = "";
+
+    }
+
+</script>
+
 </body>
 </html>
