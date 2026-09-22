@@ -4,6 +4,41 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function callGemini(model, apiKey, prompt) {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          maxOutputTokens: 50000,
+          responseMimeType: "application/json"
+        }
+      })
+    }
+  );
+
+  const text = await response.text();
+
+  return {
+    response,
+    text
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -55,11 +90,11 @@ The story should feel like a real Indian OTT/web-series.
 
 LANGUAGE:
 Natural Hinglish.
-Simple spoken Indian Hindi mixed naturally with English.
+Use simple spoken Indian Hindi mixed naturally with English.
 
 Create 3-6 important recurring characters.
 
-Keep character names, personalities, relationships and appearances consistent.
+Keep character names, personalities, relationships and appearances consistent throughout the season.
 
 STORY STRUCTURE:
 
@@ -83,7 +118,7 @@ IMPORTANT:
 
 Do NOT finish the entire story in Episode 1.
 
-Every episode must continue from the previous episode.
+Every episode must continue directly from the previous episode.
 
 Every episode must contain substantial narration and dialogue.
 
@@ -103,12 +138,13 @@ The narration must be suitable for AI voice narration.
 
 Return ONLY valid JSON.
 
-Use exactly this structure:
+Use EXACTLY this structure:
 
 {
   "seasonTitle": "string",
   "logline": "string",
   "overallStory": "string",
+
   "characters": [
     {
       "name": "string",
@@ -119,6 +155,7 @@ Use exactly this structure:
       "relationship": "string"
     }
   ],
+
   "episodes": [
     {
       "episode": 1,
@@ -130,15 +167,14 @@ Use exactly this structure:
       "cliffhanger": "string"
     }
   ],
+
   "seasonFinale": "string",
   "season2Hook": "string"
 }
 
 The episodes array MUST contain exactly ${episodeCount} episodes.
 
-Episode numbers MUST be:
-
-1 through ${episodeCount}
+Episode numbers MUST be sequential from 1 to ${episodeCount}.
 
 Return ONLY JSON.
 No markdown.
@@ -146,85 +182,121 @@ No code fences.
 No explanation outside JSON.
 `;
 
-    const maxRetries = 3;
+    /*
+      Try multiple current Gemini models.
+      This protects the app when one model is temporarily busy.
+    */
+    const models = [
+      "gemini-3.8-flash",
+      "gemini-3.7-flash",
+      "gemini-3.6-flash",
+      "gemini-3.5-flash"
+    ];
 
-    let response;
-    let responseText = "";
+    let geminiData = null;
+    let lastError = null;
+    let successfulModel = null;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: prompt
-                  }
-                ]
-              }
-            ],
-            generationConfig: {
-              maxOutputTokens: 50000,
-              responseMimeType: "application/json"
+    for (const model of models) {
+      console.log(`Trying Gemini model: ${model}`);
+
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const result = await callGemini(
+            model,
+            apiKey,
+            prompt
+          );
+
+          const { response, text } = result;
+
+          if (response.ok) {
+            try {
+              geminiData = JSON.parse(text);
+              successfulModel = model;
+              break;
+            } catch (error) {
+              lastError = {
+                status: response.status,
+                model,
+                details: text
+              };
             }
-          })
+          } else {
+            lastError = {
+              status: response.status,
+              model,
+              details: text
+            };
+
+            console.error(
+              `Gemini ${model} attempt ${attempt} failed:`,
+              response.status,
+              text
+            );
+
+            /*
+              Temporary errors:
+              503 = service unavailable
+              429 = rate limit
+              502/504 = gateway problems
+
+              Retry these.
+            */
+            const retryable =
+              response.status === 503 ||
+              response.status === 429 ||
+              response.status === 502 ||
+              response.status === 504;
+
+            if (retryable && attempt === 1) {
+              await sleep(2500);
+              continue;
+            }
+
+            /*
+              For permanent errors, move to the next model.
+            */
+            break;
+          }
+        } catch (error) {
+          lastError = {
+            status: 500,
+            model,
+            details: error?.message || "Network error"
+          };
+
+          if (attempt === 1) {
+            await sleep(2500);
+            continue;
+          }
+
+          break;
         }
-      );
+      }
 
-      responseText = await response.text();
-
-      if (response.ok) {
+      if (geminiData) {
         break;
       }
-
-      console.error(
-        `Gemini attempt ${attempt} failed:`,
-        response.status,
-        responseText
-      );
-
-      const shouldRetry =
-        response.status === 503 ||
-        response.status === 429 ||
-        response.status === 502 ||
-        response.status === 504;
-
-      if (!shouldRetry || attempt === maxRetries) {
-        return res.status(response.status).json({
-          success: false,
-          error: `Gemini API failed (${response.status})`,
-          details: responseText
-        });
-      }
-
-      const waitTime =
-        attempt === 1
-          ? 2000
-          : attempt === 2
-          ? 5000
-          : 10000;
-
-      await sleep(waitTime);
     }
 
-    let geminiData;
-
-    try {
-      geminiData = JSON.parse(responseText);
-    } catch (error) {
-      return res.status(500).json({
+    if (!geminiData) {
+      return res.status(
+        lastError?.status >= 400
+          ? lastError.status
+          : 503
+      ).json({
         success: false,
-        error: "Gemini returned an invalid server response.",
-        details: responseText.slice(0, 5000)
+        error: "All Gemini models are temporarily unavailable.",
+        details: lastError
+          ? JSON.stringify(lastError)
+          : "No Gemini model returned a successful response."
       });
     }
+
+    console.log(
+      `Successful Gemini model: ${successfulModel}`
+    );
 
     const generatedText =
       geminiData?.candidates?.[0]?.content?.parts
@@ -245,6 +317,11 @@ No explanation outside JSON.
     try {
       season = JSON.parse(generatedText);
     } catch (error) {
+      console.error(
+        "INVALID GENERATED JSON:",
+        generatedText
+      );
+
       return res.status(500).json({
         success: false,
         error: "Gemini returned invalid JSON.",
@@ -272,42 +349,80 @@ No explanation outside JSON.
         success: false,
         error:
           `Gemini generated ${season.episodes.length} episodes instead of ${episodeCount}.`,
-        details: "Please try generating the season again."
+        details:
+          `Requested ${episodeCount} episodes but received ${season.episodes.length}.`
       });
     }
 
     const episodes = season.episodes.map((ep, index) => ({
       episode: index + 1,
-      title: ep?.title || `Episode ${index + 1}`,
-      summary: ep?.summary || "",
-      hook: ep?.hook || "",
-      script: ep?.script || "",
-      dialogue: ep?.dialogue || "",
-      cliffhanger: ep?.cliffhanger || "",
+      title:
+        ep?.title ||
+        `Episode ${index + 1}`,
+
+      summary:
+        ep?.summary || "",
+
+      hook:
+        ep?.hook || "",
+
+      script:
+        ep?.script || "",
+
+      dialogue:
+        ep?.dialogue || "",
+
+      cliffhanger:
+        ep?.cliffhanger || "",
+
       scenes: []
     }));
 
     return res.status(200).json({
       success: true,
-      seasonTitle: season.seasonTitle || "Untitled Season",
-      logline: season.logline || "",
-      overallStory: season.overallStory || "",
-      characters: Array.isArray(season.characters)
-        ? season.characters
-        : [],
+
+      model:
+        successfulModel,
+
+      seasonTitle:
+        season.seasonTitle ||
+        "Untitled Season",
+
+      logline:
+        season.logline || "",
+
+      overallStory:
+        season.overallStory || "",
+
+      characters:
+        Array.isArray(season.characters)
+          ? season.characters
+          : [],
+
       episodes,
-      totalEpisodes: episodes.length,
-      seasonFinale: season.seasonFinale || "",
-      season2Hook: season.season2Hook || ""
+
+      totalEpisodes:
+        episodes.length,
+
+      seasonFinale:
+        season.seasonFinale || "",
+
+      season2Hook:
+        season.season2Hook || ""
     });
 
   } catch (error) {
-    console.error("SERVER ERROR:", error);
+    console.error(
+      "SERVER ERROR:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
       error: "Server error.",
-      details: error?.message || "Unknown server error."
+      details:
+        error?.message ||
+        "Unknown server error."
     });
   }
 }
