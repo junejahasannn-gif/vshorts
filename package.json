@@ -4,11 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo Build complete"
+    "build": "echo Build complete",
+    "remotion": "remotion"
   },
   "dependencies": {
-    "@vercel/blob": "latest",
     "@remotion/player": "latest",
-    "remotion": "latest"
+    "@vercel/blob": "latest",
+    "remotion": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   }
 }
