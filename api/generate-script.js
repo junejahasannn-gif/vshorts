@@ -4,6 +4,77 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function cleanJsonText(text) {
+  if (!text) return "";
+
+  let cleaned = text.trim();
+
+  // Remove markdown code fences if Gemini accidentally adds them
+  cleaned = cleaned.replace(/^```json\s*/i, "");
+  cleaned = cleaned.replace(/^```\s*/i, "");
+  cleaned = cleaned.replace(/\s*```$/i, "");
+
+  return cleaned.trim();
+}
+
+function getDurationSeconds(duration) {
+  const value = Number(duration);
+
+  if (!Number.isFinite(value)) return 60;
+
+  if (value <= 30) return 30;
+  if (value <= 60) return 60;
+  return 180;
+}
+
+function getSceneCount(durationSeconds, videoType) {
+  if (videoType === "funny") {
+    return 8;
+  }
+
+  if (durationSeconds <= 30) {
+    return 5;
+  }
+
+  if (durationSeconds <= 60) {
+    return 7;
+  }
+
+  return 10;
+}
+
+function distributeSceneDurations(totalSeconds, count) {
+  const durations = [];
+
+  if (count <= 0) return durations;
+
+  const base = Math.floor((totalSeconds / count) * 10) / 10;
+  let used = 0;
+
+  for (let i = 0; i < count; i++) {
+    if (i === count - 1) {
+      const last = Math.round((totalSeconds - used) * 10) / 10;
+      durations.push(Math.max(1, last));
+    } else {
+      const value = Math.max(1, base);
+      durations.push(value);
+      used += value;
+    }
+  }
+
+  // Small correction so total is exactly the requested duration
+  const total = durations.reduce((a, b) => a + b, 0);
+  const difference = Math.round((totalSeconds - total) * 10) / 10;
+
+  durations[durations.length - 1] =
+    Math.max(
+      1,
+      Math.round((durations[durations.length - 1] + difference) * 10) / 10
+    );
+
+  return durations;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
@@ -23,86 +94,185 @@ export default async function handler(req, res) {
     }
 
     const body = req.body || {};
-    const idea = String(body.idea || "").trim();
 
-    if (!idea) {
+    const story = String(
+      body.story ||
+      body.idea ||
+      body.joke ||
+      ""
+    ).trim();
+
+    const videoType =
+      body.videoType === "funny"
+        ? "funny"
+        : "normal";
+
+    const language =
+      String(body.language || "Hindi").trim();
+
+    const aspectRatio =
+      String(body.aspectRatio || "9:16").trim();
+
+    const durationSeconds =
+      getDurationSeconds(body.duration);
+
+    const voice =
+      String(body.voice || "Ankit").trim();
+
+    const music =
+      String(body.music || "Background Music").trim();
+
+    const branding =
+      String(body.branding || "").trim();
+
+    if (!story) {
       return res.status(400).json({
         success: false,
-        error: "Please enter a story idea."
+        error:
+          videoType === "funny"
+            ? "Please select or enter a joke."
+            : "Please enter a story."
       });
     }
 
-    const episodeCount = 3;
+    const sceneCount =
+      getSceneCount(durationSeconds, videoType);
+
+    const sceneDurations =
+      distributeSceneDurations(
+        durationSeconds,
+        sceneCount
+      );
+
+    const typeInstructions =
+      videoType === "funny"
+        ? `
+This is a FUNNY SHORT VIDEO.
+
+Make the content genuinely humorous, simple and easy to understand.
+
+Use:
+- comedy timing
+- funny reactions
+- expressive characters
+- visual comedy
+- quick scene changes
+- a strong opening hook
+- a satisfying punchline
+
+Do NOT make it a long story.
+Do NOT create episodes.
+Do NOT create seasons.
+This is ONE complete funny video.
+`
+        : `
+This is a NORMAL STORY VIDEO.
+
+Turn the user's story into ONE complete short-form video.
+
+Do NOT create episodes.
+Do NOT create seasons.
+Do NOT split the response into multiple episodes.
+Create one continuous video with a clear beginning, development and ending.
+`;
 
     const prompt = `
-Create a cinematic Indian web-series based on this idea:
+You are the AI video script engine for ViralTap Studio.
 
-"${idea}"
+Create ONE complete AI short video.
 
-Create EXACTLY 3 connected episodes.
+VIDEO TYPE:
+${videoType}
 
-IMPORTANT:
-- All 3 episodes must be part of the same story.
-- Do not finish the entire story in Episode 1.
-- Episode 1 introduces the characters and main conflict.
-- Episode 2 develops the conflict and reveals an important secret.
-- Episode 3 reaches a strong climax and resolves the main conflict.
-- You may add a small Season 2 hook at the end.
-- Use natural Hinglish.
-- Make the narration suitable for AI voice.
-- Create 3-5 recurring characters.
-- Keep character details consistent.
+USER STORY / JOKE:
+"${story}"
 
-Each episode needs:
-- episode number
-- title
-- summary
-- hook
-- substantial script/narration
+LANGUAGE:
+${language}
+
+ASPECT RATIO:
+${aspectRatio}
+
+TOTAL VIDEO DURATION:
+${durationSeconds} seconds
+
+NUMBER OF SCENES:
+EXACTLY ${sceneCount}
+
+VOICE:
+${voice}
+
+BACKGROUND MUSIC:
+${music}
+
+BRANDING:
+${branding || "No branding"}
+
+${typeInstructions}
+
+IMPORTANT LANGUAGE RULE:
+Write the narration, dialogue and captions primarily in the requested language.
+The visual prompts should be written in clear English because they will be used by an image generation system.
+
+IMPORTANT SCENE RULES:
+- Create EXACTLY ${sceneCount} scenes.
+- Keep characters visually consistent between scenes.
+- Every scene must continue naturally from the previous scene.
+- Each scene needs a specific visual description.
+- Do not use vague visual prompts.
+- Avoid copyrighted characters and existing movie characters.
+- Create original characters.
+- Make the visual prompts suitable for a 3D cartoon / cinematic AI video.
+- Match the requested ${aspectRatio} aspect ratio.
+- Keep the total scene durations equal to ${durationSeconds} seconds.
+
+SCENE DURATIONS:
+${sceneDurations.join(", ")} seconds
+
+For every scene provide:
+- scene number
+- duration
+- visualPrompt
+- narration
 - dialogue
-- cliffhanger
+- caption
 
-Do not make the episodes only 2-3 lines long.
+Also provide:
+- title
+- hook
+- description
 
 Return ONLY valid JSON.
 
 Use exactly this structure:
 
 {
-  "seasonTitle": "string",
-  "logline": "string",
-  "overallStory": "string",
-
-  "characters": [
+  "title": "string",
+  "hook": "string",
+  "description": "string",
+  "language": "${language}",
+  "videoType": "${videoType}",
+  "aspectRatio": "${aspectRatio}",
+  "duration": ${durationSeconds},
+  "scenes": [
     {
-      "name": "string",
-      "age": 0,
-      "role": "string",
-      "personality": "string",
-      "appearance": "string",
-      "relationship": "string"
-    }
-  ],
-
-  "episodes": [
-    {
-      "episode": 1,
-      "title": "string",
-      "summary": "string",
-      "hook": "string",
-      "script": "string",
+      "scene": 1,
+      "duration": ${sceneDurations[0] || 5},
+      "visualPrompt": "string",
+      "narration": "string",
       "dialogue": "string",
-      "cliffhanger": "string"
+      "caption": "string"
     }
-  ],
-
-  "seasonFinale": "string",
-  "season2Hook": "string"
+  ]
 }
 
-The episodes array MUST contain exactly 3 episodes.
+The scenes array MUST contain exactly ${sceneCount} scenes.
 
-Episode numbers MUST be 1, 2 and 3.
+Scene numbers MUST be:
+${Array.from(
+  { length: sceneCount },
+  (_, i) => i + 1
+).join(", ")}
 
 Return ONLY JSON.
 No markdown.
@@ -110,26 +280,36 @@ No code fences.
 No explanation outside JSON.
 `;
 
+    /*
+     * Keep model list small.
+     * If one model is temporarily unavailable,
+     * the next model can be tried.
+     */
     const models = [
       "gemini-3.6-flash",
       "gemini-3.5-flash"
     ];
 
     let geminiData = null;
-    let lastError = null;
     let successfulModel = null;
+    let lastError = null;
 
     for (const model of models) {
+
       for (let attempt = 1; attempt <= 2; attempt++) {
+
         try {
+
           const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
             {
               method: "POST",
+
               headers: {
                 "Content-Type": "application/json",
                 "x-goog-api-key": apiKey
               },
+
               body: JSON.stringify({
                 contents: [
                   {
@@ -140,33 +320,48 @@ No explanation outside JSON.
                     ]
                   }
                 ],
+
                 generationConfig: {
-                  maxOutputTokens: 20000,
+                  maxOutputTokens: 16000,
                   responseMimeType: "application/json"
                 }
               })
             }
           );
 
-          const responseText = await response.text();
+          const responseText =
+            await response.text();
 
           if (response.ok) {
+
             try {
-              geminiData = JSON.parse(responseText);
+
+              geminiData =
+                JSON.parse(responseText);
+
               successfulModel = model;
+
               break;
+
             } catch (error) {
+
               lastError = {
                 status: response.status,
                 model,
-                details: responseText
+                details:
+                  "Gemini response was not valid JSON.",
+                raw:
+                  responseText.slice(0, 4000)
               };
+
             }
+
           } else {
+
             lastError = {
               status: response.status,
               model,
-              details: responseText
+              details: responseText.slice(0, 4000)
             };
 
             const retryable =
@@ -175,23 +370,36 @@ No explanation outside JSON.
               response.status === 502 ||
               response.status === 504;
 
-            if (retryable && attempt === 1) {
+            if (
+              retryable &&
+              attempt === 1
+            ) {
+
               await sleep(3000);
+
               continue;
+
             }
 
             break;
           }
+
         } catch (error) {
+
           lastError = {
             status: 500,
             model,
-            details: error?.message || "Network error"
+            details:
+              error?.message ||
+              "Network error"
           };
 
           if (attempt === 1) {
+
             await sleep(3000);
+
             continue;
+
           }
 
           break;
@@ -203,90 +411,218 @@ No explanation outside JSON.
       }
     }
 
+
     if (!geminiData) {
+
       return res.status(503).json({
         success: false,
-        error: "Gemini is temporarily unavailable.",
-        details: lastError
-          ? JSON.stringify(lastError)
-          : "No Gemini model returned a response."
+        error:
+          "Gemini is temporarily unavailable. Please try again.",
+        details:
+          lastError
+            ? JSON.stringify(lastError)
+            : "No Gemini model returned a response."
       });
+
     }
 
+
     const generatedText =
-      geminiData?.candidates?.[0]?.content?.parts
+      geminiData
+        ?.candidates?.[0]
+        ?.content?.parts
         ?.map((part) => part.text || "")
         .join("")
         .trim();
 
+
     if (!generatedText) {
-      return res.status(500).json({
-        success: false,
-        error: "Gemini returned an empty response.",
-        details: JSON.stringify(geminiData).slice(0, 5000)
-      });
-    }
 
-    let season;
-
-    try {
-      season = JSON.parse(generatedText);
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        error: "Gemini returned invalid JSON.",
-        details: generatedText.slice(0, 5000)
-      });
-    }
-
-    if (!Array.isArray(season.episodes)) {
-      return res.status(500).json({
-        success: false,
-        error: "Gemini response has no episodes."
-      });
-    }
-
-    if (season.episodes.length !== 3) {
       return res.status(500).json({
         success: false,
         error:
-          `Gemini generated ${season.episodes.length} episodes instead of 3.`
+          "Gemini returned an empty response.",
+        details:
+          JSON.stringify(geminiData).slice(0, 5000)
       });
+
     }
 
-    const episodes = season.episodes.map((ep, index) => ({
-      episode: index + 1,
-      title: ep?.title || `Episode ${index + 1}`,
-      summary: ep?.summary || "",
-      hook: ep?.hook || "",
-      script: ep?.script || "",
-      dialogue: ep?.dialogue || "",
-      cliffhanger: ep?.cliffhanger || "",
-      scenes: []
-    }));
+
+    let videoData;
+
+    try {
+
+      const cleaned =
+        cleanJsonText(generatedText);
+
+      videoData =
+        JSON.parse(cleaned);
+
+    } catch (error) {
+
+      return res.status(500).json({
+        success: false,
+        error:
+          "Gemini returned invalid JSON.",
+        details:
+          generatedText.slice(0, 5000)
+      });
+
+    }
+
+
+    /*
+     * Validate scenes.
+     */
+
+    if (!Array.isArray(videoData.scenes)) {
+
+      return res.status(500).json({
+        success: false,
+        error:
+          "Gemini response has no scenes."
+      });
+
+    }
+
+
+    if (
+      videoData.scenes.length !==
+      sceneCount
+    ) {
+
+      return res.status(500).json({
+        success: false,
+        error:
+          `Gemini generated ${videoData.scenes.length} scenes instead of ${sceneCount}.`
+      });
+
+    }
+
+
+    /*
+     * Normalize scenes.
+     */
+
+    const scenes =
+      videoData.scenes.map(
+        (scene, index) => {
+
+          return {
+            scene: index + 1,
+
+            duration:
+              Number(scene?.duration) ||
+              sceneDurations[index] ||
+              5,
+
+            visualPrompt:
+              String(
+                scene?.visualPrompt || ""
+              ),
+
+            narration:
+              String(
+                scene?.narration || ""
+              ),
+
+            dialogue:
+              String(
+                scene?.dialogue || ""
+              ),
+
+            caption:
+              String(
+                scene?.caption || ""
+              )
+          };
+
+        }
+      );
+
+
+    /*
+     * Make sure duration metadata is controlled
+     * by the server rather than trusting Gemini.
+     */
+
+    scenes.forEach((scene, index) => {
+
+      scene.duration =
+        sceneDurations[index];
+
+    });
+
 
     return res.status(200).json({
+
       success: true,
-      model: successfulModel,
-      seasonTitle: season.seasonTitle || "Untitled Season",
-      logline: season.logline || "",
-      overallStory: season.overallStory || "",
-      characters: Array.isArray(season.characters)
-        ? season.characters
-        : [],
-      episodes,
-      totalEpisodes: 3,
-      seasonFinale: season.seasonFinale || "",
-      season2Hook: season.season2Hook || ""
+
+      model:
+        successfulModel,
+
+      videoType,
+
+      title:
+        String(
+          videoData.title ||
+          (
+            videoType === "funny"
+              ? "Funny Reel"
+              : "AI Video"
+          )
+        ),
+
+      hook:
+        String(
+          videoData.hook || ""
+        ),
+
+      description:
+        String(
+          videoData.description || ""
+        ),
+
+      language,
+
+      aspectRatio,
+
+      duration:
+        durationSeconds,
+
+      voice,
+
+      music,
+
+      branding,
+
+      totalScenes:
+        sceneCount,
+
+      scenes
+
     });
 
   } catch (error) {
-    console.error("SERVER ERROR:", error);
+
+    console.error(
+      "SERVER ERROR:",
+      error
+    );
 
     return res.status(500).json({
+
       success: false,
-      error: "Server error.",
-      details: error?.message || "Unknown error."
+
+      error:
+        "Server error.",
+
+      details:
+        error?.message ||
+        "Unknown error."
+
     });
+
   }
 }
