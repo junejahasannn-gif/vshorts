@@ -23,7 +23,7 @@
         <div class="flex justify-between items-center py-3 border-b border-gray-800 mb-4">
             <h1 class="text-xl font-black bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent">⚡ ViralTap Studio</h1>
             <div class="flex items-center gap-2">
-                <span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">♾️ Unlimited Free</span>
+                <span class="bg-gray-800 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-gray-700">⚡ <span id="userCredits">5</span> Credits</span>
             </div>
         </div>
 
@@ -140,6 +140,9 @@
     </div>
 
     <script>
+        let credits = localStorage.getItem('vt_credits') || 5;
+        document.getElementById('userCredits').innerText = credits;
+
         function setPreset(txt) {
             document.getElementById('videoIdea').value = txt;
         }
@@ -147,6 +150,11 @@
         function startSceneGeneration() {
             let idea = document.getElementById('videoIdea').value.trim();
             if(!idea) { alert('Pehle koi topic ya idea likhiye!'); return; }
+            if(credits <= 0) { alert('Credits khatam ho gaye hain!'); return; }
+
+            credits--;
+            localStorage.setItem('vt_credits', credits);
+            document.getElementById('userCredits').innerText = credits;
 
             document.getElementById('stepInput').classList.add('hidden');
             document.getElementById('stepScenes').classList.remove('hidden');
