@@ -1,1233 +1,1027 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ViralTap Studio</title>
 
-  /* ================= DATA ================= */
+  <script src="https://cdn.tailwindcss.com"></script>
 
-  const languages = [
-    "Hindi",
-    "English",
-    "Bengali",
-    "Punjabi",
-    "Gujarati",
-    "Kannada",
-    "Malayalam",
-    "Marathi",
-    "Tamil",
-    "Telugu",
-    "Urdu",
-    "Odia"
-  ];
-
-  let selectedNormalLanguage = "Hindi";
-  let selectedFunnyLanguage = "Hindi";
-
-  let normalRatio = "9:16";
-  let funnyRatio = "9:16";
-
-  let normalDuration = 60;
-
-  let selectedJoke =
-    "जब दोस्त बोले: भाई तू बदल गया है...";
-
-  let currentVideoType = "normal";
-
-  let videoDuration = 45;
-
-  let playbackSpeed = 1;
-
-  let generatedVideoData = null;
-
-  let renderJobData = null;
-
-
-  /* ================= PAGE ================= */
-
-  function showPage(id) {
-
-    document.querySelectorAll(".page").forEach(page => {
-      page.classList.add("hidden-page");
-    });
-
-    document.getElementById(id).classList.remove("hidden-page");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-
-  }
-
-
-  /* ================= LANGUAGE UI ================= */
-
-  function renderLanguages(containerId, type) {
-
-    const container =
-      document.getElementById(containerId);
-
-    container.innerHTML = "";
-
-    languages.forEach(language => {
-
-      const button =
-        document.createElement("button");
-
-      button.className =
-        "option-btn " +
-        ((type === "normal"
-          ? selectedNormalLanguage
-          : selectedFunnyLanguage) === language
-          ? "active"
-          : "");
-
-      button.textContent = language;
-
-      button.onclick = () => {
-
-        if (type === "normal") {
-
-          selectedNormalLanguage = language;
-
-          document.getElementById(
-            "normalLanguageLabel"
-          ).textContent = language;
-
-          renderLanguages(
-            "normalLanguages",
-            "normal"
-          );
-
-        } else {
-
-          selectedFunnyLanguage = language;
-
-          renderLanguages(
-            "funnyLanguages",
-            "funny"
-          );
-
-        }
-
-      };
-
-      container.appendChild(button);
-
-    });
-
-  }
-
-
-  renderLanguages(
-    "normalLanguages",
-    "normal"
-  );
-
-  renderLanguages(
-    "funnyLanguages",
-    "funny"
-  );
-
-
-  /* ================= HOME → NORMAL ================= */
-
-  function openNormalStudio() {
-
-    const story =
-      document.getElementById(
-        "homeStory"
-      ).value.trim();
-
-    document.getElementById(
-      "normalStory"
-    ).value = story;
-
-    showPage("studioPage");
-
-  }
-
-
-  /* ================= OPTIONS ================= */
-
-  function selectOption(button, type) {
-
-    const parent =
-      button.parentElement;
-
-    parent
-      .querySelectorAll(".option-btn")
-      .forEach(btn => {
-        btn.classList.remove("active");
-      });
-
-    button.classList.add("active");
-
-    if (type === "normalRatio") {
-      normalRatio =
-        button.dataset.ratio;
+  <style>
+    * {
+      box-sizing: border-box;
     }
 
-    if (type === "funnyRatio") {
-      funnyRatio =
-        button.dataset.ratio;
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f7f7f8;
+      color: #111;
     }
 
-    if (type === "normalDuration") {
-      normalDuration =
-        Number(button.dataset.duration);
+    button,
+    textarea,
+    select,
+    input {
+      font: inherit;
     }
 
-  }
-
-
-  /* ================= JOKES ================= */
-
-  function selectJoke(card, joke) {
-
-    document
-      .querySelectorAll(".story-card")
-      .forEach(item => {
-        item.classList.remove("selected");
-      });
-
-    card.classList.add("selected");
-
-    selectedJoke = joke;
-
-    document.getElementById(
-      "funnyJoke"
-    ).value = joke;
-
-  }
-
-
-  /* ================= VOICE ================= */
-
-  function changeVoice(elementId) {
-
-    const voices = [
-      "Ankit",
-      "Swara",
-      "Aarav",
-      "Neha"
-    ];
-
-    const current =
-      document.getElementById(
-        elementId
-      ).textContent.trim();
-
-    const index =
-      voices.indexOf(current);
-
-    const next =
-      voices[
-        (index + 1) %
-        voices.length
-      ];
-
-    document.getElementById(
-      elementId
-    ).textContent = next;
-
-    showToast(
-      "Voice changed to " + next
-    );
-
-  }
-
-
-  /* ================= MUSIC ================= */
-
-  function changeMusic(elementId) {
-
-    const music = [
-      "cartoon-music-2",
-      "City of the Wolf",
-      "Funny Bounce",
-      "Comedy Beat"
-    ];
-
-    const current =
-      document.getElementById(
-        elementId
-      ).textContent.trim();
-
-    const index =
-      music.indexOf(current);
-
-    const next =
-      music[
-        (index + 1) %
-        music.length
-      ];
-
-    document.getElementById(
-      elementId
-    ).textContent = next;
-
-    showToast(
-      "Music changed to " + next
-    );
-
-  }
-
-
-  /* ================= BRANDING ================= */
-
-  function editBrand(elementId) {
-
-    const current =
-      document.getElementById(
-        elementId
-      ).textContent.trim();
-
-    const name =
-      prompt(
-        "Instagram / Facebook Page Name:",
-        current ===
-          "Insta / FB पेज नाम जोड़ें"
-          ? ""
-          : current
-      );
-
-    if (
-      name !== null &&
-      name.trim()
-    ) {
-
-      document.getElementById(
-        elementId
-      ).textContent =
-        name.trim();
-
+    .hidden {
+      display: none !important;
     }
 
-  }
-
-
-  /* ================= GENERATE ================= */
-
-  function generateFunnyVideo() {
-
-    const joke =
-      document.getElementById(
-        "funnyJoke"
-      ).value.trim();
-
-    if (!joke) {
-
-      showToast(
-        "पहले कोई joke चुनें या लिखें"
-      );
-
-      return;
-
+    .page {
+      min-height: 100vh;
     }
 
-    currentVideoType = "funny";
-
-    startGeneration({
-      text: joke,
-      language: selectedFunnyLanguage,
-      aspectRatio: funnyRatio,
-      duration: 30,
-      voice:
-        document.getElementById(
-          "funnyVoiceText"
-        ).textContent.trim(),
-      music:
-        document.getElementById(
-          "funnyMusicText"
-        ).textContent.trim(),
-      branding:
-        document.getElementById(
-          "funnyBrandText"
-        ).textContent.trim()
-    });
-
-  }
-
-
-  async function generateNormalVideo() {
-
-    const story =
-      document.getElementById(
-        "normalStory"
-      ).value.trim();
-
-    if (!story) {
-
-      showToast(
-        "पहले अपनी story लिखें"
-      );
-
-      return;
-
+    .glass {
+      background: rgba(255,255,255,.88);
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 15px 40px rgba(0,0,0,.06);
     }
 
-    currentVideoType = "normal";
+    .gradient-text {
+      background: linear-gradient(90deg,#111,#555);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
 
-    startGeneration({
-      text: story,
-      language: selectedNormalLanguage,
-      aspectRatio: normalRatio,
-      duration: normalDuration,
-      voice:
-        document.getElementById(
-          "normalVoiceText"
-        ).textContent.trim(),
-      music:
-        document.getElementById(
-          "normalMusicText"
-        ).textContent.trim(),
-      branding:
-        document.getElementById(
-          "normalBrandText"
-        ).textContent.trim()
-    });
+    .loader {
+      width: 46px;
+      height: 46px;
+      border: 4px solid #e5e7eb;
+      border-top-color: #111;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
 
-  }
-
-
-  /* ================= REAL API GENERATION ================= */
-
-  async function startGeneration(options) {
-
-    showPage("generatingPage");
-
-    setGenerationProgress(
-      5,
-      "AI generation शुरू हो रही है...",
-      "Story को AI script में बदला जा रहा है"
-    );
-
-    try {
-
-      /* ---------------------------------
-       * STEP 1
-       * Gemini script generation
-       * --------------------------------- */
-
-      setGenerationProgress(
-        15,
-        "AI story तैयार की जा रही है...",
-        "आपकी story को scenes में बदला जा रहा है"
-      );
-
-      const scriptResponse =
-        await fetch(
-          "/api/generate-script",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body: JSON.stringify({
-
-              story:
-                currentVideoType === "normal"
-                  ? options.text
-                  : "",
-
-              joke:
-                currentVideoType === "funny"
-                  ? options.text
-                  : "",
-
-              videoType:
-                currentVideoType,
-
-              language:
-                options.language,
-
-              aspectRatio:
-                options.aspectRatio,
-
-              duration:
-                options.duration,
-
-              voice:
-                options.voice,
-
-              music:
-                options.music,
-
-              branding:
-                options.branding
-
-            })
-          }
-        );
-
-
-      const scriptData =
-        await readJsonResponse(
-          scriptResponse
-        );
-
-
-      if (
-        !scriptResponse.ok ||
-        !scriptData.success
-      ) {
-
-        throw new Error(
-          scriptData.error ||
-          scriptData.details ||
-          "AI script generation failed."
-        );
-
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
       }
-
-
-      generatedVideoData =
-        scriptData;
-
-
-      setGenerationProgress(
-        40,
-        "AI scenes तैयार हो गए...",
-        `${scriptData.totalScenes || scriptData.scenes?.length || 0} scenes तैयार किए गए`
-      );
-
-
-      /* ---------------------------------
-       * STEP 2
-       * Render job / Vercel Sandbox
-       * --------------------------------- */
-
-      setGenerationProgress(
-        55,
-        "Video render engine शुरू हो रहा है...",
-        "Vercel Sandbox तैयार किया जा रहा है"
-      );
-
-
-      const renderResponse =
-        await fetch(
-          "/api/render-video",
-          {
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body: JSON.stringify({
-
-              scenes:
-                scriptData.scenes,
-
-              videoType:
-                currentVideoType,
-
-              aspectRatio:
-                options.aspectRatio,
-
-              duration:
-                options.duration,
-
-              language:
-                options.language,
-
-              voice:
-                options.voice,
-
-              music:
-                options.music,
-
-              branding:
-                options.branding
-
-            })
-          }
-        );
-
-
-      const renderData =
-        await readJsonResponse(
-          renderResponse
-        );
-
-
-      if (
-        !renderResponse.ok ||
-        !renderData.success
-      ) {
-
-        throw new Error(
-          renderData.error ||
-          renderData.details ||
-          "Render engine failed."
-        );
-
-      }
-
-
-      renderJobData =
-        renderData;
-
-
-      setGenerationProgress(
-        75,
-        "Render engine ready...",
-        "Video composition तैयार है"
-      );
-
-
-      /* ---------------------------------
-       * STEP 3
-       * Prepare result
-       * --------------------------------- */
-
-      setGenerationProgress(
-        90,
-        "Video preview तैयार हो रहा है...",
-        "AI scenes को preview में लगाया जा रहा है"
-      );
-
-
-      await wait(500);
-
-
-      prepareResult(
-        scriptData
-      );
-
-
-      setGenerationProgress(
-        100,
-        "Video ready!",
-        "AI video project तैयार है"
-      );
-
-
-      await wait(600);
-
-
-      showPage("resultPage");
-
-
-      showToast(
-        "AI scenes successfully generated 🎬"
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        "VIRALTAP GENERATION ERROR:",
-        error
-      );
-
-      showPage(
-        currentVideoType === "funny"
-          ? "funnyPage"
-          : "studioPage"
-      );
-
-      showToast(
-        error?.message ||
-        "Video generation failed."
-      );
-
     }
 
-  }
-
-
-  /* ================= API HELPERS ================= */
-
-  async function readJsonResponse(response) {
-
-    const text =
-      await response.text();
-
-    let data = {};
-
-    try {
-
-      data =
-        text
-          ? JSON.parse(text)
-          : {};
-
-    } catch {
-
-      throw new Error(
-        "Server returned an invalid response."
-      );
-
+    .progress {
+      transition: width .4s ease;
     }
+  </style>
+</head>
 
-    return data;
+<body>
 
-  }
-
-
-  function setGenerationProgress(
-    percent,
-    stepText,
-    messageText
-  ) {
-
-    const bar =
-      document.getElementById(
-        "generationBar"
-      );
-
-    const percentElement =
-      document.getElementById(
-        "generationPercent"
-      );
-
-    const step =
-      document.getElementById(
-        "generationStep"
-      );
-
-    const message =
-      document.getElementById(
-        "generationMessage"
-      );
-
-    bar.style.width =
-      percent + "%";
-
-    percentElement.textContent =
-      percent + "%";
-
-    step.textContent =
-      stepText;
-
-    message.textContent =
-      messageText;
-
-  }
-
-
-  function wait(ms) {
-
-    return new Promise(
-      resolve =>
-        setTimeout(resolve, ms)
-    );
-
-  }
-
-
-  /* ================= RESULT ================= */
-
-  function prepareResult(scriptData) {
-
-    const scenes =
-      Array.isArray(
-        scriptData?.scenes
-      )
-        ? scriptData.scenes
-        : [];
-
-
-    videoDuration =
-      Number(
-        scriptData?.duration ||
-        scriptData?.videoDuration ||
-        (
-          currentVideoType === "funny"
-            ? 30
-            : normalDuration
-        )
-      );
-
-
-    if (!videoDuration) {
-      videoDuration = 30;
-    }
-
-
-    document.getElementById(
-      "totalTime"
-    ).textContent =
-      formatTime(videoDuration);
-
-
-    document.getElementById(
-      "currentTime"
-    ).textContent =
-      "0:00";
-
-
-    document.getElementById(
-      "sceneSummary"
-    ).textContent =
-      `${scenes.length} scenes • ${formatTime(videoDuration)} total`;
-
-
-    createScenes(
-      scenes
-    );
-
-
-    if (
-      currentVideoType ===
-      "funny"
-    ) {
-
-      document.getElementById(
-        "resultVoice"
-      ).textContent =
-        document.getElementById(
-          "funnyVoiceText"
-        ).textContent;
-
-      document.getElementById(
-        "resultMusic"
-      ).textContent =
-        document.getElementById(
-          "funnyMusicText"
-        ).textContent;
-
-    } else {
-
-      document.getElementById(
-        "resultVoice"
-      ).textContent =
-        document.getElementById(
-          "normalVoiceText"
-        ).textContent;
-
-      document.getElementById(
-        "resultMusic"
-      ).textContent =
-        document.getElementById(
-          "normalMusicText"
-        ).textContent;
-
-    }
-
-
-    switchResultTab(
-      "scenes"
-    );
-
-  }
-
-
-  /* ================= REAL AI SCENES ================= */
-
-  function createScenes(scenes) {
-
-    const container =
-      document.getElementById(
-        "sceneList"
-      );
-
-    container.innerHTML = "";
-
-
-    if (!scenes.length) {
-
-      container.innerHTML = `
-        <div class="text-gray-500">
-          No scenes generated.
+  <!-- HOME -->
+  <section id="homePage" class="page">
+    <header class="border-b border-gray-200 bg-white">
+      <div class="max-w-6xl mx-auto px-5 py-5 flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-black">ViralTap</div>
+          <div class="text-xs text-gray-500">AI Video Studio</div>
         </div>
-      `;
 
-      return;
+        <button
+          onclick="openNormalStudio()"
+          class="bg-black text-white px-5 py-2.5 rounded-xl font-bold"
+        >
+          Create Video
+        </button>
+      </div>
+    </header>
 
-    }
+    <main class="max-w-6xl mx-auto px-5 py-14">
+
+      <div class="text-center max-w-3xl mx-auto">
+        <div class="inline-flex px-4 py-2 rounded-full bg-gray-100 text-sm font-bold mb-5">
+          ⚡ AI Reel & Short Video Maker
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-black leading-tight">
+          Turn Your Ideas Into
+          <span class="gradient-text"> Viral Videos.</span>
+        </h1>
+
+        <p class="text-gray-600 text-lg mt-6">
+          Write your idea, choose your style and let ViralTap create the video script.
+        </p>
+      </div>
+
+      <div class="max-w-3xl mx-auto mt-12 glass rounded-3xl p-6">
+        <label class="font-bold text-lg">Your story / idea</label>
+
+        <textarea
+          id="homeStory"
+          rows="6"
+          class="w-full mt-3 border border-gray-200 rounded-2xl p-4 outline-none focus:border-black resize-none"
+          placeholder="Example: Ek funny reel banao jisme ek dost dusre dost ko late aane par roast karta hai..."
+        ></textarea>
+
+        <div class="grid md:grid-cols-2 gap-4 mt-5">
+          <button
+            onclick="openNormalStudio()"
+            class="bg-black text-white rounded-2xl py-4 font-bold"
+          >
+            🎬 Video Banao
+          </button>
+
+          <button
+            onclick="openFunnyStudio()"
+            class="border border-gray-300 bg-white rounded-2xl py-4 font-bold"
+          >
+            😂 Funny Reel Banao
+          </button>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-5 mt-12">
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="text-3xl">✍️</div>
+          <h3 class="font-black text-lg mt-4">Story to Video</h3>
+          <p class="text-gray-500 text-sm mt-2">
+            Idea ko AI-generated scenes me convert karo.
+          </p>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="text-3xl">😂</div>
+          <h3 class="font-black text-lg mt-4">Funny Reels</h3>
+          <p class="text-gray-500 text-sm mt-2">
+            Short comedy concepts ke liye ready AI scripting.
+          </p>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
+          <div class="text-3xl">🎙️</div>
+          <h3 class="font-black text-lg mt-4">Voice + Music</h3>
+          <p class="text-gray-500 text-sm mt-2">
+            Voice, music aur branding options ready rakho.
+          </p>
+        </div>
+      </div>
+
+      <div class="text-center mt-14 text-sm text-gray-500">
+        Support: WhatsApp +91 63530 68575 · junejahasann@gmail.com
+      </div>
+    </main>
+  </section>
 
 
-    let elapsed = 0;
+  <!-- STUDIO -->
+  <section id="studioPage" class="page hidden">
+    <header class="border-b border-gray-200 bg-white">
+      <div class="max-w-5xl mx-auto px-5 py-5 flex items-center justify-between">
+        <button onclick="goHome()" class="text-gray-600 font-bold">
+          ← Back
+        </button>
 
+        <div class="font-black text-xl">
+          ViralTap Studio
+        </div>
 
-    scenes.forEach(
-      (scene, index) => {
+        <div></div>
+      </div>
+    </header>
 
-        const duration =
-          Number(
-            scene?.duration
-          ) || 3;
+    <main class="max-w-5xl mx-auto px-5 py-10">
 
+      <div class="mb-8">
+        <div id="studioBadge"
+          class="inline-flex px-3 py-1 rounded-full bg-gray-100 text-sm font-bold">
+          ✨ AI Video
+        </div>
 
-        const card =
-          document.createElement(
-            "div"
-          );
+        <h2 id="studioTitle"
+          class="text-4xl font-black mt-4">
+          Create Your Video
+        </h2>
 
-        card.className =
-          "scene-thumb";
+        <p class="text-gray-500 mt-2">
+          Set your preferences and generate your AI video script.
+        </p>
+      </div>
 
+      <div class="grid lg:grid-cols-3 gap-6">
 
-        const caption =
-          scene?.caption ||
-          scene?.narration ||
-          scene?.dialogue ||
-          scene?.scene ||
-          `Scene ${index + 1}`;
+        <div class="lg:col-span-2 bg-white border border-gray-200 rounded-3xl p-6">
 
+          <label class="font-bold">Story / Idea</label>
 
-        const visual =
-          scene?.visualPrompt ||
-          "AI Scene";
+          <textarea
+            id="studioStory"
+            rows="7"
+            class="w-full mt-3 border border-gray-200 rounded-2xl p-4 outline-none focus:border-black resize-none"
+            placeholder="Apni story ya idea yahan likho..."
+          ></textarea>
 
-
-        card.innerHTML = `
-
-          <div class="thumb-bg"></div>
-
-          <div class="scene-thumb-content">
-
-            <div class="flex justify-between gap-2">
-
-              <span class="bg-white/20 px-2 py-1 rounded-lg text-xs">
-                AI
-              </span>
-
-              <span class="text-xs">
-                ${duration}s
-              </span>
-
-            </div>
-
+          <div class="grid md:grid-cols-2 gap-5 mt-6">
 
             <div>
+              <label class="text-sm font-bold">Language</label>
+              <select id="language"
+                class="w-full mt-2 border border-gray-200 rounded-xl p-3">
+                <option value="Hindi">Hindi</option>
+                <option value="Hinglish">Hinglish</option>
+                <option value="English">English</option>
+                <option value="Gujarati">Gujarati</option>
+              </select>
+            </div>
 
-              <div class="text-2xl font-black">
-                #${index + 1}
-              </div>
+            <div>
+              <label class="text-sm font-bold">Aspect Ratio</label>
+              <select id="aspectRatio"
+                class="w-full mt-2 border border-gray-200 rounded-xl p-3">
+                <option value="9:16">9:16 — Reel / Short</option>
+                <option value="16:9">16:9 — YouTube</option>
+                <option value="1:1">1:1 — Square</option>
+              </select>
+            </div>
 
-              <div class="text-xs text-white/80 mt-1 line-clamp-3">
-                ${escapeHtml(
-                  String(caption)
-                )}
-              </div>
+            <div>
+              <label class="text-sm font-bold">Duration</label>
+              <select id="duration"
+                class="w-full mt-2 border border-gray-200 rounded-xl p-3">
+                <option value="30">30 seconds</option>
+                <option value="60">60 seconds</option>
+                <option value="180">3 minutes</option>
+              </select>
+            </div>
 
+            <div>
+              <label class="text-sm font-bold">Voice</label>
+              <select id="voice"
+                class="w-full mt-2 border border-gray-200 rounded-xl p-3">
+                <option value="Natural Male">Natural Male</option>
+                <option value="Natural Female">Natural Female</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-sm font-bold">Music</label>
+              <select id="music"
+                class="w-full mt-2 border border-gray-200 rounded-xl p-3">
+                <option value="None">No Music</option>
+                <option value="Cinematic">Cinematic</option>
+                <option value="Funny">Funny</option>
+                <option value="Energetic">Energetic</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-sm font-bold">Branding</label>
+              <select id="branding"
+                class="w-full mt-2 border border-gray-200 rounded-xl p-3">
+                <option value="ViralTap">ViralTap</option>
+                <option value="None">No Branding</option>
+              </select>
             </div>
 
           </div>
-        `;
+
+          <button
+            onclick="generateCurrentVideo()"
+            class="w-full mt-7 bg-black text-white rounded-2xl py-4 font-black text-lg"
+          >
+            🚀 Generate Video
+          </button>
+
+        </div>
+
+        <div class="bg-black text-white rounded-3xl p-6 h-fit">
+          <div class="text-sm text-gray-400">Current mode</div>
+
+          <div id="sideMode"
+            class="text-2xl font-black mt-2">
+            AI Video
+          </div>
+
+          <div class="mt-8 space-y-4 text-sm text-gray-300">
+            <div>✓ AI Script</div>
+            <div>✓ Scene Breakdown</div>
+            <div>✓ Captions</div>
+            <div>✓ Visual Prompts</div>
+            <div>✓ Render Pipeline Ready</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </section>
 
 
-        const sceneStart =
-          elapsed;
+  <!-- GENERATING -->
+  <section id="generatingPage"
+    class="page hidden flex items-center justify-center">
+
+    <div class="text-center max-w-lg mx-auto px-5">
+
+      <div class="loader mx-auto"></div>
+
+      <h2 class="text-3xl font-black mt-8">
+        Creating your video...
+      </h2>
+
+      <p id="generationMessage"
+        class="text-gray-500 mt-3">
+        AI is preparing your story.
+      </p>
+
+      <div class="w-full bg-gray-200 rounded-full h-3 mt-8 overflow-hidden">
+        <div
+          id="progressBar"
+          class="progress bg-black h-full rounded-full"
+          style="width:5%"
+        ></div>
+      </div>
+
+      <div id="progressText"
+        class="font-bold mt-3">
+        5%
+      </div>
+
+    </div>
+  </section>
 
 
-        card.onclick = () => {
+  <!-- RESULT -->
+  <section id="resultPage" class="page hidden">
 
-          document.getElementById(
-            "currentTime"
-          ).textContent =
-            formatTime(
-              sceneStart
-            );
+    <header class="border-b border-gray-200 bg-white">
+      <div class="max-w-6xl mx-auto px-5 py-5 flex items-center justify-between">
+        <button onclick="goHome()" class="font-bold text-gray-600">
+          ← Home
+        </button>
+
+        <div class="font-black text-xl">
+          ViralTap
+        </div>
+
+        <button onclick="openNormalStudio()" class="font-bold">
+          + New Video
+        </button>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-5 py-10">
+
+      <div class="mb-8">
+        <div class="inline-flex px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-bold">
+          ✓ Video Ready
+        </div>
+
+        <h1 id="resultTitle"
+          class="text-4xl font-black mt-4">
+          Your Video
+        </h1>
+
+        <p id="resultDescription"
+          class="text-gray-500 mt-2">
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6">
+
+        <div class="lg:col-span-2">
+
+          <div id="previewBox"
+            class="bg-black rounded-3xl min-h-[500px] flex items-center justify-center overflow-hidden">
+
+            <div id="noVideoMessage"
+              class="text-center text-white px-6">
+
+              <div class="text-5xl">🎬</div>
+
+              <h3 class="text-2xl font-black mt-5">
+                Video Render Ready
+              </h3>
+
+              <p class="text-gray-400 mt-3">
+                Actual MP4 preview will appear here after the rendering engine is connected.
+              </p>
+
+            </div>
+
+            <video
+              id="videoPlayer"
+              class="hidden max-h-[700px] max-w-full"
+              controls
+              playsinline
+            ></video>
+
+          </div>
+
+          <div class="flex gap-3 mt-5">
+            <button
+              onclick="playPreview()"
+              class="flex-1 bg-black text-white rounded-xl py-3 font-bold"
+            >
+              ▶ Preview
+            </button>
+
+            <button
+              onclick="downloadVideo()"
+              class="flex-1 border border-gray-300 rounded-xl py-3 font-bold"
+            >
+              ↓ Download
+            </button>
+          </div>
+
+        </div>
 
 
-          showToast(
-            `Scene #${index + 1} selected`
-          );
+        <div class="bg-white border border-gray-200 rounded-3xl p-6">
 
-        };
+          <div class="flex gap-2 mb-6">
+            <button
+              id="scenesTab"
+              onclick="showScenes()"
+              class="px-4 py-2 bg-black text-white rounded-xl font-bold text-sm"
+            >
+              SCENES
+            </button>
+
+            <button
+              id="previewTab"
+              onclick="showPreviewInfo()"
+              class="px-4 py-2 bg-gray-100 rounded-xl font-bold text-sm"
+            >
+              PREVIEW
+            </button>
+          </div>
+
+          <div id="sceneList"></div>
+
+          <div id="previewInfo"
+            class="hidden text-sm text-gray-500">
+            Preview will use the rendered MP4 once the rendering URL is available.
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </section>
 
 
-        container.appendChild(
-          card
-        );
+<script>
+"use strict";
+
+let currentVideoType = "normal";
+let generatedVideoData = null;
+let renderJobData = null;
 
 
-        elapsed += duration;
+/* ------------------------------
+   PAGE HELPERS
+------------------------------ */
 
-      }
-    );
+function hideAllPages() {
+  document.getElementById("homePage").classList.add("hidden");
+  document.getElementById("studioPage").classList.add("hidden");
+  document.getElementById("generatingPage").classList.add("hidden");
+  document.getElementById("resultPage").classList.add("hidden");
+}
 
+function goHome() {
+  hideAllPages();
+  document.getElementById("homePage").classList.remove("hidden");
+}
+
+function openNormalStudio() {
+  currentVideoType = "normal";
+
+  const homeText =
+    document.getElementById("homeStory").value.trim();
+
+  document.getElementById("studioTitle").textContent =
+    "Create Your Video";
+
+  document.getElementById("studioBadge").textContent =
+    "✨ AI Video";
+
+  document.getElementById("sideMode").textContent =
+    "AI Video";
+
+  document.getElementById("studioStory").value =
+    homeText;
+
+  hideAllPages();
+
+  document.getElementById("studioPage").classList.remove("hidden");
+}
+
+function openFunnyStudio() {
+  currentVideoType = "funny";
+
+  const homeText =
+    document.getElementById("homeStory").value.trim();
+
+  document.getElementById("studioTitle").textContent =
+    "Funny Reel Studio";
+
+  document.getElementById("studioBadge").textContent =
+    "😂 Funny Reel";
+
+  document.getElementById("sideMode").textContent =
+    "Funny Reel";
+
+  document.getElementById("studioStory").value =
+    homeText;
+
+  document.getElementById("duration").value = "30";
+
+  hideAllPages();
+
+  document.getElementById("studioPage").classList.remove("hidden");
+}
+
+
+/* ------------------------------
+   GENERATION
+------------------------------ */
+
+async function generateCurrentVideo() {
+
+  const story =
+    document.getElementById("studioStory").value.trim();
+
+  if (!story) {
+    alert("Pehle story ya idea likho.");
+    return;
   }
 
+  const options = {
+    story: story,
+    idea: story,
+    joke: story,
 
-  function escapeHtml(value) {
+    videoType: currentVideoType,
 
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+    language:
+      document.getElementById("language").value,
 
-  }
+    aspectRatio:
+      document.getElementById("aspectRatio").value,
+
+    duration:
+      Number(document.getElementById("duration").value),
+
+    voice:
+      document.getElementById("voice").value,
+
+    music:
+      document.getElementById("music").value,
+
+    branding:
+      document.getElementById("branding").value
+  };
+
+  await startGeneration(options);
+}
 
 
-  /* ================= RESULT TABS ================= */
+async function startGeneration(options) {
 
-  function switchResultTab(tab) {
+  hideAllPages();
 
-    const scenes =
-      document.getElementById(
-        "scenesView"
+  document
+    .getElementById("generatingPage")
+    .classList.remove("hidden");
+
+  setProgress(
+    10,
+    "AI is understanding your idea..."
+  );
+
+  try {
+
+    const scriptResponse =
+      await fetch("/api/generate-script", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(options)
+      });
+
+
+    const scriptData =
+      await readJsonResponse(scriptResponse);
+
+
+    if (!scriptResponse.ok || !scriptData.success) {
+      throw new Error(
+        scriptData.error ||
+        scriptData.details ||
+        "AI script generation failed."
       );
-
-    const preview =
-      document.getElementById(
-        "previewView"
-      );
-
-    const scenesTab =
-      document.getElementById(
-        "scenesTab"
-      );
-
-    const previewTab =
-      document.getElementById(
-        "previewTab"
-      );
-
-
-    if (tab === "scenes") {
-
-      scenes.classList.remove(
-        "hidden"
-      );
-
-      preview.classList.add(
-        "hidden"
-      );
-
-      scenesTab.className =
-        "px-5 py-3 font-bold border-b-2 border-black";
-
-      previewTab.className =
-        "px-5 py-3 text-gray-500";
-
-    } else {
-
-      scenes.classList.add(
-        "hidden"
-      );
-
-      preview.classList.remove(
-        "hidden"
-      );
-
-      previewTab.className =
-        "px-5 py-3 font-bold border-b-2 border-black";
-
-      scenesTab.className =
-        "px-5 py-3 text-gray-500";
-
     }
 
-  }
+
+    generatedVideoData =
+      scriptData;
 
 
-  /* ================= SPEED ================= */
+    setProgress(
+      55,
+      "AI scenes created. Preparing render..."
+    );
 
-  function changeSpeed(amount) {
 
-    playbackSpeed =
-      Math.min(
-        2,
-        Math.max(
-          .5,
-          playbackSpeed + amount
-        )
+    const renderResponse =
+      await fetch("/api/render-video", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          scenes: scriptData.scenes || [],
+
+          videoType:
+            options.videoType,
+
+          aspectRatio:
+            options.aspectRatio,
+
+          duration:
+            options.duration,
+
+          voice:
+            options.voice,
+
+          music:
+            options.music,
+
+          branding:
+            options.branding
+        })
+      });
+
+
+    const renderData =
+      await readJsonResponse(renderResponse);
+
+
+    if (!renderResponse.ok || !renderData.success) {
+      throw new Error(
+        renderData.error ||
+        renderData.details ||
+        "Render preparation failed."
       );
+    }
 
 
-    document.getElementById(
-      "speedText"
-    ).textContent =
-      playbackSpeed % 1 === 0
-        ? playbackSpeed + "×"
-        : playbackSpeed.toFixed(2) + "×";
+    renderJobData =
+      renderData;
 
+
+    setProgress(
+      85,
+      "Render system prepared..."
+    );
+
+
+    await wait(600);
+
+
+    setProgress(
+      100,
+      "Your video is ready."
+    );
+
+
+    await wait(500);
+
+
+    prepareResult(scriptData);
+
+    hideAllPages();
+
+    document
+      .getElementById("resultPage")
+      .classList.remove("hidden");
+
+  } catch (error) {
+
+    console.error(
+      "VIRALTAP GENERATION ERROR:",
+      error
+    );
+
+    alert(
+      "Video generate nahi hua.\n\n" +
+      (error.message || "Unknown error")
+    );
+
+    goHome();
+  }
+}
+
+
+/* ------------------------------
+   RESULT
+------------------------------ */
+
+function prepareResult(data) {
+
+  const title =
+    data.title ||
+    "Your Viral Video";
+
+  const description =
+    data.description ||
+    "AI generated video script.";
+
+  document.getElementById(
+    "resultTitle"
+  ).textContent = title;
+
+  document.getElementById(
+    "resultDescription"
+  ).textContent = description;
+
+
+  createScenes(
+    Array.isArray(data.scenes)
+      ? data.scenes
+      : []
+  );
+
+
+  const video =
+    document.getElementById("videoPlayer");
+
+  const noVideo =
+    document.getElementById("noVideoMessage");
+
+
+  if (
+    renderJobData &&
+    renderJobData.videoUrl
+  ) {
+
+    video.src =
+      renderJobData.videoUrl;
+
+    video.classList.remove("hidden");
+    noVideo.classList.add("hidden");
+
+  } else {
+
+    video.removeAttribute("src");
+    video.classList.add("hidden");
+    noVideo.classList.remove("hidden");
+  }
+}
+
+
+function createScenes(scenes) {
+
+  const list =
+    document.getElementById("sceneList");
+
+  if (!scenes.length) {
+
+    list.innerHTML =
+      '<div class="text-sm text-gray-500">No scenes found.</div>';
+
+    return;
   }
 
 
-  /* ================= PREVIEW ================= */
+  list.innerHTML =
+    scenes.map((scene, index) => {
 
-  function playPreview() {
+      const caption =
+        scene.caption ||
+        scene.narration ||
+        scene.dialogue ||
+        scene.scene ||
+        "Scene " + (index + 1);
 
-    if (
-      renderJobData?.videoUrl
-    ) {
+      const duration =
+        scene.duration || "";
 
-      const area =
-        document.getElementById(
-          "previewVideoArea"
-        );
+      return `
+        <div class="border border-gray-200 rounded-2xl p-4 mb-3">
+          <div class="flex items-center justify-between gap-3">
+            <div class="font-black text-sm">
+              Scene ${index + 1}
+            </div>
 
-      area.innerHTML = `
-        <video
-          src="${renderJobData.videoUrl}"
-          controls
-          autoplay
-          playsinline
-          style="width:100%;height:100%;object-fit:cover;"
-        ></video>
+            ${
+              duration
+                ? `<div class="text-xs text-gray-400">${escapeHtml(String(duration))}s</div>`
+                : ""
+            }
+          </div>
+
+          <div class="text-sm text-gray-600 mt-2">
+            ${escapeHtml(String(caption))}
+          </div>
+        </div>
       `;
 
-      return;
+    }).join("");
+}
 
-    }
+
+/* ------------------------------
+   PREVIEW / DOWNLOAD
+------------------------------ */
+
+function playPreview() {
+
+  if (
+    renderJobData &&
+    renderJobData.videoUrl
+  ) {
+
+    const video =
+      document.getElementById("videoPlayer");
+
+    video.classList.remove("hidden");
+
+    document
+      .getElementById("noVideoMessage")
+      .classList.add("hidden");
+
+    video.play().catch(() => {});
+
+    return;
+  }
 
 
-    showToast(
-      "MP4 renderer अभी connect किया जा रहा है."
+  alert(
+    "Actual MP4 abhi render nahi hua hai. Render engine connect hone ke baad yahan video play hoga."
+  );
+}
+
+
+function downloadVideo() {
+
+  if (
+    renderJobData &&
+    renderJobData.videoUrl
+  ) {
+
+    const a =
+      document.createElement("a");
+
+    a.href =
+      renderJobData.videoUrl;
+
+    a.download =
+      "viraltap-video.mp4";
+
+    a.target = "_blank";
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    a.remove();
+
+    return;
+  }
+
+
+  alert(
+    "Actual MP4 abhi available nahi hai. Rendering complete hone ke baad Download active hoga."
+  );
+}
+
+
+/* ------------------------------
+   TABS
+------------------------------ */
+
+function showScenes() {
+
+  document
+    .getElementById("sceneList")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("previewInfo")
+    .classList.add("hidden");
+
+  document
+    .getElementById("scenesTab")
+    .className =
+      "px-4 py-2 bg-black text-white rounded-xl font-bold text-sm";
+
+  document
+    .getElementById("previewTab")
+    .className =
+      "px-4 py-2 bg-gray-100 rounded-xl font-bold text-sm";
+}
+
+
+function showPreviewInfo() {
+
+  document
+    .getElementById("sceneList")
+    .classList.add("hidden");
+
+  document
+    .getElementById("previewInfo")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("previewTab")
+    .className =
+      "px-4 py-2 bg-black text-white rounded-xl font-bold text-sm";
+
+  document
+    .getElementById("scenesTab")
+    .className =
+      "px-4 py-2 bg-gray-100 rounded-xl font-bold text-sm";
+}
+
+
+/* ------------------------------
+   PROGRESS
+------------------------------ */
+
+function setProgress(percent, message) {
+
+  const bar =
+    document.getElementById("progressBar");
+
+  const text =
+    document.getElementById("progressText");
+
+  const msg =
+    document.getElementById("generationMessage");
+
+  bar.style.width =
+    Math.max(0, Math.min(100, percent)) + "%";
+
+  text.textContent =
+    Math.round(percent) + "%";
+
+  msg.textContent =
+    message;
+}
+
+
+/* ------------------------------
+   HELPERS
+------------------------------ */
+
+async function readJsonResponse(response) {
+
+  const raw =
+    await response.text();
+
+  let data;
+
+  try {
+
+    data =
+      raw
+        ? JSON.parse(raw)
+        : {};
+
+  } catch {
+
+    throw new Error(
+      "Server ne valid JSON response nahi diya."
     );
-
   }
 
-
-  /* ================= DOWNLOAD ================= */
-
-  function downloadVideo() {
-
-    if (
-      renderJobData?.videoUrl
-    ) {
-
-      const link =
-        document.createElement(
-          "a"
-        );
-
-      link.href =
-        renderJobData.videoUrl;
-
-      link.download =
-        "viraltap-video.mp4";
-
-      link.target =
-        "_blank";
-
-      link.click();
-
-      return;
-
-    }
+  return data;
+}
 
 
-    showToast(
-      "Real MP4 renderer next step में connect होगा."
-    );
-
-  }
-
-
-  /* ================= SHARE ================= */
-
-  function instagramShare() {
-
-    window.open(
-      "https://www.instagram.com/",
-      "_blank"
-    );
-
-  }
+function wait(ms) {
+  return new Promise(
+    resolve => setTimeout(resolve, ms)
+  );
+}
 
 
-  function whatsappShare() {
+function escapeHtml(value) {
 
-    const text =
-      "Maine ViralTap Studio se ek AI video banayi 🎬";
-
-    window.open(
-      "https://wa.me/?text=" +
-      encodeURIComponent(text),
-      "_blank"
-    );
-
-  }
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 
-  /* ================= FULLSCREEN ================= */
+/* ------------------------------
+   INITIAL PAGE
+------------------------------ */
 
-  function fullScreenPreview() {
-
-    const element =
-      document.getElementById(
-        "previewVideoArea"
-      );
-
-    if (
-      element.requestFullscreen
-    ) {
-
-      element.requestFullscreen();
-
-    }
-
-  }
-
-
-  /* ================= REPORT ================= */
-
-  function reportVideo() {
-
-    const email =
-      "mailto:junejahasannn@gmail.com?subject=Video Report";
-
-    window.location.href =
-      email;
-
-  }
-
-
-  /* ================= UTILS ================= */
-
-  function formatTime(seconds) {
-
-    seconds =
-      Math.round(
-        Number(seconds) || 0
-      );
-
-    const minutes =
-      Math.floor(
-        seconds / 60
-      );
-
-    const secs =
-      seconds % 60;
-
-    return (
-      minutes +
-      ":" +
-      String(secs).padStart(
-        2,
-        "0"
-      )
-    );
-
-  }
-
-
-  function showToast(message) {
-
-    const toast =
-      document.getElementById(
-        "toast"
-      );
-
-    toast.textContent =
-      message;
-
-    toast.style.display =
-      "block";
-
-    clearTimeout(
-      window.toastTimer
-    );
-
-    window.toastTimer =
-      setTimeout(() => {
-
-        toast.style.display =
-          "none";
-
-      }, 4000);
-
-  }
+goHome();
 
 </script>
+
+</body>
+</html>
