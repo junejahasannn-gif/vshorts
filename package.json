@@ -1,0 +1,14 @@
+{
+  "name": "viraltap-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo Build complete"
+  },
+  "dependencies": {
+    "@vercel/blob": "latest",
+    "@remotion/player": "latest",
+    "remotion": "latest"
+  }
+}
