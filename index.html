@@ -23,7 +23,7 @@
         <div class="flex justify-between items-center py-3 border-b border-gray-800 mb-4">
             <h1 class="text-xl font-black bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent">⚡ ViralTap Studio</h1>
             <div class="flex items-center gap-2">
-                <span class="bg-gray-800 text-yellow-400 px-3 py-1 rounded-full text-xs font-bold border border-gray-700">⚡ <span id="userCredits">5</span> Credits</span>
+                <span class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">♾️ Unlimited Free</span>
             </div>
         </div>
 
@@ -96,12 +96,12 @@
                 
                 <!-- Play Overlay -->
                 <div id="playOverlay" class="absolute inset-0 flex items-center justify-center bg-black/30 cursor-pointer" onclick="togglePlayState()">
-                    <div class="w-16 h-16 bg-pink-600/90 rounded-full flex items-center justify-center text-2xl shadow-lg pl-1">▶</div>
+                    <div id="playIcon" class="w-16 h-16 bg-pink-600/90 rounded-full flex items-center justify-center text-2xl shadow-lg pl-1">▶</div>
                 </div>
 
                 <!-- Subtitle Box -->
                 <div class="absolute bottom-16 left-4 right-4 bg-black/75 backdrop-blur-md p-3 rounded-xl border border-white/10 text-center">
-                    <p id="previewSubtitle" class="text-sm font-bold text-yellow-300 leading-snug">शिकारी का आखिरी शिकार: एक भयानक सबक!</p>
+                    <p id="previewSubtitle" class="text-sm font-bold text-yellow-300 leading-snug">Shikari ka aakhiri shikaar: Ek bhayanak sabak!</p>
                 </div>
 
                 <!-- Footer video info -->
@@ -113,7 +113,7 @@
 
             <!-- Editing Customization Buttons -->
             <div class="grid grid-cols-4 gap-2 text-center">
-                <button onclick="alert('Voice: Swara AI Voice (Natural)')" class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn">
+                <button onclick="speakText('Swara AI voice active. Yeh aapki reel ke liye natural voiceover hai.')" class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn">
                     <span class="block text-base">🎙️</span>Voiceover
                 </button>
                 <button onclick="alert('Music: Cinematic Thriller Beat active')" class="glass p-2 rounded-xl text-[10px] hover:bg-white/10 tap-btn">
@@ -140,8 +140,7 @@
     </div>
 
     <script>
-        let credits = localStorage.getItem('vt_credits') || 5;
-        document.getElementById('userCredits').innerText = credits;
+        let currentTopic = "";
 
         function setPreset(txt) {
             document.getElementById('videoIdea').value = txt;
@@ -150,11 +149,7 @@
         function startSceneGeneration() {
             let idea = document.getElementById('videoIdea').value.trim();
             if(!idea) { alert('Pehle koi topic ya idea likhiye!'); return; }
-            if(credits <= 0) { alert('Credits khatam ho gaye hain!'); return; }
-
-            credits--;
-            localStorage.setItem('vt_credits', credits);
-            document.getElementById('userCredits').innerText = credits;
+            currentTopic = idea;
 
             document.getElementById('stepInput').classList.add('hidden');
             document.getElementById('stepScenes').classList.remove('hidden');
@@ -211,6 +206,7 @@
                     setTimeout(() => {
                         document.getElementById('stepRender').classList.add('hidden');
                         document.getElementById('stepPreview').classList.remove('hidden');
+                        document.getElementById('previewSubtitle').innerText = currentTopic + " - Yeh raha aapka viral scene!";
                     }, 400);
                 }
                 bar.style.width = p + '%';
@@ -225,7 +221,23 @@
         function togglePlayState() {
             playing = !playing;
             let ov = document.getElementById('playOverlay');
-            ov.style.opacity = playing ? '0' : '1';
+            if(playing) {
+                ov.style.opacity = '0';
+                speakText(currentTopic || "Shikari ka aakhiri shikaar: Ek bhayanak sabak!");
+            } else {
+                ov.style.opacity = '1';
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                let utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'hi-IN';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
         }
 
         function triggerFileDownload() {
@@ -237,6 +249,7 @@
         }
 
         function resetStudio() {
+            window.speechSynthesis.cancel();
             document.getElementById('stepPreview').classList.add('hidden');
             document.getElementById('stepInput').classList.remove('hidden');
             document.getElementById('videoIdea').value = '';
