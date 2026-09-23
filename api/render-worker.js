@@ -30,9 +30,7 @@ const githubJwks =
   );
 
 function validJobId(jobId) {
-  return /^job_[A-Za-z0-9_-]+$/.test(
-    jobId
-  );
+  return /^job_[A-Za-z0-9_-]+$/.test(jobId);
 }
 
 async function verifyGitHubOidc(req) {
@@ -95,15 +93,11 @@ async function verifyGitHubOidc(req) {
   }
 }
 
-export default async function handler(
-  req,
-  res
-) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error:
-        "Only POST requests are allowed.",
+      error: "Only POST requests are allowed.",
     });
   }
 
@@ -113,14 +107,10 @@ export default async function handler(
     const body = req.body || {};
 
     const jobId =
-      String(
-        body.jobId || ""
-      ).trim();
+      String(body.jobId || "").trim();
 
     const action =
-      String(
-        body.action || ""
-      ).trim();
+      String(body.action || "").trim();
 
     if (!validJobId(jobId)) {
       return res.status(400).json({
@@ -129,13 +119,16 @@ export default async function handler(
       });
     }
 
+    /*
+     * GitHub worker asks for a temporary
+     * private Blob PUT URL for status JSON.
+     */
     if (action === "status-url") {
       const pathname =
         `status/${jobId}.json`;
 
       const validUntil =
-        Date.now() +
-        10 * 60 * 1000;
+        Date.now() + 10 * 60 * 1000;
 
       const token =
         await issueSignedToken({
@@ -150,21 +143,18 @@ export default async function handler(
         });
 
       const { presignedUrl } =
-        await presignUrl(
-          token,
-          {
-            pathname,
-            operation: "put",
-            access: "public",
-            validUntil,
-            allowedContentTypes: [
-              "application/json",
-            ],
-            maximumSizeInBytes:
-              256 * 1024,
-            allowOverwrite: true,
-          }
-        );
+        await presignUrl(token, {
+          pathname,
+          operation: "put",
+          access: "private",
+          validUntil,
+          allowedContentTypes: [
+            "application/json",
+          ],
+          maximumSizeInBytes:
+            256 * 1024,
+          allowOverwrite: true,
+        });
 
       return res.status(200).json({
         success: true,
@@ -172,25 +162,23 @@ export default async function handler(
       });
     }
 
+    /*
+     * GitHub worker asks for a temporary
+     * private Blob PUT URL for the MP4.
+     */
     if (action === "video-url") {
       const sizeBytes =
         Number(body.sizeBytes);
 
       if (
-        !Number.isFinite(
-          sizeBytes
-        ) ||
+        !Number.isFinite(sizeBytes) ||
         sizeBytes <= 0 ||
         sizeBytes >
-          5 *
-            1024 *
-            1024 *
-            1024
+          5 * 1024 * 1024 * 1024
       ) {
         return res.status(400).json({
           success: false,
-          error:
-            "Invalid video size.",
+          error: "Invalid video size.",
         });
       }
 
@@ -198,8 +186,7 @@ export default async function handler(
         `videos/${jobId}.mp4`;
 
       const validUntil =
-        Date.now() +
-        45 * 60 * 1000;
+        Date.now() + 45 * 60 * 1000;
 
       const token =
         await issueSignedToken({
@@ -214,36 +201,29 @@ export default async function handler(
         });
 
       const { presignedUrl } =
-        await presignUrl(
-          token,
-          {
-            pathname,
-            operation: "put",
-            access: "public",
-            validUntil,
-            allowedContentTypes: [
-              "video/mp4",
-            ],
-            maximumSizeInBytes:
-              sizeBytes,
-            allowOverwrite: false,
-          }
-        );
-
-      const videoUrl =
-        `https://${process.env.BLOB_STORE_ID}.public.blob.vercel-storage.com/${pathname}`;
+        await presignUrl(token, {
+          pathname,
+          operation: "put",
+          access: "private",
+          validUntil,
+          allowedContentTypes: [
+            "video/mp4",
+          ],
+          maximumSizeInBytes:
+            sizeBytes,
+          allowOverwrite: false,
+        });
 
       return res.status(200).json({
         success: true,
         url: presignedUrl,
-        videoUrl,
+        pathname,
       });
     }
 
     return res.status(400).json({
       success: false,
-      error:
-        "Unknown worker action.",
+      error: "Unknown worker action.",
     });
   } catch (error) {
     console.error(
