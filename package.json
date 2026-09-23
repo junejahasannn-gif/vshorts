@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "echo Build complete",
     "remotion": "remotion"
   },
   "dependencies": {
