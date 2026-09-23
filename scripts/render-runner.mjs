@@ -33,7 +33,10 @@ if (!propsBase64) {
   throw new Error("PROPS_BASE64 is missing.");
 }
 
-if (!githubOidcRequestUrl || !githubOidcRequestToken) {
+if (
+  !githubOidcRequestUrl ||
+  !githubOidcRequestToken
+) {
   throw new Error(
     "GitHub Actions OIDC is unavailable. The workflow must grant id-token: write."
   );
@@ -98,7 +101,8 @@ async function workerRequest(body) {
     }
   );
 
-  const text = await response.text();
+  const text =
+    await response.text();
 
   let data;
 
@@ -111,7 +115,10 @@ async function workerRequest(body) {
     );
   }
 
-  if (!response.ok || !data?.success) {
+  if (
+    !response.ok ||
+    !data?.success
+  ) {
     throw new Error(
       data?.error ||
         "ViralTap worker API request failed."
@@ -196,7 +203,9 @@ async function uploadVideo(
     stream.destroy();
   }
 
-  return signed.videoUrl;
+  // Private Blob me public videoUrl nahi milta.
+  // Worker ab pathname return karta hai.
+  return signed.pathname;
 }
 
 function run(command, args) {
@@ -206,14 +215,15 @@ function run(command, args) {
     ...args
   );
 
-  const result = spawnSync(
-    command,
-    args,
-    {
-      stdio: "inherit",
-      shell: false,
-    }
-  );
+  const result =
+    spawnSync(
+      command,
+      args,
+      {
+        stdio: "inherit",
+        shell: false,
+      }
+    );
 
   if (result.error) {
     throw result.error;
@@ -233,12 +243,13 @@ async function main() {
       "Remotion is rendering your video...",
   });
 
-  const props = JSON.parse(
-    Buffer.from(
-      propsBase64,
-      "base64"
-    ).toString("utf8")
-  );
+  const props =
+    JSON.parse(
+      Buffer.from(
+        propsBase64,
+        "base64"
+      ).toString("utf8")
+    );
 
   if (
     !Array.isArray(props.scenes) ||
@@ -279,28 +290,34 @@ async function main() {
     "Starting Remotion browser setup..."
   );
 
-  run("npx", [
-    "remotion",
-    "browser",
-    "ensure",
-  ]);
+  run(
+    "npx",
+    [
+      "remotion",
+      "browser",
+      "ensure",
+    ]
+  );
 
   console.log(
     "Starting Remotion render..."
   );
 
-  run("npx", [
-    "remotion",
-    "render",
-    "src/index.jsx",
-    "ViralTapVideo",
-    outputPath,
-    `--frames=0-${totalFrames - 1}`,
-    "--codec=h264",
-    "--props=props.json",
-    "--concurrency=2",
-    "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
-  ]);
+  run(
+    "npx",
+    [
+      "remotion",
+      "render",
+      "src/index.jsx",
+      "ViralTapVideo",
+      outputPath,
+      `--frames=0-${totalFrames - 1}`,
+      "--codec=h264",
+      "--props=props.json",
+      "--concurrency=2",
+      "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
+    ]
+  );
 
   if (!fs.existsSync(outputPath)) {
     throw new Error(
@@ -324,7 +341,10 @@ async function main() {
     sizeBytes: stat.size,
   });
 
-  const videoUrl =
+  // IMPORTANT:
+  // Private Blob ke case me uploadVideo()
+  // pathname return karta hai, public URL nahi.
+  const videoPath =
     await uploadVideo(
       outputPath,
       stat.size
@@ -334,7 +354,11 @@ async function main() {
     status: "completed",
     message:
       "Your video is ready.",
-    videoUrl,
+
+    // Private Blob pathname:
+    // videos/job_xxxxx.mp4
+    videoUrl: videoPath,
+
     sizeBytes: stat.size,
     duration,
     fps: 30,
@@ -344,7 +368,7 @@ async function main() {
 
   console.log(
     "VIRALTAP RENDER COMPLETE:",
-    videoUrl
+    videoPath
   );
 }
 
