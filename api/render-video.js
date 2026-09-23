@@ -26,6 +26,20 @@ export default async function handler(req, res) {
       });
     }
 
+    const duration = Number(body.duration) || 30;
+    const aspectRatio = body.aspectRatio || "9:16";
+
+    let width = 1080;
+    let height = 1920;
+
+    if (aspectRatio === "16:9") {
+      width = 1920;
+      height = 1080;
+    } else if (aspectRatio === "1:1") {
+      width = 1080;
+      height = 1080;
+    }
+
     // --------------------------------------------
     // 1. CREATE SANDBOX
     // --------------------------------------------
@@ -36,19 +50,19 @@ export default async function handler(req, res) {
     });
 
     // --------------------------------------------
-    // 2. REMOTION PROJECT
+    // 2. CREATE REMOTION PROJECT
     // --------------------------------------------
 
     const packageJson = `
 {
-  "name": "viraltap-render-test",
+  "name": "viraltap-render",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@remotion/cli": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "remotion": "latest"
+    "@remotion/cli": "4.0.527",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.527"
   }
 }
 `;
@@ -58,26 +72,30 @@ import React from "react";
 import {
   Composition,
   useCurrentFrame,
+  useVideoConfig,
   interpolate
 } from "remotion";
 
-const FPS = 30;
-
 const Video = ({ scenes = [] }) => {
   const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+
+  const totalScenes = Math.max(scenes.length, 1);
 
   const sceneIndex = Math.min(
-    Math.floor(frame / 30),
-    Math.max(scenes.length - 1, 0)
+    totalScenes - 1,
+    Math.floor(
+      (frame / Math.max(durationInFrames, 1)) * totalScenes
+    )
   );
 
   const scene = scenes[sceneIndex] || {
-    caption: "ViralTap Render Test"
+    caption: "ViralTap"
   };
 
   const opacity = interpolate(
-    frame % 30,
-    [0, 8, 30],
+    frame % fps,
+    [0, Math.max(1, fps * 0.25), fps],
     [0, 1, 1],
     {
       extrapolateLeft: "clamp",
@@ -90,8 +108,9 @@ const Video = ({ scenes = [] }) => {
       style={{
         width: "100%",
         height: "100%",
-        background: "#111",
-        color: "#fff",
+        background:
+          "linear-gradient(135deg, #090909 0%, #171717 100%)",
+        color: "#ffffff",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -99,14 +118,16 @@ const Video = ({ scenes = [] }) => {
         boxSizing: "border-box",
         fontFamily: "Arial, sans-serif",
         textAlign: "center",
-        opacity
+        opacity,
       }}
     >
       <div
         style={{
+          width: "90%",
           fontSize: 56,
           fontWeight: 700,
-          lineHeight: 1.25
+          lineHeight: 1.25,
+          textShadow: "0 4px 20px rgba(0,0,0,0.8)",
         }}
       >
         {scene.caption ||
@@ -124,9 +145,9 @@ export const RemotionRoot = () => {
       id="ViralTapVideo"
       component={Video}
       durationInFrames={90}
-      fps={FPS}
-      width={1080}
-      height={1920}
+      fps={30}
+      width=${width}
+      height=${height}
       defaultProps={{
         scenes: [
           {
@@ -165,13 +186,13 @@ registerRoot(RemotionRoot);
       {
         path: "scenes.json",
         content: Buffer.from(
-          JSON.stringify(scenes.slice(0, 3))
+          JSON.stringify(scenes)
         ),
       },
     ]);
 
     // --------------------------------------------
-    // 3. INSTALL
+    // 3. INSTALL DEPENDENCIES
     // --------------------------------------------
 
     const install = await sandbox.runCommand({
@@ -189,15 +210,12 @@ registerRoot(RemotionRoot);
     }
 
     // --------------------------------------------
-    // 4. CHECK INSTALLED BINARY DIRECTLY
+    // 4. CHECK REMOTION
     // --------------------------------------------
 
     const binaryCheck = await sandbox.runCommand({
-      cmd: "sh",
-      args: [
-        "-c",
-        "ls -la node_modules/.bin/remotion && node_modules/.bin/remotion --version",
-      ],
+      cmd: "node_modules/.bin/remotion",
+      args: ["versions"],
     });
 
     const binaryOut = await binaryCheck.stdout();
@@ -210,7 +228,7 @@ registerRoot(RemotionRoot);
     }
 
     // --------------------------------------------
-    // 5. BROWSER SETUP
+    // 5. INSTALL / ENSURE CHROMIUM
     // --------------------------------------------
 
     const browser = await sandbox.runCommand({
@@ -231,7 +249,7 @@ registerRoot(RemotionRoot);
     }
 
     // --------------------------------------------
-    // 6. RENDER
+    // 6. RENDER 3-SECOND MP4 TEST
     // --------------------------------------------
 
     const render = await sandbox.runCommand({
@@ -243,6 +261,7 @@ registerRoot(RemotionRoot);
         "viraltap-test.mp4",
         "--frames=0-89",
         "--codec=h264",
+        "--concurrency=2",
       ],
     });
 
@@ -256,7 +275,7 @@ registerRoot(RemotionRoot);
     }
 
     // --------------------------------------------
-    // 7. CHECK MP4
+    // 7. CHECK MP4 FILE
     // --------------------------------------------
 
     const fileCheck = await sandbox.runCommand({
@@ -277,19 +296,24 @@ registerRoot(RemotionRoot);
     }
 
     // --------------------------------------------
-    // SUCCESS
+    // 8. SUCCESS
     // --------------------------------------------
 
     return res.status(200).json({
       success: true,
       message: "REAL MP4 RENDER TEST SUCCESSFUL.",
+
       renderTest: {
         codec: "h264",
         frames: 90,
         durationSeconds: 3,
+        width,
+        height,
         remotionVersion: binaryOut.trim(),
+        browserSetup: browserOut.trim(),
         file: fileOut.trim(),
       },
+
       videoUrl: null,
       playbackReady: false,
     });
