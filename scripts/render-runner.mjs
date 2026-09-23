@@ -1,16 +1,23 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { put } from "@vercel/blob";
 
 const jobId = process.env.JOB_ID;
-const duration = Number(
-  process.env.VIDEO_DURATION
-);
-const propsBase64 =
-  process.env.PROPS_BASE64;
-const blobToken =
-  process.env.BLOB_READ_WRITE_TOKEN;
+const duration = Number(process.env.VIDEO_DURATION);
+const propsBase64 = process.env.PROPS_BASE64;
+
+const workerUrl =
+  process.env.VIRALTAP_WORKER_URL ||
+  "https://vshorts-app.vercel.app/api/render-worker";
+
+const githubOidcRequestUrl =
+  process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+
+const githubOidcRequestToken =
+  process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+
+const OIDC_AUDIENCE =
+  "https://vshorts-app.vercel.app";
 
 if (!jobId) {
   throw new Error("JOB_ID is missing.");
@@ -23,37 +30,173 @@ if (![30, 60, 180].includes(duration)) {
 }
 
 if (!propsBase64) {
+  throw new Error("PROPS_BASE64 is missing.");
+}
+
+if (!githubOidcRequestUrl || !githubOidcRequestToken) {
   throw new Error(
-    "PROPS_BASE64 is missing."
+    "GitHub Actions OIDC is unavailable. The workflow must grant id-token: write."
   );
 }
 
-if (!blobToken) {
-  throw new Error(
-    "BLOB_READ_WRITE_TOKEN is missing."
-  );
-}
+async function getGitHubOidcToken() {
+  const separator =
+    githubOidcRequestUrl.includes("?")
+      ? "&"
+      : "?";
 
-const statusName =
-  `status/${jobId}.json`;
-
-async function updateStatus(payload) {
-  await put(
-    statusName,
-    JSON.stringify({
-      jobId,
-      updatedAt:
-        new Date().toISOString(),
-      ...payload,
-    }),
+  const response = await fetch(
+    githubOidcRequestUrl +
+      separator +
+      "audience=" +
+      encodeURIComponent(OIDC_AUDIENCE),
     {
-      access: "public",
-      contentType:
-        "application/json",
-      addRandomSuffix: false,
-      cacheControlMaxAge: 0,
+      headers: {
+        Authorization:
+          "bearer " +
+          githubOidcRequestToken,
+      },
     }
   );
+
+  if (!response.ok) {
+    throw new Error(
+      "Could not obtain GitHub OIDC token: HTTP " +
+        response.status
+    );
+  }
+
+  const data = await response.json();
+
+  if (!data?.value) {
+    throw new Error(
+      "GitHub OIDC response did not contain a token."
+    );
+  }
+
+  return data.value;
+}
+
+async function workerRequest(body) {
+  const oidcToken =
+    await getGitHubOidcToken();
+
+  const response = await fetch(
+    workerUrl,
+    {
+      method: "POST",
+      headers: {
+        Authorization:
+          "Bearer " + oidcToken,
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        jobId,
+        ...body,
+      }),
+    }
+  );
+
+  const text = await response.text();
+
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(
+      "ViralTap worker API returned invalid JSON: " +
+        text.slice(0, 300)
+    );
+  }
+
+  if (!response.ok || !data?.success) {
+    throw new Error(
+      data?.error ||
+        "ViralTap worker API request failed."
+    );
+  }
+
+  return data;
+}
+
+async function updateStatus(payload) {
+  const signed =
+    await workerRequest({
+      action: "status-url",
+    });
+
+  const response = await fetch(
+    signed.url,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        jobId,
+        updatedAt:
+          new Date().toISOString(),
+        ...payload,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      "Status upload failed with HTTP " +
+        response.status
+    );
+  }
+}
+
+async function uploadVideo(
+  outputPath,
+  sizeBytes
+) {
+  const signed =
+    await workerRequest({
+      action: "video-url",
+      sizeBytes,
+    });
+
+  const stream =
+    fs.createReadStream(outputPath);
+
+  try {
+    const response = await fetch(
+      signed.url,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type":
+            "video/mp4",
+          "Content-Length":
+            String(sizeBytes),
+        },
+        body: stream,
+        duplex: "half",
+      }
+    );
+
+    if (!response.ok) {
+      const detail =
+        await response.text();
+
+      throw new Error(
+        "Video upload failed with HTTP " +
+          response.status +
+          ": " +
+          detail.slice(0, 300)
+      );
+    }
+  } finally {
+    stream.destroy();
+  }
+
+  return signed.videoUrl;
 }
 
 function run(command, args) {
@@ -149,21 +292,13 @@ async function main() {
   run("npx", [
     "remotion",
     "render",
-
     "src/index.jsx",
-
     "ViralTapVideo",
-
     outputPath,
-
     `--frames=0-${totalFrames - 1}`,
-
     "--codec=h264",
-
     "--props=props.json",
-
     "--concurrency=2",
-
     "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
   ]);
 
@@ -189,25 +324,17 @@ async function main() {
     sizeBytes: stat.size,
   });
 
-  const videoBuffer =
-    fs.readFileSync(outputPath);
-
-  const blob = await put(
-    `videos/${jobId}.mp4`,
-    videoBuffer,
-    {
-      access: "public",
-      contentType:
-        "video/mp4",
-      addRandomSuffix: false,
-    }
-  );
+  const videoUrl =
+    await uploadVideo(
+      outputPath,
+      stat.size
+    );
 
   await updateStatus({
     status: "completed",
     message:
       "Your video is ready.",
-    videoUrl: blob.url,
+    videoUrl,
     sizeBytes: stat.size,
     duration,
     fps: 30,
@@ -217,7 +344,7 @@ async function main() {
 
   console.log(
     "VIRALTAP RENDER COMPLETE:",
-    blob.url
+    videoUrl
   );
 }
 
