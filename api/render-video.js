@@ -1,393 +1,231 @@
-import { Sandbox } from "@vercel/sandbox";
 import { put } from "@vercel/blob";
-import fs from "fs";
-import path from "path";
 
 export const maxDuration = 60;
+
+const OWNER = "junejahasannn-gif";
+const REPO = "vshorts";
+const WORKFLOW = "render.yml";
+
+function getDimensions(aspectRatio) {
+  if (aspectRatio === "16:9") {
+    return { width: 1920, height: 1080 };
+  }
+
+  if (aspectRatio === "1:1") {
+    return { width: 1080, height: 1080 };
+  }
+
+  return { width: 1080, height: 1920 };
+}
+
+function makeJobId() {
+  return (
+    "job_" +
+    Date.now() +
+    "_" +
+    Math.random().toString(36).slice(2, 10)
+  );
+}
+
+async function writeStatus(jobId, payload) {
+  return put(
+    `status/${jobId}.json`,
+    JSON.stringify({
+      jobId,
+      updatedAt: new Date().toISOString(),
+      ...payload,
+    }),
+    {
+      access: "public",
+      contentType: "application/json",
+      addRandomSuffix: false,
+      cacheControlMaxAge: 0,
+    }
+  );
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error: "Only POST requests are allowed",
+      error: "Only POST requests are allowed.",
     });
   }
 
   const body = req.body || {};
-  const scenes = Array.isArray(body.scenes) ? body.scenes : [];
-  const aspectRatio = body.aspectRatio || "9:16";
+
+  const scenes = Array.isArray(body.scenes)
+    ? body.scenes
+    : [];
+
+  const duration = Number(body.duration);
+
+  const aspectRatio = [
+    "9:16",
+    "16:9",
+    "1:1",
+  ].includes(body.aspectRatio)
+    ? body.aspectRatio
+    : "9:16";
 
   if (!scenes.length) {
     return res.status(400).json({
       success: false,
-      error: "No scenes were provided",
+      error: "No scenes were provided.",
     });
   }
 
-  let width = 1080;
-  let height = 1920;
-
-  if (aspectRatio === "16:9") {
-    width = 1920;
-    height = 1080;
-  } else if (aspectRatio === "1:1") {
-    width = 1080;
-    height = 1080;
+  if (![30, 60, 180].includes(duration)) {
+    return res.status(400).json({
+      success: false,
+      error:
+        "Duration must be 30, 60, or 180 seconds.",
+    });
   }
 
-  let sandbox = null;
+  const githubToken = process.env.GH_PAT_TOKEN;
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+
+  if (!githubToken) {
+    return res.status(500).json({
+      success: false,
+      error:
+        "GH_PAT_TOKEN is missing in Vercel environment variables.",
+    });
+  }
+
+  if (!blobToken) {
+    return res.status(500).json({
+      success: false,
+      error:
+        "BLOB_READ_WRITE_TOKEN is missing in Vercel environment variables.",
+    });
+  }
+
+  const { width, height } =
+    getDimensions(aspectRatio);
+
+  const jobId = makeJobId();
+
+  const props = {
+    scenes,
+    aspectRatio,
+    width,
+    height,
+    duration,
+    videoType:
+      body.videoType || "normal",
+    voice:
+      body.voice || "Natural Male",
+    music:
+      body.music || "None",
+    branding:
+      body.branding || "ViralTap",
+  };
+
+  const propsBase64 = Buffer.from(
+    JSON.stringify(props),
+    "utf8"
+  ).toString("base64");
+
+  if (propsBase64.length > 60000) {
+    return res.status(413).json({
+      success: false,
+      error:
+        "Render payload is too large.",
+    });
+  }
 
   try {
-    console.log("VIRALTAP RENDER START");
-    console.log("Scenes:", scenes.length);
-    console.log("Aspect:", aspectRatio);
-
-    sandbox = await Sandbox.create({
-      persistent: false,
-      timeout: 10 * 60 * 1000,
+    await writeStatus(jobId, {
+      status: "queued",
+      message:
+        "Render job queued.",
     });
 
-    async function run(cmd, args = [], sudo = false) {
-      const options = { cmd, args };
+    const githubResponse = await fetch(
+      `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
+      {
+        method: "POST",
 
-      if (sudo) {
-        options.sudo = true;
+        headers: {
+          Authorization:
+            `Bearer ${githubToken}`,
+
+          Accept:
+            "application/vnd.github+json",
+
+          "Content-Type":
+            "application/json",
+
+          "X-GitHub-Api-Version":
+            "2022-11-28",
+
+          "User-Agent":
+            "ViralTap-Studio",
+        },
+
+        body: JSON.stringify({
+          ref: "main",
+
+          inputs: {
+            jobId,
+            duration: String(duration),
+            propsBase64,
+          },
+        }),
       }
-
-      const result = await sandbox.runCommand(options);
-
-      const stdout =
-        typeof result.stdout === "function"
-          ? await result.stdout()
-          : result.stdout || "";
-
-      const stderr =
-        typeof result.stderr === "function"
-          ? await result.stderr()
-          : result.stderr || "";
-
-      return {
-        exitCode:
-          typeof result.exitCode === "number"
-            ? result.exitCode
-            : 0,
-        stdout: String(stdout),
-        stderr: String(stderr),
-      };
-    }
-
-    // -----------------------------
-    // SYSTEM DEPENDENCIES
-    // -----------------------------
-
-    const update = await run(
-      "apt-get",
-      ["update", "-qq"],
-      true
     );
 
-    if (update.exitCode !== 0) {
-      throw new Error(
-        `apt-get update failed: ${
-          update.stderr || update.stdout
-        }`
-      );
+    if (!githubResponse.ok) {
+      const detail =
+        await githubResponse.text();
+
+      await writeStatus(jobId, {
+        status: "failed",
+        error:
+          "GitHub workflow dispatch failed: " +
+          detail.slice(0, 500),
+      });
+
+      return res.status(502).json({
+        success: false,
+        error:
+          "Could not start the GitHub render worker.",
+        details:
+          `GitHub returned HTTP ${githubResponse.status}.`,
+      });
     }
-
-    const install = await run(
-      "apt-get",
-      [
-        "install",
-        "-y",
-        "-qq",
-        "--no-install-recommends",
-        "libnspr4",
-        "libnss3",
-        "libatk-bridge2.0-0",
-        "libatk1.0-0",
-        "libcups2",
-        "libdrm2",
-        "libxkbcommon0",
-        "libxcomposite1",
-        "libxdamage1",
-        "libxfixes3",
-        "libxrandr2",
-        "libgbm1",
-        "libpango-1.0-0",
-        "libcairo2",
-        "libasound2t64",
-        "fonts-liberation",
-        "ffmpeg",
-      ],
-      true
-    );
-
-    if (install.exitCode !== 0) {
-      throw new Error(
-        `apt-get install failed: ${
-          install.stderr || install.stdout
-        }`
-      );
-    }
-
-    // -----------------------------
-    // READ REMOTION FILES
-    // -----------------------------
-
-    const rootPath = path.join(
-      process.cwd(),
-      "src",
-      "Root.jsx"
-    );
-
-    const indexPath = path.join(
-      process.cwd(),
-      "src",
-      "index.jsx"
-    );
-
-    if (!fs.existsSync(rootPath)) {
-      throw new Error("src/Root.jsx not found");
-    }
-
-    if (!fs.existsSync(indexPath)) {
-      throw new Error("src/index.jsx not found");
-    }
-
-    const rootContent = fs.readFileSync(
-      rootPath,
-      "utf8"
-    );
-
-    const indexContent = fs.readFileSync(
-      indexPath,
-      "utf8"
-    );
-
-    // -----------------------------
-    // RENDER PACKAGE
-    // -----------------------------
-
-    const packageJson = {
-      name: "viraltap-render-worker",
-      version: "1.0.0",
-      private: true,
-      type: "module",
-      dependencies: {
-        react: "18.3.1",
-        "react-dom": "18.3.1",
-        remotion: "4.0.527",
-        "@remotion/cli": "4.0.527",
-      },
-    };
-
-    const props = {
-      scenes,
-      duration: 3,
-      aspectRatio,
-      width,
-      height,
-    };
-
-    await sandbox.writeFiles([
-      {
-        path: "package.json",
-        content: Buffer.from(
-          JSON.stringify(packageJson, null, 2)
-        ),
-      },
-      {
-        path: "src/Root.jsx",
-        content: Buffer.from(rootContent),
-      },
-      {
-        path: "src/index.jsx",
-        content: Buffer.from(indexContent),
-      },
-      {
-        path: "props.json",
-        content: Buffer.from(
-          JSON.stringify(props, null, 2)
-        ),
-      },
-    ]);
-
-    // -----------------------------
-    // NPM INSTALL
-    // -----------------------------
-
-    const npm = await run("npm", [
-      "install",
-      "--prefer-offline",
-      "--no-audit",
-      "--no-fund",
-    ]);
-
-    if (npm.exitCode !== 0) {
-      throw new Error(
-        `npm install failed: ${
-          npm.stderr || npm.stdout
-        }`
-      );
-    }
-
-    // -----------------------------
-    // REMOTION BROWSER
-    // -----------------------------
-
-    const browser = await run("npx", [
-      "remotion",
-      "browser",
-      "ensure",
-    ]);
-
-    if (browser.exitCode !== 0) {
-      throw new Error(
-        `Browser setup failed: ${
-          browser.stderr || browser.stdout
-        }`
-      );
-    }
-
-    // -----------------------------
-    // RENDER
-    // -----------------------------
-
-    console.log("Starting Remotion render...");
-
-    const render = await run("npx", [
-      "remotion",
-      "render",
-      "src/index.jsx",
-      "viraltap-test.mp4",
-      "--frames=0-89",
-      "--codec=h264",
-      "--props=props.json",
-      "--concurrency=1",
-      "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
-      "--gl=angle",
-      "--disable-web-security",
-    ]);
-
-    if (render.exitCode !== 0) {
-      throw new Error(
-        `Remotion render failed: ${
-          render.stderr || render.stdout
-        }`
-      );
-    }
-
-    // -----------------------------
-    // CHECK VIDEO
-    // -----------------------------
-
-    const check = await run("ls", [
-      "-lh",
-      "viraltap-test.mp4",
-    ]);
-
-    if (check.exitCode !== 0) {
-      throw new Error(
-        "Rendered MP4 was not created"
-      );
-    }
-
-    console.log(check.stdout);
-
-    // -----------------------------
-    // EXPORT MP4
-    // -----------------------------
-
-    const encoded = await run("base64", [
-      "-w",
-      "0",
-      "viraltap-test.mp4",
-    ]);
-
-    if (
-      encoded.exitCode !== 0 ||
-      !encoded.stdout
-    ) {
-      throw new Error(
-        "Failed to read rendered MP4"
-      );
-    }
-
-    const videoBuffer = Buffer.from(
-      encoded.stdout.trim(),
-      "base64"
-    );
-
-    if (!videoBuffer.length) {
-      throw new Error(
-        "Rendered video is empty"
-      );
-    }
-
-    // -----------------------------
-    // VERCEL BLOB
-    // -----------------------------
-
-    let videoUrl;
-
-    if (process.env.BLOB_READ_WRITE_TOKEN) {
-      const fileName =
-        `viraltap-${Date.now()}.mp4`;
-
-      const blob = await put(
-        fileName,
-        videoBuffer,
-        {
-          access: "public",
-          contentType: "video/mp4",
-        }
-      );
-
-      videoUrl = blob.url;
-    } else {
-      videoUrl =
-        `data:video/mp4;base64,${encoded.stdout.trim()}`;
-    }
-
-    console.log(
-      "VIRALTAP RENDER SUCCESS"
-    );
 
     return res.status(200).json({
       success: true,
-      videoUrl,
-      sizeBytes: videoBuffer.length,
-      durationFrames: 90,
-      fps: 30,
-      dimensions: `${width}x${height}`,
-      aspectRatio,
+      jobId,
+      status: "queued",
+      message:
+        "Video render job queued.",
+      dimensions:
+        `${width}x${height}`,
     });
-
   } catch (error) {
     console.error(
-      "VIRALTAP REAL RENDER ERROR:",
+      "VIRALTAP DISPATCH ERROR:",
       error
     );
+
+    try {
+      await writeStatus(jobId, {
+        status: "failed",
+        error:
+          error?.message ||
+          "Failed to dispatch render.",
+      });
+    } catch {}
 
     return res.status(500).json({
       success: false,
       error:
         error?.message ||
-        "Video rendering failed",
+        "Failed to start video render.",
     });
-
-  } finally {
-    if (sandbox) {
-      try {
-        if (typeof sandbox.stop === "function") {
-          await sandbox.stop();
-        }
-      } catch (cleanupError) {
-        console.log(
-          "Sandbox cleanup:",
-          cleanupError?.message
-        );
-      }
-    }
   }
 }
