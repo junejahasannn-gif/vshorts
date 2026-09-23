@@ -13,9 +13,11 @@ export default async function handler(req, res) {
     });
   }
 
-  const { scenes, aspectRatio = "9:16" } = req.body || {};
+  const body = req.body || {};
+  const scenes = Array.isArray(body.scenes) ? body.scenes : [];
+  const aspectRatio = body.aspectRatio || "9:16";
 
-  if (!Array.isArray(scenes) || scenes.length === 0) {
+  if (scenes.length === 0) {
     return res.status(400).json({
       success: false,
       error: "No scenes were provided",
@@ -28,9 +30,7 @@ export default async function handler(req, res) {
   if (aspectRatio === "16:9") {
     width = 1920;
     height = 1080;
-  }
-
-  if (aspectRatio === "1:1") {
+  } else if (aspectRatio === "1:1") {
     width = 1080;
     height = 1080;
   }
@@ -48,8 +48,11 @@ export default async function handler(req, res) {
       timeout: 10 * 60 * 1000,
     });
 
-    const run = async (cmd, args = [], sudo = false) => {
-      const options = { cmd, args };
+    async function runCommand(cmd, args = [], sudo = false) {
+      const options = {
+        cmd,
+        args,
+      };
 
       if (sudo) {
         options.sudo = true;
@@ -69,72 +72,119 @@ export default async function handler(req, res) {
 
       return {
         exitCode:
-          typeof result.exitCode === "number" ? result.exitCode : 0,
+          typeof result.exitCode === "number"
+            ? result.exitCode
+            : 0,
         stdout: String(stdout),
         stderr: String(stderr),
       };
-    };
+    }
 
-    // Install Chrome/Linux dependencies
-    console.log("Installing system dependencies...");
+    // --------------------------------
+    // 1. UPDATE PACKAGE LIST
+    // --------------------------------
 
-    const update = await run("apt-get", ["update", "-qq"], true);
+    console.log("Updating apt packages...");
 
-    if (update.exitCode !== 0) {
+    const aptUpdate = await runCommand(
+      "apt-get",
+      ["update", "-qq"],
+      true
+    );
+
+    if (aptUpdate.exitCode !== 0) {
       throw new Error(
-        `apt-get update failed: ${update.stderr || update.stdout}`
+        `apt-get update failed: ${
+          aptUpdate.stderr || aptUpdate.stdout
+        }`
       );
     }
 
-    const install = await run(
+    // --------------------------------
+    // 2. INSTALL CHROME DEPENDENCIES
+    // --------------------------------
+
+    console.log("Installing Chrome dependencies...");
+
+    const packages = [
+      "libnspr4",
+      "libnss3",
+      "libatk-bridge2.0-0",
+      "libatk1.0-0",
+      "libcups2",
+      "libdrm2",
+      "libxkbcommon0",
+      "libxcomposite1",
+      "libxdamage1",
+      "libxfixes3",
+      "libxrandr2",
+      "libgbm1",
+      "libpango-1.0-0",
+      "libcairo2",
+      "libasound2t64",
+      "fonts-liberation",
+      "ffmpeg",
+    ];
+
+    const aptInstall = await runCommand(
       "apt-get",
       [
         "install",
         "-y",
         "-qq",
         "--no-install-recommends",
-        "libnspr4",
-        "libnss3",
-        "libatk-bridge2.0-0",
-        "libatk1.0-0",
-        "libcups2",
-        "libdrm2",
-        "libxkbcommon0",
-        "libxcomposite1",
-        "libxdamage1",
-        "libxfixes3",
-        "libxrandr2",
-        "libgbm1",
-        "libpango-1.0-0",
-        "libcairo2",
-        "libasound2",
-        "fonts-liberation",
-        "ffmpeg",
+        ...packages,
       ],
       true
     );
 
-    if (install.exitCode !== 0) {
+    if (aptInstall.exitCode !== 0) {
       throw new Error(
-        `apt-get install failed: ${install.stderr || install.stdout}`
+        `apt-get install failed: ${
+          aptInstall.stderr || aptInstall.stdout
+        }`
       );
     }
 
     console.log("System dependencies installed.");
 
-    const rootJsxPath = path.join(process.cwd(), "src", "Root.jsx");
-    const indexJsxPath = path.join(process.cwd(), "src", "index.jsx");
+    // --------------------------------
+    // 3. READ REMOTION FILES
+    // --------------------------------
 
-    if (!fs.existsSync(rootJsxPath)) {
+    const rootPath = path.join(
+      process.cwd(),
+      "src",
+      "Root.jsx"
+    );
+
+    const indexPath = path.join(
+      process.cwd(),
+      "src",
+      "index.jsx"
+    );
+
+    if (!fs.existsSync(rootPath)) {
       throw new Error("src/Root.jsx not found.");
     }
 
-    if (!fs.existsSync(indexJsxPath)) {
+    if (!fs.existsSync(indexPath)) {
       throw new Error("src/index.jsx not found.");
     }
 
-    const rootJsx = fs.readFileSync(rootJsxPath, "utf8");
-    const indexJsx = fs.readFileSync(indexJsxPath, "utf8");
+    const rootContent = fs.readFileSync(
+      rootPath,
+      "utf8"
+    );
+
+    const indexContent = fs.readFileSync(
+      indexPath,
+      "utf8"
+    );
+
+    // --------------------------------
+    // 4. CREATE RENDER PROJECT
+    // --------------------------------
 
     const packageJson = {
       name: "viraltap-render-worker",
@@ -166,23 +216,31 @@ export default async function handler(req, res) {
       },
       {
         path: "src/Root.jsx",
-        content: Buffer.from(rootJsx),
+        content: Buffer.from(rootContent),
       },
       {
         path: "src/index.jsx",
-        content: Buffer.from(indexJsx),
+        content: Buffer.from(indexContent),
       },
       {
         path: "props.json",
-        content: Buffer.from(JSON.stringify(props, null, 2)),
+        content: Buffer.from(
+          JSON.stringify(props, null, 2)
+        ),
       },
     ];
 
     await sandbox.writeFiles(files);
 
+    console.log("Render project created.");
+
+    // --------------------------------
+    // 5. NPM INSTALL
+    // --------------------------------
+
     console.log("Installing npm packages...");
 
-    const npmInstall = await run("npm", [
+    const npmInstall = await runCommand("npm", [
       "install",
       "--prefer-offline",
       "--no-audit",
@@ -191,13 +249,19 @@ export default async function handler(req, res) {
 
     if (npmInstall.exitCode !== 0) {
       throw new Error(
-        `npm install failed: ${npmInstall.stderr || npmInstall.stdout}`
+        `npm install failed: ${
+          npmInstall.stderr || npmInstall.stdout
+        }`
       );
     }
 
+    // --------------------------------
+    // 6. REMOTION BROWSER
+    // --------------------------------
+
     console.log("Ensuring Remotion browser...");
 
-    const browser = await run("npx", [
+    const browser = await runCommand("npx", [
       "remotion",
       "browser",
       "ensure",
@@ -211,9 +275,13 @@ export default async function handler(req, res) {
       );
     }
 
-    console.log("Rendering MP4...");
+    // --------------------------------
+    // 7. RENDER MP4
+    // --------------------------------
 
-    const render = await run("npx", [
+    console.log("Rendering video...");
+
+    const render = await runCommand("npx", [
       "remotion",
       "render",
       "src/index.jsx",
@@ -227,59 +295,104 @@ export default async function handler(req, res) {
 
     if (render.exitCode !== 0) {
       throw new Error(
-        `Remotion render failed: ${render.stderr || render.stdout}`
+        `Remotion render failed: ${
+          render.stderr || render.stdout
+        }`
       );
     }
 
-    console.log("Checking MP4...");
+    console.log("Video rendered successfully.");
 
-    const check = await run("ls", ["-lh", "viraltap-test.mp4"]);
+    // --------------------------------
+    // 8. CHECK MP4
+    // --------------------------------
 
-    if (check.exitCode !== 0) {
-      throw new Error("MP4 file was not created.");
-    }
-
-    const base64 = await run("base64", [
-      "-w",
-      "0",
+    const check = await runCommand("ls", [
+      "-lh",
       "viraltap-test.mp4",
     ]);
 
-    if (base64.exitCode !== 0 || !base64.stdout) {
-      throw new Error("Failed to export MP4.");
+    if (check.exitCode !== 0) {
+      throw new Error(
+        "viraltap-test.mp4 was not created."
+      );
+    }
+
+    console.log(check.stdout);
+
+    // --------------------------------
+    // 9. READ MP4
+    // --------------------------------
+
+    const base64Result = await runCommand(
+      "base64",
+      ["-w", "0", "viraltap-test.mp4"]
+    );
+
+    if (
+      base64Result.exitCode !== 0 ||
+      !base64Result.stdout
+    ) {
+      throw new Error(
+        "Failed to export rendered MP4."
+      );
     }
 
     const videoBuffer = Buffer.from(
-      base64.stdout.trim(),
+      base64Result.stdout.trim(),
       "base64"
     );
 
-    if (!videoBuffer.length) {
-      throw new Error("Rendered MP4 is empty.");
+    if (videoBuffer.length === 0) {
+      throw new Error(
+        "Rendered MP4 contains 0 bytes."
+      );
     }
 
-    let videoUrl;
+    // --------------------------------
+    // 10. UPLOAD TO VERCEL BLOB
+    // --------------------------------
+
+    let videoUrl = null;
 
     if (process.env.BLOB_READ_WRITE_TOKEN) {
+      console.log("Uploading video to Vercel Blob...");
+
       const fileName = `viraltap-${Date.now()}.mp4`;
 
-      const blob = await put(fileName, videoBuffer, {
-        access: "public",
-        contentType: "video/mp4",
-      });
+      const blob = await put(
+        fileName,
+        videoBuffer,
+        {
+          access: "public",
+          contentType: "video/mp4",
+        }
+      );
 
       videoUrl = blob.url;
+
+      console.log("Blob URL:", videoUrl);
     } else {
+      console.log(
+        "BLOB_READ_WRITE_TOKEN not found. Using data URL."
+      );
+
       videoUrl =
-        `data:video/mp4;base64,${base64.stdout.trim()}`;
+        `data:video/mp4;base64,${base64Result.stdout.trim()}`;
     }
+
+    // --------------------------------
+    // 11. SUCCESS
+    // --------------------------------
 
     const renderTime = (
       (Date.now() - startTime) /
       1000
     ).toFixed(2);
 
-    console.log("VIRALTAP RENDER SUCCESS");
+    console.log(
+      `VIRALTAP RENDER SUCCESS in ${renderTime}s`
+    );
 
     return res.status(200).json({
       success: true,
@@ -308,9 +421,13 @@ export default async function handler(req, res) {
       try {
         if (typeof sandbox.stop === "function") {
           await sandbox.stop();
-        } else if (typeof sandbox.destroy === "function") {
+        } else if (
+          typeof sandbox.destroy === "function"
+        ) {
           await sandbox.destroy();
-        } else if (typeof sandbox.close === "function") {
+        } else if (
+          typeof sandbox.close === "function"
+        ) {
           await sandbox.close();
         }
       } catch (cleanupError) {
