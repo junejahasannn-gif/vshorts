@@ -12,34 +12,32 @@ export default async function handler(req, res) {
 
   let sandbox = null;
 
-  const startTime = Date.now();
-
-  const body = req.body || {};
-
-  const scenes = Array.isArray(body.scenes)
-    ? body.scenes
-    : [];
-
-  if (!scenes.length) {
-    return res.status(400).json({
-      success: false,
-      error: "No scenes were provided.",
-    });
-  }
-
   try {
-    // --------------------------------------------------
+    const body = req.body || {};
+
+    const scenes = Array.isArray(body.scenes)
+      ? body.scenes
+      : [];
+
+    if (!scenes.length) {
+      return res.status(400).json({
+        success: false,
+        error: "No scenes were provided.",
+      });
+    }
+
+    // --------------------------------------------
     // 1. CREATE SANDBOX
-    // --------------------------------------------------
+    // --------------------------------------------
 
     sandbox = await Sandbox.create({
       persistent: false,
       timeout: 10 * 60 * 1000,
     });
 
-    // --------------------------------------------------
-    // 2. CREATE MINIMAL REMOTION PROJECT
-    // --------------------------------------------------
+    // --------------------------------------------
+    // 2. REMOTION PROJECT
+    // --------------------------------------------
 
     const packageJson = `
 {
@@ -74,7 +72,7 @@ const Video = ({ scenes = [] }) => {
   );
 
   const scene = scenes[sceneIndex] || {
-    caption: "ViralTap"
+    caption: "ViralTap Render Test"
   };
 
   const opacity = interpolate(
@@ -172,83 +170,73 @@ registerRoot(RemotionRoot);
       },
     ]);
 
-    // --------------------------------------------------
-    // 3. INSTALL PACKAGES
-    // --------------------------------------------------
+    // --------------------------------------------
+    // 3. INSTALL
+    // --------------------------------------------
 
     const install = await sandbox.runCommand({
       cmd: "npm",
       args: ["install"],
     });
 
-    const installStdout = await install.stdout();
-    const installStderr = await install.stderr();
+    const installOut = await install.stdout();
+    const installErr = await install.stderr();
 
     if (install.exitCode !== 0) {
       throw new Error(
-        `npm install failed:\n${installStderr}\n${installStdout}`
+        `npm install failed:\n${installErr}\n${installOut}`
       );
     }
 
-    // --------------------------------------------------
-    // 4. CHECK REMOTION CLI
-    // --------------------------------------------------
-    // IMPORTANT:
-    // We installed @remotion/cli explicitly.
-    // This avoids the previous:
-    // "could not determine executable to run"
-    // problem from `npx remotion`.
+    // --------------------------------------------
+    // 4. CHECK INSTALLED BINARY DIRECTLY
+    // --------------------------------------------
 
-    const cliCheck = await sandbox.runCommand({
-      cmd: "npx",
+    const binaryCheck = await sandbox.runCommand({
+      cmd: "sh",
       args: [
-        "--yes",
-        "@remotion/cli",
-        "--version",
+        "-c",
+        "ls -la node_modules/.bin/remotion && node_modules/.bin/remotion --version",
       ],
     });
 
-    const cliStdout = await cliCheck.stdout();
-    const cliStderr = await cliCheck.stderr();
+    const binaryOut = await binaryCheck.stdout();
+    const binaryErr = await binaryCheck.stderr();
 
-    if (cliCheck.exitCode !== 0) {
+    if (binaryCheck.exitCode !== 0) {
       throw new Error(
-        `Remotion CLI check failed:\n${cliStderr}\n${cliStdout}`
+        `Remotion binary check failed:\n${binaryErr}\n${binaryOut}`
       );
     }
 
-    // --------------------------------------------------
+    // --------------------------------------------
     // 5. BROWSER SETUP
-    // --------------------------------------------------
+    // --------------------------------------------
 
     const browser = await sandbox.runCommand({
-      cmd: "npx",
+      cmd: "node_modules/.bin/remotion",
       args: [
-        "--yes",
-        "@remotion/cli",
         "browser",
         "ensure",
       ],
     });
 
-    const browserStdout = await browser.stdout();
-    const browserStderr = await browser.stderr();
+    const browserOut = await browser.stdout();
+    const browserErr = await browser.stderr();
 
     if (browser.exitCode !== 0) {
       throw new Error(
-        `Remotion browser setup failed:\n${browserStderr}\n${browserStdout}`
+        `Remotion browser setup failed:\n${browserErr}\n${browserOut}`
       );
     }
 
-    // --------------------------------------------------
-    // 6. RENDER 3-SECOND TEST MP4
-    // --------------------------------------------------
+    // --------------------------------------------
+    // 6. RENDER
+    // --------------------------------------------
 
     const render = await sandbox.runCommand({
-      cmd: "npx",
+      cmd: "node_modules/.bin/remotion",
       args: [
-        "--yes",
-        "@remotion/cli",
         "render",
         "src/index.jsx",
         "ViralTapVideo",
@@ -258,18 +246,18 @@ registerRoot(RemotionRoot);
       ],
     });
 
-    const renderStdout = await render.stdout();
-    const renderStderr = await render.stderr();
+    const renderOut = await render.stdout();
+    const renderErr = await render.stderr();
 
     if (render.exitCode !== 0) {
       throw new Error(
-        `Remotion render failed:\n${renderStderr}\n${renderStdout}`
+        `Remotion render failed:\n${renderErr}\n${renderOut}`
       );
     }
 
-    // --------------------------------------------------
+    // --------------------------------------------
     // 7. CHECK MP4
-    // --------------------------------------------------
+    // --------------------------------------------
 
     const fileCheck = await sandbox.runCommand({
       cmd: "sh",
@@ -279,38 +267,30 @@ registerRoot(RemotionRoot);
       ],
     });
 
-    const fileOutput = await fileCheck.stdout();
-    const fileError = await fileCheck.stderr();
+    const fileOut = await fileCheck.stdout();
+    const fileErr = await fileCheck.stderr();
 
     if (fileCheck.exitCode !== 0) {
       throw new Error(
-        `MP4 file check failed:\n${fileError}\n${fileOutput}`
+        `MP4 file check failed:\n${fileErr}\n${fileOut}`
       );
     }
 
-    // --------------------------------------------------
+    // --------------------------------------------
     // SUCCESS
-    // --------------------------------------------------
+    // --------------------------------------------
 
     return res.status(200).json({
       success: true,
-
-      message:
-        "REAL MP4 RENDER TEST SUCCESSFUL.",
-
-      totalTime:
-        `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
-
+      message: "REAL MP4 RENDER TEST SUCCESSFUL.",
       renderTest: {
-        durationSeconds: 3,
-        frames: 90,
         codec: "h264",
-        cliVersion: cliStdout.trim(),
-        file: fileOutput.trim(),
+        frames: 90,
+        durationSeconds: 3,
+        remotionVersion: binaryOut.trim(),
+        file: fileOut.trim(),
       },
-
       videoUrl: null,
-
       playbackReady: false,
     });
 
@@ -322,26 +302,20 @@ registerRoot(RemotionRoot);
 
     return res.status(500).json({
       success: false,
-
-      error:
-        "Real MP4 render test failed.",
-
+      error: "Real MP4 render test failed.",
       details:
         error?.message ||
         "Unknown rendering error.",
-
-      totalTime:
-        `${((Date.now() - startTime) / 1000).toFixed(2)}s`,
     });
 
   } finally {
     if (sandbox) {
       try {
         await sandbox.stop();
-      } catch (stopError) {
+      } catch (error) {
         console.error(
           "SANDBOX STOP ERROR:",
-          stopError
+          error
         );
       }
     }
