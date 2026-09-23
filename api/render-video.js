@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   const scenes = Array.isArray(body.scenes) ? body.scenes : [];
   const aspectRatio = body.aspectRatio || "9:16";
 
-  if (scenes.length === 0) {
+  if (!scenes.length) {
     return res.status(400).json({
       success: false,
       error: "No scenes were provided",
@@ -36,23 +36,19 @@ export default async function handler(req, res) {
   }
 
   let sandbox = null;
-  const startTime = Date.now();
 
   try {
     console.log("VIRALTAP RENDER START");
-    console.log("Aspect ratio:", aspectRatio);
     console.log("Scenes:", scenes.length);
+    console.log("Aspect:", aspectRatio);
 
     sandbox = await Sandbox.create({
       persistent: false,
       timeout: 10 * 60 * 1000,
     });
 
-    async function runCommand(cmd, args = [], sudo = false) {
-      const options = {
-        cmd,
-        args,
-      };
+    async function run(cmd, args = [], sudo = false) {
+      const options = { cmd, args };
 
       if (sudo) {
         options.sudo = true;
@@ -80,77 +76,63 @@ export default async function handler(req, res) {
       };
     }
 
-    // --------------------------------
-    // 1. UPDATE PACKAGE LIST
-    // --------------------------------
+    // -----------------------------
+    // SYSTEM DEPENDENCIES
+    // -----------------------------
 
-    console.log("Updating apt packages...");
-
-    const aptUpdate = await runCommand(
+    const update = await run(
       "apt-get",
       ["update", "-qq"],
       true
     );
 
-    if (aptUpdate.exitCode !== 0) {
+    if (update.exitCode !== 0) {
       throw new Error(
         `apt-get update failed: ${
-          aptUpdate.stderr || aptUpdate.stdout
+          update.stderr || update.stdout
         }`
       );
     }
 
-    // --------------------------------
-    // 2. INSTALL CHROME DEPENDENCIES
-    // --------------------------------
-
-    console.log("Installing Chrome dependencies...");
-
-    const packages = [
-      "libnspr4",
-      "libnss3",
-      "libatk-bridge2.0-0",
-      "libatk1.0-0",
-      "libcups2",
-      "libdrm2",
-      "libxkbcommon0",
-      "libxcomposite1",
-      "libxdamage1",
-      "libxfixes3",
-      "libxrandr2",
-      "libgbm1",
-      "libpango-1.0-0",
-      "libcairo2",
-      "libasound2t64",
-      "fonts-liberation",
-      "ffmpeg",
-    ];
-
-    const aptInstall = await runCommand(
+    const install = await run(
       "apt-get",
       [
         "install",
         "-y",
         "-qq",
         "--no-install-recommends",
-        ...packages,
+        "libnspr4",
+        "libnss3",
+        "libatk-bridge2.0-0",
+        "libatk1.0-0",
+        "libcups2",
+        "libdrm2",
+        "libxkbcommon0",
+        "libxcomposite1",
+        "libxdamage1",
+        "libxfixes3",
+        "libxrandr2",
+        "libgbm1",
+        "libpango-1.0-0",
+        "libcairo2",
+        "libasound2t64",
+        "fonts-liberation",
+        "ffmpeg",
       ],
       true
     );
 
-    if (aptInstall.exitCode !== 0) {
+    if (install.exitCode !== 0) {
       throw new Error(
         `apt-get install failed: ${
-          aptInstall.stderr || aptInstall.stdout
+          install.stderr || install.stdout
         }`
       );
     }
 
-    console.log("System dependencies installed.");
-
-    // --------------------------------
-    // 3. READ REMOTION FILES
-    // --------------------------------
+    // -----------------------------
+    // READ REMOTION FILES
+    // -----------------------------
 
     const rootPath = path.join(
       process.cwd(),
@@ -165,11 +147,11 @@ export default async function handler(req, res) {
     );
 
     if (!fs.existsSync(rootPath)) {
-      throw new Error("src/Root.jsx not found.");
+      throw new Error("src/Root.jsx not found");
     }
 
     if (!fs.existsSync(indexPath)) {
-      throw new Error("src/index.jsx not found.");
+      throw new Error("src/index.jsx not found");
     }
 
     const rootContent = fs.readFileSync(
@@ -182,9 +164,9 @@ export default async function handler(req, res) {
       "utf8"
     );
 
-    // --------------------------------
-    // 4. CREATE RENDER PROJECT
-    // --------------------------------
+    // -----------------------------
+    // RENDER PACKAGE
+    // -----------------------------
 
     const packageJson = {
       name: "viraltap-render-worker",
@@ -201,13 +183,13 @@ export default async function handler(req, res) {
 
     const props = {
       scenes,
-      duration: 30,
+      duration: 3,
       aspectRatio,
       width,
       height,
     };
 
-    const files = [
+    await sandbox.writeFiles([
       {
         path: "package.json",
         content: Buffer.from(
@@ -228,40 +210,32 @@ export default async function handler(req, res) {
           JSON.stringify(props, null, 2)
         ),
       },
-    ];
+    ]);
 
-    await sandbox.writeFiles(files);
+    // -----------------------------
+    // NPM INSTALL
+    // -----------------------------
 
-    console.log("Render project created.");
-
-    // --------------------------------
-    // 5. NPM INSTALL
-    // --------------------------------
-
-    console.log("Installing npm packages...");
-
-    const npmInstall = await runCommand("npm", [
+    const npm = await run("npm", [
       "install",
       "--prefer-offline",
       "--no-audit",
       "--no-fund",
     ]);
 
-    if (npmInstall.exitCode !== 0) {
+    if (npm.exitCode !== 0) {
       throw new Error(
         `npm install failed: ${
-          npmInstall.stderr || npmInstall.stdout
+          npm.stderr || npm.stdout
         }`
       );
     }
 
-    // --------------------------------
-    // 6. REMOTION BROWSER
-    // --------------------------------
+    // -----------------------------
+    // REMOTION BROWSER
+    // -----------------------------
 
-    console.log("Ensuring Remotion browser...");
-
-    const browser = await runCommand("npx", [
+    const browser = await run("npx", [
       "remotion",
       "browser",
       "ensure",
@@ -269,19 +243,19 @@ export default async function handler(req, res) {
 
     if (browser.exitCode !== 0) {
       throw new Error(
-        `Remotion browser ensure failed: ${
+        `Browser setup failed: ${
           browser.stderr || browser.stdout
         }`
       );
     }
 
-    // --------------------------------
-    // 7. RENDER MP4
-    // --------------------------------
+    // -----------------------------
+    // RENDER
+    // -----------------------------
 
-    console.log("Rendering video...");
+    console.log("Starting Remotion render...");
 
-    const render = await runCommand("npx", [
+    const render = await run("npx", [
       "remotion",
       "render",
       "src/index.jsx",
@@ -289,8 +263,10 @@ export default async function handler(req, res) {
       "--frames=0-89",
       "--codec=h264",
       "--props=props.json",
+      "--concurrency=1",
       "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
       "--gl=angle",
+      "--disable-web-security",
     ]);
 
     if (render.exitCode !== 0) {
@@ -301,64 +277,62 @@ export default async function handler(req, res) {
       );
     }
 
-    console.log("Video rendered successfully.");
+    // -----------------------------
+    // CHECK VIDEO
+    // -----------------------------
 
-    // --------------------------------
-    // 8. CHECK MP4
-    // --------------------------------
-
-    const check = await runCommand("ls", [
+    const check = await run("ls", [
       "-lh",
       "viraltap-test.mp4",
     ]);
 
     if (check.exitCode !== 0) {
       throw new Error(
-        "viraltap-test.mp4 was not created."
+        "Rendered MP4 was not created"
       );
     }
 
     console.log(check.stdout);
 
-    // --------------------------------
-    // 9. READ MP4
-    // --------------------------------
+    // -----------------------------
+    // EXPORT MP4
+    // -----------------------------
 
-    const base64Result = await runCommand(
-      "base64",
-      ["-w", "0", "viraltap-test.mp4"]
-    );
+    const encoded = await run("base64", [
+      "-w",
+      "0",
+      "viraltap-test.mp4",
+    ]);
 
     if (
-      base64Result.exitCode !== 0 ||
-      !base64Result.stdout
+      encoded.exitCode !== 0 ||
+      !encoded.stdout
     ) {
       throw new Error(
-        "Failed to export rendered MP4."
+        "Failed to read rendered MP4"
       );
     }
 
     const videoBuffer = Buffer.from(
-      base64Result.stdout.trim(),
+      encoded.stdout.trim(),
       "base64"
     );
 
-    if (videoBuffer.length === 0) {
+    if (!videoBuffer.length) {
       throw new Error(
-        "Rendered MP4 contains 0 bytes."
+        "Rendered video is empty"
       );
     }
 
-    // --------------------------------
-    // 10. UPLOAD TO VERCEL BLOB
-    // --------------------------------
+    // -----------------------------
+    // VERCEL BLOB
+    // -----------------------------
 
-    let videoUrl = null;
+    let videoUrl;
 
     if (process.env.BLOB_READ_WRITE_TOKEN) {
-      console.log("Uploading video to Vercel Blob...");
-
-      const fileName = `viraltap-${Date.now()}.mp4`;
+      const fileName =
+        `viraltap-${Date.now()}.mp4`;
 
       const blob = await put(
         fileName,
@@ -370,28 +344,13 @@ export default async function handler(req, res) {
       );
 
       videoUrl = blob.url;
-
-      console.log("Blob URL:", videoUrl);
     } else {
-      console.log(
-        "BLOB_READ_WRITE_TOKEN not found. Using data URL."
-      );
-
       videoUrl =
-        `data:video/mp4;base64,${base64Result.stdout.trim()}`;
+        `data:video/mp4;base64,${encoded.stdout.trim()}`;
     }
 
-    // --------------------------------
-    // 11. SUCCESS
-    // --------------------------------
-
-    const renderTime = (
-      (Date.now() - startTime) /
-      1000
-    ).toFixed(2);
-
     console.log(
-      `VIRALTAP RENDER SUCCESS in ${renderTime}s`
+      "VIRALTAP RENDER SUCCESS"
     );
 
     return res.status(200).json({
@@ -400,10 +359,10 @@ export default async function handler(req, res) {
       sizeBytes: videoBuffer.length,
       durationFrames: 90,
       fps: 30,
-      aspectRatio,
       dimensions: `${width}x${height}`,
-      renderTime: `${renderTime}s`,
+      aspectRatio,
     });
+
   } catch (error) {
     console.error(
       "VIRALTAP REAL RENDER ERROR:",
@@ -414,26 +373,19 @@ export default async function handler(req, res) {
       success: false,
       error:
         error?.message ||
-        "Video rendering failed.",
+        "Video rendering failed",
     });
+
   } finally {
     if (sandbox) {
       try {
         if (typeof sandbox.stop === "function") {
           await sandbox.stop();
-        } else if (
-          typeof sandbox.destroy === "function"
-        ) {
-          await sandbox.destroy();
-        } else if (
-          typeof sandbox.close === "function"
-        ) {
-          await sandbox.close();
         }
       } catch (cleanupError) {
-        console.error(
-          "Sandbox cleanup error:",
-          cleanupError
+        console.log(
+          "Sandbox cleanup:",
+          cleanupError?.message
         );
       }
     }
