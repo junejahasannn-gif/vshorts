@@ -1,4 +1,7 @@
 import { Sandbox } from "@vercel/sandbox";
+import { put } from "@vercel/blob";
+import fs from "fs";
+import path from "path";
 
 export const maxDuration = 60;
 
@@ -6,239 +9,160 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error: "Only POST requests are allowed.",
+      error: "Only POST requests are allowed",
     });
   }
 
+  const { scenes, aspectRatio = "9:16" } = req.body || {};
+
+  if (!Array.isArray(scenes) || scenes.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: "No scenes were provided",
+    });
+  }
+
+  let width = 1080;
+  let height = 1920;
+
+  if (aspectRatio === "16:9") {
+    width = 1920;
+    height = 1080;
+  }
+
+  if (aspectRatio === "1:1") {
+    width = 1080;
+    height = 1080;
+  }
+
   let sandbox = null;
+  const startTime = Date.now();
 
   try {
-    const body = req.body || {};
-
-    const scenes = Array.isArray(body.scenes)
-      ? body.scenes
-      : [];
-
-    if (!scenes.length) {
-      return res.status(400).json({
-        success: false,
-        error: "No scenes were provided.",
-      });
-    }
-
-    const duration = Number(body.duration) || 30;
-    const aspectRatio = body.aspectRatio || "9:16";
-
-    let width = 1080;
-    let height = 1920;
-
-    if (aspectRatio === "16:9") {
-      width = 1920;
-      height = 1080;
-    } else if (aspectRatio === "1:1") {
-      width = 1080;
-      height = 1080;
-    }
-
     console.log("VIRALTAP RENDER START");
-    console.log("Scenes:", scenes.length);
-    console.log("Duration:", duration);
     console.log("Aspect ratio:", aspectRatio);
-
-    // --------------------------------------------------
-    // 1. CREATE SANDBOX
-    // --------------------------------------------------
+    console.log("Scenes:", scenes.length);
 
     sandbox = await Sandbox.create({
       persistent: false,
       timeout: 10 * 60 * 1000,
     });
 
-    // --------------------------------------------------
-    // 2. INSTALL CHROMIUM SYSTEM LIBRARIES
-    // --------------------------------------------------
+    const run = async (cmd, args = [], sudo = false) => {
+      const options = { cmd, args };
 
-    console.log("Installing Chromium system dependencies...");
+      if (sudo) {
+        options.sudo = true;
+      }
 
-    const apt = await sandbox.runCommand({
-      cmd: "bash",
-      args: [
-        "-c",
-        `
-        set -e
+      const result = await sandbox.runCommand(options);
 
-        export DEBIAN_FRONTEND=noninteractive
+      const stdout =
+        typeof result.stdout === "function"
+          ? await result.stdout()
+          : result.stdout || "";
 
-        apt-get update -qq
+      const stderr =
+        typeof result.stderr === "function"
+          ? await result.stderr()
+          : result.stderr || "";
 
-        apt-get install -y -qq --no-install-recommends \\
-          libnspr4 \\
-          libnss3 \\
-          libatk-bridge2.0-0 \\
-          libatk1.0-0 \\
-          libcups2 \\
-          libdrm2 \\
-          libxkbcommon0 \\
-          libxcomposite1 \\
-          libxdamage1 \\
-          libxfixes3 \\
-          libxrandr2 \\
-          libgbm1 \\
-          libpango-1.0-0 \\
-          libcairo2 \\
-          fonts-liberation \\
-          ffmpeg
+      return {
+        exitCode:
+          typeof result.exitCode === "number" ? result.exitCode : 0,
+        stdout: String(stdout),
+        stderr: String(stderr),
+      };
+    };
 
-        apt-get install -y -qq libasound2 || true
-        apt-get install -y -qq libasound2t64 || true
+    // Install Chrome/Linux dependencies
+    console.log("Installing system dependencies...");
 
-        ldconfig
+    const update = await run("apt-get", ["update", "-qq"], true);
 
-        echo "SYSTEM_LIBRARIES_INSTALLED"
-        `,
-      ],
-    });
-
-    const aptOut = await apt.stdout();
-    const aptErr = await apt.stderr();
-
-    if (apt.exitCode !== 0) {
+    if (update.exitCode !== 0) {
       throw new Error(
-        `System dependency installation failed:\\n${aptErr}\\n${aptOut}`
+        `apt-get update failed: ${update.stderr || update.stdout}`
       );
     }
 
-    console.log(aptOut);
+    const install = await run(
+      "apt-get",
+      [
+        "install",
+        "-y",
+        "-qq",
+        "--no-install-recommends",
+        "libnspr4",
+        "libnss3",
+        "libatk-bridge2.0-0",
+        "libatk1.0-0",
+        "libcups2",
+        "libdrm2",
+        "libxkbcommon0",
+        "libxcomposite1",
+        "libxdamage1",
+        "libxfixes3",
+        "libxrandr2",
+        "libgbm1",
+        "libpango-1.0-0",
+        "libcairo2",
+        "libasound2",
+        "fonts-liberation",
+        "ffmpeg",
+      ],
+      true
+    );
 
-    // --------------------------------------------------
-    // 3. CREATE REMOTION PROJECT
-    // --------------------------------------------------
-
-    const packageJson = `
-{
-  "name": "viraltap-render-worker",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "@remotion/cli": "4.0.527",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "remotion": "4.0.527"
-  }
-}
-`;
-
-    const rootJsx = `
-import React from "react";
-import {
-  Composition,
-  useCurrentFrame,
-  useVideoConfig,
-  interpolate,
-} from "remotion";
-
-const Video = ({ scenes = [] }) => {
-  const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
-
-  const totalScenes = Math.max(scenes.length, 1);
-
-  const sceneIndex = Math.min(
-    totalScenes - 1,
-    Math.floor(
-      (frame / Math.max(durationInFrames, 1)) * totalScenes
-    )
-  );
-
-  const scene = scenes[sceneIndex] || {
-    caption: "ViralTap",
-  };
-
-  const fadeFrames = Math.max(1, Math.floor(fps * 0.25));
-
-  const opacity = interpolate(
-    frame % fps,
-    [0, fadeFrames, fps],
-    [0, 1, 1],
-    {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
+    if (install.exitCode !== 0) {
+      throw new Error(
+        `apt-get install failed: ${install.stderr || install.stdout}`
+      );
     }
-  );
 
-  return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        background:
-          "linear-gradient(135deg, #090909 0%, #171717 100%)",
-        color: "#ffffff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 80,
-        boxSizing: "border-box",
-        fontFamily: "Arial, sans-serif",
-        textAlign: "center",
-        opacity,
-      }}
-    >
-      <div
-        style={{
-          width: "90%",
-          fontSize: 56,
-          fontWeight: 700,
-          lineHeight: 1.25,
-          textShadow: "0 4px 20px rgba(0,0,0,0.8)",
-        }}
-      >
-        {scene.caption ||
-          scene.narration ||
-          scene.dialogue ||
-          scene.scene ||
-          "ViralTap"}
-      </div>
-    </div>
-  );
-};
+    console.log("System dependencies installed.");
 
-export const RemotionRoot = () => {
-  return (
-    <Composition
-      id="ViralTapVideo"
-      component={Video}
-      durationInFrames={90}
-      fps={30}
-      width={${width}}
-      height={${height}}
-      defaultProps={{
-        scenes: [
-          {
-            caption: "ViralTap Render Test",
-          },
-        ],
-      }}
-    />
-  );
-};
+    const rootJsxPath = path.join(process.cwd(), "src", "Root.jsx");
+    const indexJsxPath = path.join(process.cwd(), "src", "index.jsx");
 
-export default RemotionRoot;
-`;
+    if (!fs.existsSync(rootJsxPath)) {
+      throw new Error("src/Root.jsx not found.");
+    }
 
-    const indexJsx = `
-import React from "react";
-import { registerRoot } from "remotion";
-import { RemotionRoot } from "./Root.jsx";
+    if (!fs.existsSync(indexJsxPath)) {
+      throw new Error("src/index.jsx not found.");
+    }
 
-registerRoot(RemotionRoot);
-`;
+    const rootJsx = fs.readFileSync(rootJsxPath, "utf8");
+    const indexJsx = fs.readFileSync(indexJsxPath, "utf8");
 
-    await sandbox.writeFiles([
+    const packageJson = {
+      name: "viraltap-render-worker",
+      version: "1.0.0",
+      private: true,
+      type: "module",
+      dependencies: {
+        react: "18.3.1",
+        "react-dom": "18.3.1",
+        remotion: "4.0.527",
+        "@remotion/cli": "4.0.527",
+      },
+    };
+
+    const props = {
+      scenes,
+      duration: 30,
+      aspectRatio,
+      width,
+      height,
+    };
+
+    const files = [
       {
         path: "package.json",
-        content: Buffer.from(packageJson),
+        content: Buffer.from(
+          JSON.stringify(packageJson, null, 2)
+        ),
       },
       {
         path: "src/Root.jsx",
@@ -249,207 +173,124 @@ registerRoot(RemotionRoot);
         content: Buffer.from(indexJsx),
       },
       {
-        path: "scenes.json",
-        content: Buffer.from(
-          JSON.stringify({ scenes }, null, 2)
-        ),
+        path: "props.json",
+        content: Buffer.from(JSON.stringify(props, null, 2)),
       },
+    ];
+
+    await sandbox.writeFiles(files);
+
+    console.log("Installing npm packages...");
+
+    const npmInstall = await run("npm", [
+      "install",
+      "--prefer-offline",
+      "--no-audit",
+      "--no-fund",
     ]);
 
-    // --------------------------------------------------
-    // 4. NPM INSTALL
-    // --------------------------------------------------
-
-    console.log("Installing Remotion...");
-
-    const install = await sandbox.runCommand({
-      cmd: "npm",
-      args: [
-        "install",
-        "--prefer-offline",
-        "--no-audit",
-        "--no-fund",
-      ],
-    });
-
-    const installOut = await install.stdout();
-    const installErr = await install.stderr();
-
-    if (install.exitCode !== 0) {
+    if (npmInstall.exitCode !== 0) {
       throw new Error(
-        `npm install failed:\\n${installErr}\\n${installOut}`
+        `npm install failed: ${npmInstall.stderr || npmInstall.stdout}`
       );
     }
 
-    // --------------------------------------------------
-    // 5. REMOTION VERSION CHECK
-    // --------------------------------------------------
+    console.log("Ensuring Remotion browser...");
 
-    const versionCheck = await sandbox.runCommand({
-      cmd: "node_modules/.bin/remotion",
-      args: ["versions"],
-    });
-
-    const versionOut = await versionCheck.stdout();
-    const versionErr = await versionCheck.stderr();
-
-    if (versionCheck.exitCode !== 0) {
-      throw new Error(
-        `Remotion version check failed:\\n${versionErr}\\n${versionOut}`
-      );
-    }
-
-    console.log("REMOTION:");
-    console.log(versionOut);
-
-    // --------------------------------------------------
-    // 6. ENSURE CHROME
-    // --------------------------------------------------
-
-    console.log("Ensuring Remotion Chrome...");
-
-    const browser = await sandbox.runCommand({
-      cmd: "node_modules/.bin/remotion",
-      args: [
-        "browser",
-        "ensure",
-      ],
-    });
-
-    const browserOut = await browser.stdout();
-    const browserErr = await browser.stderr();
+    const browser = await run("npx", [
+      "remotion",
+      "browser",
+      "ensure",
+    ]);
 
     if (browser.exitCode !== 0) {
       throw new Error(
-        `Remotion browser setup failed:\\n${browserErr}\\n${browserOut}`
+        `Remotion browser ensure failed: ${
+          browser.stderr || browser.stdout
+        }`
       );
     }
 
-    console.log(browserOut);
+    console.log("Rendering MP4...");
 
-    // --------------------------------------------------
-    // 7. CHECK CHROME LIBRARY
-    // --------------------------------------------------
-
-    const chromeCheck = await sandbox.runCommand({
-      cmd: "bash",
-      args: [
-        "-c",
-        `
-        CHROME=$(find /vercel /root -type f -name "chrome-headless-shell" 2>/dev/null | head -1)
-
-        if [ -z "$CHROME" ]; then
-          echo "Chrome binary not found"
-          exit 1
-        fi
-
-        echo "Chrome: $CHROME"
-
-        ldd "$CHROME" 2>&1 | grep "not found" || true
-        `,
-      ],
-    });
-
-    const chromeOut = await chromeCheck.stdout();
-    const chromeErr = await chromeCheck.stderr();
-
-    console.log("CHROME CHECK:");
-    console.log(chromeOut);
-
-    if (chromeCheck.exitCode !== 0) {
-      throw new Error(
-        `Chrome library check failed:\\n${chromeErr}\\n${chromeOut}`
-      );
-    }
-
-    // --------------------------------------------------
-    // 8. REAL 3-SECOND MP4 RENDER TEST
-    // --------------------------------------------------
-
-    console.log("Starting REAL MP4 render...");
-
-    const render = await sandbox.runCommand({
-      cmd: "node_modules/.bin/remotion",
-      args: [
-        "render",
-        "src/index.jsx",
-        "ViralTapVideo",
-        "viraltap-test.mp4",
-        "--frames=0-89",
-        "--codec=h264",
-        "--concurrency=2",
-        "--props=scenes.json",
-        "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
-      ],
-    });
-
-    const renderOut = await render.stdout();
-    const renderErr = await render.stderr();
-
-    console.log("RENDER STDOUT:");
-    console.log(renderOut);
-
-    console.log("RENDER STDERR:");
-    console.log(renderErr);
+    const render = await run("npx", [
+      "remotion",
+      "render",
+      "src/index.jsx",
+      "viraltap-test.mp4",
+      "--frames=0-89",
+      "--codec=h264",
+      "--props=props.json",
+      "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
+      "--gl=angle",
+    ]);
 
     if (render.exitCode !== 0) {
       throw new Error(
-        `Remotion render failed:\\n${renderErr}\\n${renderOut}`
+        `Remotion render failed: ${render.stderr || render.stdout}`
       );
     }
 
-    // --------------------------------------------------
-    // 9. VERIFY MP4
-    // --------------------------------------------------
+    console.log("Checking MP4...");
 
-    const fileCheck = await sandbox.runCommand({
-      cmd: "bash",
-      args: [
-        "-c",
-        "ls -lh viraltap-test.mp4 && file viraltap-test.mp4 && ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 viraltap-test.mp4",
-      ],
-    });
+    const check = await run("ls", ["-lh", "viraltap-test.mp4"]);
 
-    const fileOut = await fileCheck.stdout();
-    const fileErr = await fileCheck.stderr();
-
-    if (fileCheck.exitCode !== 0) {
-      throw new Error(
-        `MP4 verification failed:\\n${fileErr}\\n${fileOut}`
-      );
+    if (check.exitCode !== 0) {
+      throw new Error("MP4 file was not created.");
     }
 
-    console.log("MP4 VERIFIED:");
-    console.log(fileOut);
+    const base64 = await run("base64", [
+      "-w",
+      "0",
+      "viraltap-test.mp4",
+    ]);
 
-    // --------------------------------------------------
-    // 10. SUCCESS
-    // --------------------------------------------------
+    if (base64.exitCode !== 0 || !base64.stdout) {
+      throw new Error("Failed to export MP4.");
+    }
+
+    const videoBuffer = Buffer.from(
+      base64.stdout.trim(),
+      "base64"
+    );
+
+    if (!videoBuffer.length) {
+      throw new Error("Rendered MP4 is empty.");
+    }
+
+    let videoUrl;
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const fileName = `viraltap-${Date.now()}.mp4`;
+
+      const blob = await put(fileName, videoBuffer, {
+        access: "public",
+        contentType: "video/mp4",
+      });
+
+      videoUrl = blob.url;
+    } else {
+      videoUrl =
+        `data:video/mp4;base64,${base64.stdout.trim()}`;
+    }
+
+    const renderTime = (
+      (Date.now() - startTime) /
+      1000
+    ).toFixed(2);
+
+    console.log("VIRALTAP RENDER SUCCESS");
 
     return res.status(200).json({
       success: true,
-      message: "REAL MP4 RENDER TEST SUCCESSFUL.",
-
-      renderTest: {
-        codec: "h264",
-        frames: 90,
-        fps: 30,
-        durationSeconds: 3,
-        width,
-        height,
-        scenes: scenes.length,
-        requestedDuration: duration,
-        aspectRatio,
-        remotionVersion: versionOut.trim(),
-        browserSetup: browserOut.trim(),
-        chromeCheck: chromeOut.trim(),
-        file: fileOut.trim(),
-      },
-
-      videoUrl: null,
-      playbackReady: false,
+      videoUrl,
+      sizeBytes: videoBuffer.length,
+      durationFrames: 90,
+      fps: 30,
+      aspectRatio,
+      dimensions: `${width}x${height}`,
+      renderTime: `${renderTime}s`,
     });
-
   } catch (error) {
     console.error(
       "VIRALTAP REAL RENDER ERROR:",
@@ -458,20 +299,24 @@ registerRoot(RemotionRoot);
 
     return res.status(500).json({
       success: false,
-      error: "Real MP4 render test failed.",
-      details:
+      error:
         error?.message ||
-        "Unknown rendering error.",
+        "Video rendering failed.",
     });
-
   } finally {
     if (sandbox) {
       try {
-        await sandbox.stop();
-      } catch (error) {
+        if (typeof sandbox.stop === "function") {
+          await sandbox.stop();
+        } else if (typeof sandbox.destroy === "function") {
+          await sandbox.destroy();
+        } else if (typeof sandbox.close === "function") {
+          await sandbox.close();
+        }
+      } catch (cleanupError) {
         console.error(
-          "SANDBOX STOP ERROR:",
-          error
+          "Sandbox cleanup error:",
+          cleanupError
         );
       }
     }
