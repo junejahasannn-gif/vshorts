@@ -1,6 +1,38 @@
-import { list } from "@vercel/blob";
+import {
+  get,
+  list,
+  issueSignedToken,
+  presignUrl,
+} from "@vercel/blob";
 
 export const maxDuration = 30;
+
+function validJobId(jobId) {
+  return /^job_[A-Za-z0-9_-]+$/.test(jobId);
+}
+
+async function makeVideoReadUrl(pathname) {
+  const validUntil =
+    Date.now() + 60 * 60 * 1000;
+
+  const token =
+    await issueSignedToken({
+      pathname,
+      operations: ["get"],
+      validUntil,
+    });
+
+  const { presignedUrl } =
+    await presignUrl(token, {
+      pathname,
+      operation: "get",
+      access: "private",
+      validUntil,
+      useCache: false,
+    });
+
+  return presignedUrl;
+}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -10,11 +42,10 @@ export default async function handler(req, res) {
     });
   }
 
-  const jobId = String(
-    req.query?.jobId || ""
-  ).trim();
+  const jobId =
+    String(req.query?.jobId || "").trim();
 
-  if (!/^job_[A-Za-z0-9_-]+$/.test(jobId)) {
+  if (!validJobId(jobId)) {
     return res.status(400).json({
       success: false,
       error: "Valid jobId is required.",
@@ -29,7 +60,7 @@ export default async function handler(req, res) {
 
     const blob = result?.blobs?.[0];
 
-    if (!blob?.url) {
+    if (!blob) {
       return res.status(200).json({
         status: "queued",
         jobId,
@@ -38,18 +69,15 @@ export default async function handler(req, res) {
       });
     }
 
-    const response = await fetch(
-      `${blob.url}?t=${Date.now()}`,
+    const stored = await get(
+      `status/${jobId}.json`,
       {
-        cache: "no-store",
-        headers: {
-          "Cache-Control":
-            "no-cache, no-store, max-age=0",
-        },
+        access: "private",
+        useCache: false,
       }
     );
 
-    if (!response.ok) {
+    if (!stored?.stream) {
       return res.status(200).json({
         status: "queued",
         jobId,
@@ -58,7 +86,36 @@ export default async function handler(req, res) {
       });
     }
 
-    const data = await response.json();
+    const text =
+      await new Response(
+        stored.stream
+      ).text();
+
+    const data = JSON.parse(text);
+
+    /*
+     * Worker stores only the private pathname:
+     * videos/job_xxx.mp4
+     *
+     * We convert it into a temporary signed
+     * GET URL for the frontend.
+     */
+    if (
+      data.status === "completed" &&
+      data.videoUrl
+    ) {
+      const pathname =
+        String(data.videoUrl);
+
+      if (
+        pathname.startsWith("videos/")
+      ) {
+        data.videoUrl =
+          await makeVideoReadUrl(
+            pathname
+          );
+      }
+    }
 
     return res.status(200).json(data);
   } catch (error) {
