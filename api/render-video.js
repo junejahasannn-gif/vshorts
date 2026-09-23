@@ -19,17 +19,6 @@ export default async function handler(req, res) {
       ? body.scenes
       : [];
 
-    const videoType =
-      body.videoType === "funny"
-        ? "funny"
-        : "normal";
-
-    const aspectRatio =
-      String(body.aspectRatio || "9:16");
-
-    const duration =
-      Number(body.duration) || 30;
-
     if (!scenes.length) {
       return res.status(400).json({
         success: false,
@@ -37,94 +26,249 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-     * Create a real Vercel Sandbox.
-     *
-     * This is the first real step toward
-     * server-side Remotion MP4 rendering.
-     */
     sandbox = await Sandbox.create({
       persistent: false,
       timeout: 10 * 60 * 1000
     });
 
     /*
-     * Test that the Sandbox can execute Node.
+     * Minimal Remotion project used only for
+     * the first real MP4 rendering test.
      */
-    const test = await sandbox.runCommand({
-      cmd: "node",
-      args: [
-        "-e",
-        'console.log("ViralTap Sandbox OK")'
-      ]
+
+    const packageJson = `
+{
+  "name": "viraltap-render-test",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "react": "latest",
+    "react-dom": "latest",
+    "remotion": "latest"
+  }
+}
+`;
+
+    const rootJsx = `
+import React from "react";
+import {
+  Composition,
+  useCurrentFrame,
+  interpolate
+} from "remotion";
+
+const FPS = 30;
+
+const Video = ({ scenes = [] }) => {
+  const frame = useCurrentFrame();
+
+  const sceneIndex = Math.min(
+    Math.floor(frame / 30),
+    Math.max(scenes.length - 1, 0)
+  );
+
+  const scene = scenes[sceneIndex] || {
+    caption: "ViralTap"
+  };
+
+  const opacity = interpolate(
+    frame % 30,
+    [0, 8, 30],
+    [0, 1, 1],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp"
+    }
+  );
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: "#111",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 80,
+        boxSizing: "border-box",
+        fontFamily: "Arial, sans-serif",
+        textAlign: "center",
+        opacity
+      }}
+    >
+      <div
+        style={{
+          fontSize: 56,
+          fontWeight: 700,
+          lineHeight: 1.25
+        }}
+      >
+        {scene.caption ||
+          scene.narration ||
+          scene.dialogue ||
+          "ViralTap"}
+      </div>
+    </div>
+  );
+};
+
+export const RemotionRoot = () => {
+  return (
+    <Composition
+      id="ViralTapVideo"
+      component={Video}
+      durationInFrames={90}
+      fps={FPS}
+      width={1080}
+      height={1920}
+      defaultProps={{
+        scenes: [
+          {
+            caption: "ViralTap Render Test"
+          }
+        ]
+      }}
+    />
+  );
+};
+
+export default RemotionRoot;
+`;
+
+    const indexJsx = `
+import React from "react";
+import { registerRoot } from "remotion";
+import { RemotionRoot } from "./Root.jsx";
+
+registerRoot(RemotionRoot);
+`;
+
+    const scenesJson = JSON.stringify(
+      scenes.slice(0, 3)
+    );
+
+    await sandbox.writeFiles([
+      {
+        path: "package.json",
+        content: Buffer.from(packageJson)
+      },
+      {
+        path: "src/Root.jsx",
+        content: Buffer.from(rootJsx)
+      },
+      {
+        path: "src/index.jsx",
+        content: Buffer.from(indexJsx)
+      },
+      {
+        path: "scenes.json",
+        content: Buffer.from(scenesJson)
+      }
+    ]);
+
+    /*
+     * Install the isolated Remotion test project.
+     */
+    const install = await sandbox.runCommand({
+      cmd: "npm",
+      args: ["install"]
     });
 
-    const output = await test.stdout();
-
-    if (test.exitCode !== 0) {
+    if (install.exitCode !== 0) {
       throw new Error(
-        "Vercel Sandbox Node test failed."
+        `npm install failed: ${await install.stderr()}`
       );
     }
 
-    const renderJob = {
-      id:
-        `vt_${Date.now()}_${Math.random()
-          .toString(36)
-          .slice(2, 8)}`,
+    /*
+     * Make sure Remotion's browser is available.
+     */
+    const browser = await sandbox.runCommand({
+      cmd: "npx",
+      args: [
+        "remotion",
+        "browser",
+        "ensure"
+      ]
+    });
 
-      status: "sandbox-ready",
+    if (browser.exitCode !== 0) {
+      throw new Error(
+        `Remotion browser setup failed: ${await browser.stderr()}`
+      );
+    }
 
-      videoType,
+    /*
+     * Render a real 3-second MP4.
+     */
+    const render = await sandbox.runCommand({
+      cmd: "npx",
+      args: [
+        "remotion",
+        "render",
+        "src/index.jsx",
+        "viraltap-test.mp4",
+        "--frames=0-89",
+        "--codec=h264"
+      ]
+    });
 
-      aspectRatio,
+    const renderStdout = await render.stdout();
+    const renderStderr = await render.stderr();
 
-      duration,
+    if (render.exitCode !== 0) {
+      throw new Error(
+        `Remotion render failed.\n${renderStderr}\n${renderStdout}`
+      );
+    }
 
-      totalScenes: scenes.length,
+    /*
+     * Verify that an actual MP4 was created.
+     */
+    const fileCheck = await sandbox.runCommand({
+      cmd: "sh",
+      args: [
+        "-c",
+        "ls -lh viraltap-test.mp4 && file viraltap-test.mp4"
+      ]
+    });
 
-      sandbox: {
-        ready: true,
-        output: output.trim()
-      },
+    const fileOutput = await fileCheck.stdout();
 
-      createdAt:
-        new Date().toISOString()
-    };
+    if (fileCheck.exitCode !== 0) {
+      throw new Error(
+        "MP4 file was not created."
+      );
+    }
 
     return res.status(200).json({
       success: true,
-
       message:
-        "ViralTap render sandbox is ready.",
-
-      job: renderJob,
-
-      /*
-       * Still null intentionally.
-       *
-       * MP4 rendering comes in the next step after
-       * the Remotion bundle is connected.
-       */
+        "REAL MP4 RENDER TEST SUCCESSFUL.",
+      renderTest: {
+        durationSeconds: 3,
+        frames: 90,
+        codec: "h264",
+        file: fileOutput.trim()
+      },
       videoUrl: null,
-
       playbackReady: false
     });
 
   } catch (error) {
     console.error(
-      "VIRALTAP RENDER SERVER ERROR:",
+      "VIRALTAP REAL RENDER TEST ERROR:",
       error
     );
 
     return res.status(500).json({
       success: false,
-      error:
-        "ViralTap render sandbox failed.",
-
+      error: "Real MP4 render test failed.",
       details:
         error?.message ||
-        "Unknown error."
+        "Unknown rendering error."
     });
 
   } finally {
