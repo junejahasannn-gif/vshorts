@@ -7,11 +7,11 @@
     "remotion": "remotion"
   },
   "dependencies": {
-    "@remotion/player": "latest",
-    "@vercel/blob": "latest",
-    "@vercel/sandbox": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "remotion": "latest"
+    "@remotion/cli": "4.0.527",
+    "@remotion/player": "4.0.527",
+    "@vercel/blob": "^0.27.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.527"
   }
 }
