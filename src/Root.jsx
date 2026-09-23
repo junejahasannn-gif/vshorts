@@ -58,8 +58,8 @@ const ViralTapVideo = ({
   duration = 30,
 }) => {
   const totalFrames = Math.max(
-    1,
-    Math.round(duration * FPS)
+    FPS,
+    Math.round(Number(duration) * FPS)
   );
 
   const sceneDuration = Math.max(
@@ -88,17 +88,47 @@ export const RemotionRoot = () => {
     <Composition
       id="ViralTapVideo"
       component={ViralTapVideo}
-      durationInFrames={30 * FPS}
       fps={FPS}
       width={1080}
       height={1920}
+      durationInFrames={FPS * 30}
       defaultProps={{
         scenes: [
           {
             caption: "ViralTap",
           },
         ],
+        aspectRatio: "9:16",
+        width: 1080,
+        height: 1920,
         duration: 30,
+      }}
+      calculateMetadata={({ props }) => {
+        let width = 1080;
+        let height = 1920;
+
+        if (props?.aspectRatio === "16:9") {
+          width = 1920;
+          height = 1080;
+        } else if (props?.aspectRatio === "1:1") {
+          width = 1080;
+          height = 1080;
+        }
+
+        const durationSeconds =
+          Number(props?.duration) || 30;
+
+        const durationInFrames = Math.max(
+          FPS,
+          Math.round(durationSeconds * FPS)
+        );
+
+        return {
+          fps: FPS,
+          width,
+          height,
+          durationInFrames,
+        };
       }}
     />
   );
