@@ -208,6 +208,26 @@ export default async function handler(
 
   /*
    * --------------------------------------------------
+   * LANGUAGE
+   * --------------------------------------------------
+   */
+
+  const allowedLanguages = [
+    "Hindi",
+    "Hinglish",
+    "English",
+    "Gujarati",
+  ];
+
+  const language =
+    allowedLanguages.includes(
+      body.language
+    )
+      ? body.language
+      : "Hindi";
+
+  /*
+   * --------------------------------------------------
    * VALIDATION
    * --------------------------------------------------
    */
@@ -273,6 +293,8 @@ export default async function handler(
 
   const props = {
     scenes,
+
+    language,
 
     aspectRatio,
 
@@ -370,6 +392,8 @@ export default async function handler(
           "Render job queued.",
 
         duration,
+
+        language,
 
         aspectRatio,
 
@@ -525,6 +549,8 @@ export default async function handler(
         scenes.length,
 
       duration,
+
+      language,
 
       aspectRatio,
     });
