@@ -1,81 +1,213 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
 
-const execFileAsync = promisify(execFile);
+/* ==================================================
+   ENVIRONMENT
+================================================== */
 
-const JOB_ID = process.env.JOB_ID;
-const SOURCE_JOB_ID = process.env.SOURCE_JOB_ID;
-const SOURCE_VIDEO_URL = process.env.SOURCE_VIDEO_URL;
-const MUSIC_URL = process.env.MUSIC_URL;
-const MUSIC_STYLE =
-  process.env.MUSIC_STYLE || "cinematic";
-const VIDEO_DURATION =
-  Number(process.env.VIDEO_DURATION) || 30;
+const jobId =
+  process.env.JOB_ID;
 
-const WORKER_URL =
+const sourceVideoUrl =
+  process.env.SOURCE_VIDEO_URL;
+
+const musicUrl =
+  process.env.MUSIC_URL;
+
+const duration =
+  Number(process.env.VIDEO_DURATION);
+
+const musicStyle =
+  process.env.MUSIC_STYLE ||
+  "cinematic";
+
+const workerUrl =
   process.env.VIRALTAP_WORKER_URL ||
   "https://vshorts-app.vercel.app/api/render-worker";
 
-const WORK_DIR =
-  path.join(process.cwd(), ".viraltap-music");
+const githubOidcRequestUrl =
+  process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
 
-const SOURCE_VIDEO =
-  path.join(WORK_DIR, "source.mp4");
+const githubOidcRequestToken =
+  process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
 
-const MUSIC_FILE =
-  path.join(WORK_DIR, "music.mp3");
+const OIDC_AUDIENCE =
+  "https://vshorts-app.vercel.app";
 
-const OUTPUT_VIDEO =
-  path.join(WORK_DIR, "final.mp4");
+const MAX_DOWNLOAD_SIZE =
+  5 * 1024 * 1024 * 1024;
 
-function log(message) {
-  console.log(`[VIRALTAP MUSIC] ${message}`);
+const MUSIC_VOLUME =
+  0.16;
+
+
+/* ==================================================
+   VALIDATION
+================================================== */
+
+if (!jobId) {
+  throw new Error(
+    "JOB_ID is missing."
+  );
 }
 
-function required(value, name) {
-  if (!value || !String(value).trim()) {
-    throw new Error(
-      `${name} is missing.`
+if (
+  !sourceVideoUrl ||
+  !sourceVideoUrl.startsWith("https://")
+) {
+  throw new Error(
+    "SOURCE_VIDEO_URL must be a valid HTTPS URL."
+  );
+}
+
+if (
+  !musicUrl ||
+  !musicUrl.startsWith("https://")
+) {
+  throw new Error(
+    "MUSIC_URL must be a valid HTTPS URL."
+  );
+}
+
+if (
+  ![30, 60, 180].includes(
+    duration
+  )
+) {
+  throw new Error(
+    "VIDEO_DURATION must be 30, 60, or 180."
+  );
+}
+
+if (
+  !githubOidcRequestUrl ||
+  !githubOidcRequestToken
+) {
+  throw new Error(
+    "GitHub Actions OIDC is unavailable. The workflow must grant id-token: write."
+  );
+}
+
+
+/* ==================================================
+   TEMP DIRECTORY
+================================================== */
+
+const tempDir =
+  fs.mkdtempSync(
+    path.join(
+      os.tmpdir(),
+      "viraltap-music-"
+    )
+  );
+
+const sourcePath =
+  path.join(
+    tempDir,
+    "source.mp4"
+  );
+
+const musicPath =
+  path.join(
+    tempDir,
+    "music.mp3"
+  );
+
+const outputPath =
+  path.join(
+    tempDir,
+    "final.mp4"
+  );
+
+
+/* ==================================================
+   CLEANUP
+================================================== */
+
+function cleanup() {
+  try {
+    fs.rmSync(
+      tempDir,
+      {
+        recursive: true,
+        force: true,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Cleanup failed:",
+      error
     );
   }
-
-  return String(value).trim();
 }
 
-async function getOidcToken() {
-  const requestUrl =
-    required(
-      process.env.ACTIONS_ID_TOKEN_REQUEST_URL,
-      "ACTIONS_ID_TOKEN_REQUEST_URL"
-    );
+process.on(
+  "exit",
+  cleanup
+);
 
-  const requestToken =
-    required(
-      process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN,
-      "ACTIONS_ID_TOKEN_REQUEST_TOKEN"
-    );
+
+/* ==================================================
+   GITHUB OIDC TOKEN
+================================================== */
+
+let cachedOidcToken =
+  null;
+
+let cachedOidcTokenExpiresAt =
+  0;
+
+async function getGitHubOidcToken() {
+  const now =
+    Date.now();
+
+  if (
+    cachedOidcToken &&
+    now <
+      cachedOidcTokenExpiresAt -
+        60_000
+  ) {
+    return cachedOidcToken;
+  }
 
   const separator =
-    requestUrl.includes("?")
+    githubOidcRequestUrl.includes(
+      "?"
+    )
       ? "&"
       : "?";
 
   const response =
     await fetch(
-      `${requestUrl}${separator}audience=viraltap-render-worker`,
+      githubOidcRequestUrl +
+        separator +
+        "audience=" +
+        encodeURIComponent(
+          OIDC_AUDIENCE
+        ),
       {
         headers: {
           Authorization:
-            `bearer ${requestToken}`,
+            "bearer " +
+            githubOidcRequestToken,
         },
       }
     );
 
   if (!response.ok) {
+    const detail =
+      await response.text();
+
     throw new Error(
-      `GitHub OIDC token request failed: HTTP ${response.status}`
+      "Could not obtain GitHub OIDC token: HTTP " +
+        response.status +
+        " " +
+        detail.slice(
+          0,
+          500
+        )
     );
   }
 
@@ -84,109 +216,143 @@ async function getOidcToken() {
 
   if (!data?.value) {
     throw new Error(
-      "GitHub OIDC token was not returned."
+      "GitHub OIDC response did not contain a token."
     );
   }
 
-  return data.value;
+  cachedOidcToken =
+    data.value;
+
+  cachedOidcTokenExpiresAt =
+    now +
+    5 * 60 * 1000;
+
+  return cachedOidcToken;
 }
 
+
+/* ==================================================
+   WORKER REQUEST
+================================================== */
+
 async function workerRequest(
-  oidcToken,
-  action,
-  extra = {}
+  body
 ) {
+  const oidcToken =
+    await getGitHubOidcToken();
+
   const response =
     await fetch(
-      WORKER_URL,
+      workerUrl,
       {
         method: "POST",
 
         headers: {
+          Authorization:
+            "Bearer " +
+            oidcToken,
+
           "Content-Type":
             "application/json",
-
-          Authorization:
-            `Bearer ${oidcToken}`,
         },
 
         body: JSON.stringify({
-          action,
-          jobId: JOB_ID,
-          ...extra,
+          jobId,
+          ...body,
         }),
       }
     );
 
-  const raw =
+  const text =
     await response.text();
 
-  let data = {};
+  let data;
 
   try {
     data =
-      raw ? JSON.parse(raw) : {};
+      JSON.parse(text);
   } catch {
     throw new Error(
-      `Render worker returned invalid JSON: ${raw.slice(0, 500)}`
+      "Worker API returned invalid JSON: " +
+        text.slice(
+          0,
+          500
+        )
     );
   }
 
-  if (!response.ok) {
+  if (
+    !response.ok ||
+    !data?.success
+  ) {
     throw new Error(
       data?.error ||
-        `Render worker request failed with HTTP ${response.status}.`
+        "Worker API request failed."
     );
   }
 
   return data;
 }
 
-async function getStatusUrl(oidcToken) {
-  const data =
-    await workerRequest(
-      oidcToken,
-      "status-url"
-    );
 
-  if (!data?.uploadUrl) {
+/* ==================================================
+   STATUS UPLOAD URL
+================================================== */
+
+let cachedStatusUrl =
+  null;
+
+let cachedStatusUrlExpiresAt =
+  0;
+
+async function getStatusUploadUrl() {
+  const now =
+    Date.now();
+
+  if (
+    cachedStatusUrl &&
+    now <
+      cachedStatusUrlExpiresAt
+  ) {
+    return cachedStatusUrl;
+  }
+
+  const result =
+    await workerRequest({
+      action:
+        "status-url",
+    });
+
+  if (!result?.url) {
     throw new Error(
-      "Status upload URL was not returned."
+      "Worker did not return a status upload URL."
     );
   }
 
-  return data.uploadUrl;
+  cachedStatusUrl =
+    result.url;
+
+  cachedStatusUrlExpiresAt =
+    now +
+    8 * 60 * 1000;
+
+  return cachedStatusUrl;
 }
 
-async function getVideoUploadUrl(
-  oidcToken,
-  sizeBytes
-) {
-  const data =
-    await workerRequest(
-      oidcToken,
-      "video-url",
-      {
-        sizeBytes,
-      }
-    );
 
-  if (!data?.uploadUrl) {
-    throw new Error(
-      "Video upload URL was not returned."
-    );
-  }
-
-  return data;
-}
+/* ==================================================
+   STATUS UPDATE
+================================================== */
 
 async function updateStatus(
-  statusUrl,
   payload
 ) {
+  const url =
+    await getStatusUploadUrl();
+
   const response =
     await fetch(
-      statusUrl,
+      url,
       {
         method: "PUT",
 
@@ -196,13 +362,11 @@ async function updateStatus(
         },
 
         body: JSON.stringify({
-          jobId: JOB_ID,
+          jobId,
+
           updatedAt:
             new Date().toISOString(),
-          sourceJobId:
-            SOURCE_JOB_ID,
-          musicStyle:
-            MUSIC_STYLE,
+
           ...payload,
         }),
       }
@@ -213,101 +377,234 @@ async function updateStatus(
       await response.text();
 
     throw new Error(
-      `Status update failed: HTTP ${response.status} ${detail.slice(0, 500)}`
+      "Status upload failed with HTTP " +
+        response.status +
+        ": " +
+        detail.slice(
+          0,
+          500
+        )
     );
   }
 }
+
+
+/* ==================================================
+   DOWNLOAD FILE
+================================================== */
 
 async function downloadFile(
   url,
   destination,
   label
 ) {
-  log(`Downloading ${label}...`);
+  console.log(
+    `Downloading ${label}...`
+  );
 
   const response =
-    await fetch(url);
+    await fetch(
+      url
+    );
 
   if (!response.ok) {
     throw new Error(
-      `Could not download ${label}: HTTP ${response.status}`
+      `${label} download failed with HTTP ${response.status}.`
     );
   }
 
-  const arrayBuffer =
-    await response.arrayBuffer();
+  const contentLength =
+    Number(
+      response.headers.get(
+        "content-length"
+      )
+    );
 
-  const buffer =
-    Buffer.from(arrayBuffer);
-
-  if (!buffer.length) {
+  if (
+    Number.isFinite(
+      contentLength
+    ) &&
+    contentLength >
+      MAX_DOWNLOAD_SIZE
+  ) {
     throw new Error(
-      `${label} download was empty.`
+      `${label} is too large.`
     );
   }
 
-  fs.writeFileSync(
-    destination,
-    buffer
+  if (!response.body) {
+    throw new Error(
+      `${label} response has no body.`
+    );
+  }
+
+  const file =
+    fs.createWriteStream(
+      destination
+    );
+
+  let totalBytes = 0;
+
+  try {
+    for await (
+      const chunk of response.body
+    ) {
+      const buffer =
+        Buffer.from(chunk);
+
+      totalBytes +=
+        buffer.length;
+
+      if (
+        totalBytes >
+        MAX_DOWNLOAD_SIZE
+      ) {
+        throw new Error(
+          `${label} exceeded the maximum download size.`
+        );
+      }
+
+      file.write(
+        buffer
+      );
+    }
+  } finally {
+    file.end();
+
+    await new Promise(
+      (resolve) =>
+        file.once(
+          "close",
+          resolve
+        )
+    );
+  }
+
+  if (
+    totalBytes <= 0
+  ) {
+    throw new Error(
+      `${label} downloaded file is empty.`
+    );
+  }
+
+  console.log(
+    `${label} downloaded:`,
+    totalBytes,
+    "bytes"
   );
 
-  log(
-    `${label} downloaded: ${buffer.length} bytes`
-  );
+  return totalBytes;
 }
 
-async function runCommand(
+
+/* ==================================================
+   FFMPEG RUNNER
+================================================== */
+
+function runCommand(
   command,
   args,
   label
 ) {
-  log(label);
-
-  try {
-    const result =
-      await execFileAsync(
+  return new Promise(
+    (resolve, reject) => {
+      console.log(
+        `${label}:`,
         command,
-        args,
-        {
-          maxBuffer:
-            10 * 1024 * 1024,
+        args.join(" ")
+      );
+
+      const child =
+        spawn(
+          command,
+          args,
+          {
+            stdio: [
+              "ignore",
+              "pipe",
+              "pipe",
+            ],
+          }
+        );
+
+      let stderr = "";
+
+      child.stdout.on(
+        "data",
+        (chunk) => {
+          process.stdout.write(
+            chunk
+          );
         }
       );
 
-    if (result.stdout) {
-      console.log(
-        result.stdout
+      child.stderr.on(
+        "data",
+        (chunk) => {
+          const text =
+            chunk.toString();
+
+          stderr += text;
+
+          if (
+            stderr.length >
+            12000
+          ) {
+            stderr =
+              stderr.slice(
+                -12000
+              );
+          }
+
+          process.stderr.write(
+            chunk
+          );
+        }
+      );
+
+      child.on(
+        "error",
+        (error) => {
+          reject(
+            new Error(
+              `${label} failed to start: ${error.message}`
+            )
+          );
+        }
+      );
+
+      child.on(
+        "close",
+        (code) => {
+          if (
+            code === 0
+          ) {
+            resolve();
+            return;
+          }
+
+          reject(
+            new Error(
+              `${label} failed with exit code ${code}.\n${stderr.slice(
+                -5000
+              )}`
+            )
+          );
+        }
       );
     }
-
-    if (result.stderr) {
-      console.log(
-        result.stderr
-      );
-    }
-
-    return result;
-  } catch (error) {
-    console.error(
-      error?.stdout || ""
-    );
-
-    console.error(
-      error?.stderr || ""
-    );
-
-    throw new Error(
-      `${label} failed: ${
-        error?.message ||
-        "Unknown command error."
-      }`
-    );
-  }
+  );
 }
 
-async function hasAudioTrack() {
+
+/* ==================================================
+   DETECT SOURCE AUDIO
+================================================== */
+
+async function sourceHasAudio() {
   try {
-    await execFileAsync(
+    await runCommand(
       "ffprobe",
       [
         "-v",
@@ -318,12 +615,9 @@ async function hasAudioTrack() {
         "stream=index",
         "-of",
         "csv=p=0",
-        SOURCE_VIDEO,
+        sourcePath,
       ],
-      {
-        maxBuffer:
-          1024 * 1024,
-      }
+      "Checking source audio"
     );
 
     return true;
@@ -332,375 +626,419 @@ async function hasAudioTrack() {
   }
 }
 
-async function mixMusic() {
-  const sourceHasAudio =
-    await hasAudioTrack();
 
-  log(
-    `Source audio detected: ${sourceHasAudio}`
+/* ==================================================
+   MIX MUSIC
+================================================== */
+
+async function mixMusic({
+  hasOriginalAudio,
+}) {
+  console.log(
+    "Mixing selected music..."
   );
 
-  const duration =
-    String(VIDEO_DURATION);
-
-  if (sourceHasAudio) {
-    await runCommand(
-      "ffmpeg",
-      [
-        "-y",
-
-        "-i",
-        SOURCE_VIDEO,
-
-        "-stream_loop",
-        "-1",
-
-        "-i",
-        MUSIC_FILE,
-
-        "-filter_complex",
-
-        "[0:a:0]volume=1[a0];" +
-          "[1:a:0]volume=0.15[a1];" +
-          "[a0][a1]amix=" +
-          "inputs=2:" +
-          "duration=first:" +
-          "dropout_transition=2:" +
-          "normalize=0[aout]",
-
-        "-map",
-        "0:v:0",
-
-        "-map",
-        "[aout]",
-
-        "-c:v",
-        "copy",
-
-        "-c:a",
-        "aac",
-
-        "-b:a",
-        "192k",
-
-        "-t",
-        duration,
-
-        "-movflags",
-        "+faststart",
-
-        OUTPUT_VIDEO,
-      ],
-      "Mixing original audio with selected music..."
-    );
-  } else {
-    await runCommand(
-      "ffmpeg",
-      [
-        "-y",
-
-        "-i",
-        SOURCE_VIDEO,
-
-        "-stream_loop",
-        "-1",
-
-        "-i",
-        MUSIC_FILE,
-
-        "-filter_complex",
-        "[1:a:0]volume=0.15[aout]",
-
-        "-map",
-        "0:v:0",
-
-        "-map",
-        "[aout]",
-
-        "-c:v",
-        "copy",
-
-        "-c:a",
-        "aac",
-
-        "-b:a",
-        "192k",
-
-        "-t",
-        duration,
-
-        "-movflags",
-        "+faststart",
-
-        OUTPUT_VIDEO,
-      ],
-      "Adding selected music to video..."
-    );
-  }
-
-  if (!fs.existsSync(OUTPUT_VIDEO)) {
-    throw new Error(
-      "FFmpeg did not create the final MP4."
-    );
-  }
-
-  const stats =
-    fs.statSync(
-      OUTPUT_VIDEO
-    );
-
-  if (!stats.size) {
-    throw new Error(
-      "Final MP4 is empty."
-    );
-  }
-
-  log(
-    `Final MP4 created: ${stats.size} bytes`
-  );
-
-  return stats.size;
-}
-
-async function uploadVideo(
-  uploadUrl
-) {
-  log(
-    "Uploading final MP4 to Vercel Blob..."
-  );
-
-  const fileBuffer =
-    fs.readFileSync(
-      OUTPUT_VIDEO
-    );
-
-  const response =
-    await fetch(
-      uploadUrl,
-      {
-        method: "PUT",
-
-        headers: {
-          "Content-Type":
-            "video/mp4",
-
-          "Content-Length":
-            String(fileBuffer.length),
-        },
-
-        body: fileBuffer,
-      }
-    );
-
-  if (!response.ok) {
-    const detail =
-      await response.text();
-
-    throw new Error(
-      `Final MP4 upload failed: HTTP ${response.status} ${detail.slice(0, 500)}`
-    );
-  }
-
-  log(
-    "Final MP4 uploaded successfully."
-  );
-}
-
-async function cleanup() {
-  try {
-    fs.rmSync(
-      WORK_DIR,
-      {
-        recursive: true,
-        force: true,
-      }
-    );
-  } catch {
-    // Ignore cleanup errors.
-  }
-}
-
-async function main() {
-  required(
-    JOB_ID,
-    "JOB_ID"
-  );
-
-  required(
-    SOURCE_VIDEO_URL,
-    "SOURCE_VIDEO_URL"
-  );
-
-  required(
-    MUSIC_URL,
-    "MUSIC_URL"
-  );
+  /*
+   * Music is looped so that 30/60/180 second
+   * videos always have enough background music.
+   *
+   * Original video remains untouched visually.
+   *
+   * Original narration/audio is preserved and
+   * music is kept at a low background level.
+   */
 
   if (
-    ![30, 60, 180].includes(
-      VIDEO_DURATION
-    )
+    hasOriginalAudio
   ) {
-    throw new Error(
-      "VIDEO_DURATION must be 30, 60, or 180."
+    const filterComplex =
+      [
+        `[0:a]aresample=48000,volume=1.0[voice]`,
+        `[1:a]aresample=48000,volume=${MUSIC_VOLUME}[music]`,
+        `[voice][music]amix=inputs=2:duration=first:dropout_transition=2:normalize=0[aout]`,
+      ].join(";");
+
+    await runCommand(
+      "ffmpeg",
+      [
+        "-y",
+
+        "-i",
+        sourcePath,
+
+        "-stream_loop",
+        "-1",
+
+        "-i",
+        musicPath,
+
+        "-filter_complex",
+        filterComplex,
+
+        "-map",
+        "0:v:0",
+
+        "-map",
+        "[aout]",
+
+        "-c:v",
+        "copy",
+
+        "-c:a",
+        "aac",
+
+        "-b:a",
+        "192k",
+
+        "-ar",
+        "48000",
+
+        "-t",
+        String(duration),
+
+        "-movflags",
+        "+faststart",
+
+        outputPath,
+      ],
+      "FFmpeg voice + music mix"
     );
+
+    return;
   }
 
-  fs.mkdirSync(
-    WORK_DIR,
-    {
-      recursive: true,
-    }
+  /*
+   * If the original video has no audio,
+   * music becomes the video's audio track.
+   */
+
+  await runCommand(
+    "ffmpeg",
+    [
+      "-y",
+
+      "-i",
+      sourcePath,
+
+      "-stream_loop",
+      "-1",
+
+      "-i",
+      musicPath,
+
+      "-map",
+      "0:v:0",
+
+      "-map",
+      "1:a:0",
+
+      "-c:v",
+      "copy",
+
+      "-c:a",
+      "aac",
+
+      "-b:a",
+      "192k",
+
+      "-ar",
+      "48000",
+
+      "-t",
+      String(duration),
+
+      "-movflags",
+      "+faststart",
+
+      outputPath,
+    ],
+    "FFmpeg music-only mix"
   );
+}
 
-  let statusUrl = "";
 
+/* ==================================================
+   MAIN
+================================================== */
+
+async function main() {
   try {
-    log(
-      `Starting music remix job ${JOB_ID}`
+    await updateStatus({
+      status:
+        "mixing",
+
+      progress:
+        5,
+
+      message:
+        "Preparing selected music...",
+      
+      musicStyle,
+    });
+
+    await downloadFile(
+      sourceVideoUrl,
+      sourcePath,
+      "Original video"
     );
 
-    const oidcToken =
-      await getOidcToken();
+    await updateStatus({
+      status:
+        "mixing",
 
-    statusUrl =
-      await getStatusUrl(
-        oidcToken
+      progress:
+        20,
+
+      message:
+        "Original video downloaded.",
+      
+      musicStyle,
+    });
+
+    await downloadFile(
+      musicUrl,
+      musicPath,
+      "Selected music"
+    );
+
+    await updateStatus({
+      status:
+        "mixing",
+
+      progress:
+        40,
+
+      message:
+        "Music downloaded. Preparing audio mix.",
+
+      musicStyle,
+    });
+
+    const hasOriginalAudio =
+      await sourceHasAudio();
+
+    console.log(
+      "Original audio:",
+      hasOriginalAudio
+        ? "YES"
+        : "NO"
+    );
+
+    await updateStatus({
+      status:
+        "mixing",
+
+      progress:
+        50,
+
+      message:
+        hasOriginalAudio
+          ? "Mixing background music with voiceover."
+          : "Adding background music to video.",
+
+      musicStyle,
+    });
+
+    await mixMusic({
+      hasOriginalAudio,
+    });
+
+    if (
+      !fs.existsSync(
+        outputPath
+      )
+    ) {
+      throw new Error(
+        "FFmpeg did not create the final MP4."
+      );
+    }
+
+    const outputStats =
+      fs.statSync(
+        outputPath
       );
 
-    await updateStatus(
-      statusUrl,
-      {
-        status: "processing",
-        progress: 5,
-        message:
-          "Preparing music remix...",
-      }
-    );
+    if (
+      outputStats.size <= 0
+    ) {
+      throw new Error(
+        "Final MP4 is empty."
+      );
+    }
 
-    await downloadFile(
-      SOURCE_VIDEO_URL,
-      SOURCE_VIDEO,
-      "source video"
-    );
+    await updateStatus({
+      status:
+        "mixing",
 
-    await updateStatus(
-      statusUrl,
-      {
-        status: "processing",
-        progress: 20,
-        message:
-          "Source video downloaded.",
-      }
-    );
+      progress:
+        75,
 
-    await downloadFile(
-      MUSIC_URL,
-      MUSIC_FILE,
-      "selected music"
-    );
+      message:
+        "Music mix completed. Uploading final video.",
 
-    await updateStatus(
-      statusUrl,
-      {
-        status: "processing",
-        progress: 35,
-        message:
-          "Selected music downloaded.",
-      }
-    );
-
-    const outputSize =
-      await mixMusic();
-
-    await updateStatus(
-      statusUrl,
-      {
-        status: "processing",
-        progress: 75,
-        message:
-          "Music mixed with video.",
-      }
-    );
+      musicStyle,
+    });
 
     const videoUpload =
-      await getVideoUploadUrl(
-        oidcToken,
-        outputSize
+      await workerRequest({
+        action:
+          "video-url",
+
+        sizeBytes:
+          outputStats.size,
+      });
+
+    if (
+      !videoUpload?.url
+    ) {
+      throw new Error(
+        "Worker did not return final video upload URL."
+      );
+    }
+
+    console.log(
+      "Uploading final mixed MP4..."
+    );
+
+    const stream =
+      fs.createReadStream(
+        outputPath
       );
 
-    await uploadVideo(
-      videoUpload.uploadUrl
-    );
+    try {
+      const response =
+        await fetch(
+          videoUpload.url,
+          {
+            method: "PUT",
 
-    await updateStatus(
-      statusUrl,
-      {
-        status: "processing",
-        progress: 95,
-        message:
-          "Final video uploaded.",
+            headers: {
+              "Content-Type":
+                "video/mp4",
+
+              "Content-Length":
+                String(
+                  outputStats.size
+                ),
+            },
+
+            body: stream,
+
+            duplex: "half",
+          }
+        );
+
+      if (!response.ok) {
+        const detail =
+          await response.text();
+
+        throw new Error(
+          "Final video upload failed with HTTP " +
+            response.status +
+            ": " +
+            detail.slice(
+              0,
+              500
+            )
+        );
       }
-    );
+    } finally {
+      stream.destroy();
+    }
 
-    const finalPathname =
+    const pathname =
       videoUpload.pathname ||
-      `videos/${JOB_ID}.mp4`;
+      `videos/${jobId}.mp4`;
 
-    await updateStatus(
-      statusUrl,
-      {
-        status: "completed",
-        progress: 100,
-        message:
-          "Music applied successfully.",
-        videoUrl:
-          finalPathname,
-        pathname:
-          finalPathname,
-        sourceJobId:
-          SOURCE_JOB_ID,
-        musicStyle:
-          MUSIC_STYLE,
-        duration:
-          VIDEO_DURATION,
-      }
+    await updateStatus({
+      status:
+        "completed",
+
+      progress:
+        100,
+
+      message:
+        "Music applied successfully.",
+
+      musicStyle,
+
+      videoUrl:
+        pathname,
+
+      videoPath:
+        pathname,
+
+      sourceVideoUrl,
+
+      sizeBytes:
+        outputStats.size,
+    });
+
+    console.log(
+      "========================================"
     );
 
-    log(
-      "Music remix completed successfully."
+    console.log(
+      "VIRALTAP MUSIC MIX COMPLETE"
+    );
+
+    console.log(
+      "JOB:",
+      jobId
+    );
+
+    console.log(
+      "MUSIC:",
+      musicStyle
+    );
+
+    console.log(
+      "VIDEO:",
+      pathname
+    );
+
+    console.log(
+      "SIZE:",
+      outputStats.size,
+      "bytes"
+    );
+
+    console.log(
+      "========================================"
     );
   } catch (error) {
     console.error(
-      "VIRALTAP MUSIC REMIX ERROR:",
+      "VIRALTAP MUSIC MIX ERROR:",
       error
     );
 
-    if (statusUrl) {
-      try {
-        await updateStatus(
-          statusUrl,
-          {
-            status: "failed",
-            progress: 0,
-            message:
-              "Music remix failed.",
-            error:
-              error?.message ||
-              "Unknown music remix error.",
-          }
-        );
-      } catch (statusError) {
-        console.error(
-          "Could not update failed status:",
-          statusError
-        );
-      }
+    try {
+      await updateStatus({
+        status:
+          "failed",
+
+        progress:
+          0,
+
+        message:
+          "Music application failed.",
+
+        error:
+          error?.message ||
+          "Music mix failed.",
+
+        musicStyle,
+      });
+    } catch (statusError) {
+      console.error(
+        "Could not write failed status:",
+        statusError
+      );
     }
 
-    process.exitCode = 1;
+    throw error;
   } finally {
-    await cleanup();
+    cleanup();
   }
 }
 
