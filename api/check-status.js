@@ -33,6 +33,27 @@ async function makeVideoReadUrl(pathname) {
   return presignedUrl;
 }
 
+function isMissingBlobError(error) {
+  const message =
+    String(error?.message || "").toLowerCase();
+
+  const code =
+    String(
+      error?.code ||
+        error?.statusCode ||
+        ""
+    ).toLowerCase();
+
+  return (
+    code === "not_found" ||
+    code === "404" ||
+    message.includes("not found") ||
+    message.includes("does not exist") ||
+    message.includes("blob not found") ||
+    message.includes("404")
+  );
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({
@@ -42,8 +63,10 @@ export default async function handler(req, res) {
   }
 
   /*
-   * Never allow the browser or an intermediate
-   * cache to reuse an old render status.
+   * Prevent browser/CDN/proxy caching.
+   *
+   * The frontend polls this endpoint repeatedly,
+   * so every request must read the latest render status.
    */
   res.setHeader(
     "Cache-Control",
@@ -75,43 +98,65 @@ export default async function handler(req, res) {
 
   try {
     /*
-     * IMPORTANT:
+     * Read the exact private status Blob.
      *
-     * Do NOT use list() here.
+     * Do not use list().
      *
-     * list() can return an older/stale object
-     * from the Blob listing layer.
-     *
-     * We already know the exact pathname,
-     * so read that exact private blob directly.
+     * The exact pathname is already known,
+     * so directly reading it is more reliable
+     * for this polling endpoint.
      */
-    const stored = await get(
-      statusPath,
-      {
-        access: "private",
-        useCache: false,
+    let stored;
+
+    try {
+      stored = await get(
+        statusPath,
+        {
+          access: "private",
+          useCache: false,
+        }
+      );
+    } catch (error) {
+      /*
+       * The status file may not exist yet.
+       *
+       * This is NORMAL immediately after the
+       * render job is created.
+       *
+       * Do not return HTTP 500 for this situation.
+       */
+      if (isMissingBlobError(error)) {
+        return res.status(200).json({
+          success: true,
+          status: "queued",
+          jobId,
+          progress: 0,
+          message:
+            "Waiting for render worker...",
+        });
       }
-    );
+
+      throw error;
+    }
 
     /*
-     * Status file does not exist yet.
-     *
-     * This is normal while the render job is
-     * waiting to be processed.
+     * No readable stream means there is no
+     * usable status data yet.
      */
     if (!stored?.stream) {
       return res.status(200).json({
         success: true,
         status: "queued",
         jobId,
+        progress: 0,
         message:
           "Waiting for render worker...",
       });
     }
 
     /*
-     * Read the JSON status written by the
-     * GitHub render worker.
+     * Read the status JSON written by the
+     * render worker.
      */
     const text =
       await new Response(
@@ -123,6 +168,7 @@ export default async function handler(req, res) {
         success: true,
         status: "queued",
         jobId,
+        progress: 0,
         message:
           "Render status is empty. Waiting for worker...",
       });
@@ -140,15 +186,17 @@ export default async function handler(req, res) {
 
       return res.status(500).json({
         success: false,
+        jobId,
         error:
           "Render status file contains invalid JSON.",
       });
     }
 
     /*
-     * Safety:
-     * Make sure the status belongs to the
-     * job requested by the frontend.
+     * Safety check:
+     *
+     * The status object must belong to the
+     * same job requested by the frontend.
      */
     if (
       data?.jobId &&
@@ -164,22 +212,40 @@ export default async function handler(req, res) {
 
       return res.status(500).json({
         success: false,
+        jobId,
         error:
           "Render status belongs to a different job.",
       });
     }
 
     /*
+     * Normalize progress.
+     *
+     * The render worker sends real progress
+     * values while Remotion is rendering.
+     */
+    let progress = Number(data?.progress);
+
+    if (!Number.isFinite(progress)) {
+      progress = 0;
+    }
+
+    progress = Math.max(
+      0,
+      Math.min(100, Math.round(progress))
+    );
+
+    /*
      * Completed render:
      *
-     * Worker stores the private Blob pathname,
-     * for example:
+     * The worker stores a PRIVATE Blob pathname:
      *
      * videos/job_xxx.mp4
      *
-     * The browser cannot directly access a
-     * private Blob pathname, so create a temporary
-     * signed GET URL for the frontend.
+     * The browser cannot use that pathname
+     * directly.
+     *
+     * Generate a temporary signed GET URL.
      */
     if (
       data.status === "completed" &&
@@ -196,6 +262,8 @@ export default async function handler(req, res) {
           await makeVideoReadUrl(
             pathname
           );
+
+        progress = 100;
       } else {
         console.error(
           "VIRALTAP INVALID VIDEO PATH:",
@@ -204,6 +272,7 @@ export default async function handler(req, res) {
 
         return res.status(500).json({
           success: false,
+          jobId,
           error:
             "Render completed but video path is invalid.",
         });
@@ -211,20 +280,23 @@ export default async function handler(req, res) {
     }
 
     /*
-     * If the worker reports failure,
-     * pass the failure information to the frontend.
+     * Failed render:
+     *
+     * Pass the worker's actual error to
+     * the frontend.
      */
     if (data.status === "failed") {
       return res.status(200).json({
         ...data,
         jobId,
+        progress,
       });
     }
 
     /*
-     * Return the current render status.
+     * Return the latest render state.
      *
-     * Possible statuses:
+     * Possible states:
      *
      * queued
      * rendering
@@ -235,6 +307,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ...data,
       jobId,
+      progress,
     });
   } catch (error) {
     console.error(
@@ -242,11 +315,6 @@ export default async function handler(req, res) {
       error
     );
 
-    /*
-     * If the exact status object is temporarily
-     * unavailable, do not manufacture a completed
-     * or failed result.
-     */
     return res.status(500).json({
       success: false,
       jobId,
