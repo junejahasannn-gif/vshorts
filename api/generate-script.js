@@ -28,8 +28,14 @@ function getSceneCount(duration) {
  *
  * IMPORTANT:
  * Do NOT use additionalProperties here.
- * Gemini REST responseSchema rejects it
- * in this configuration.
+ *
+ * Every scene now contains:
+ * visualPrompt
+ * narration
+ * dialogue
+ * caption
+ * lines[]
+ * duration
  */
 function buildResponseSchema(sceneCount) {
   return {
@@ -70,6 +76,32 @@ function buildResponseSchema(sceneCount) {
               type: "string",
             },
 
+            lines: {
+              type: "array",
+
+              minItems: 2,
+              maxItems: 5,
+
+              items: {
+                type: "object",
+
+                properties: {
+                  text: {
+                    type: "string",
+                  },
+
+                  type: {
+                    type: "string",
+                  },
+                },
+
+                required: [
+                  "text",
+                  "type",
+                ],
+              },
+            },
+
             duration: {
               type: "integer",
               minimum: 1,
@@ -81,6 +113,7 @@ function buildResponseSchema(sceneCount) {
             "narration",
             "dialogue",
             "caption",
+            "lines",
             "duration",
           ],
         },
@@ -93,6 +126,127 @@ function buildResponseSchema(sceneCount) {
       "scenes",
     ],
   };
+}
+
+function normalizeLines(
+  scene,
+  index
+) {
+  const rawLines =
+    Array.isArray(scene?.lines)
+      ? scene.lines
+      : [];
+
+  const lines = rawLines
+    .map((line) => {
+      if (
+        typeof line === "string"
+      ) {
+        return {
+          text: line.trim(),
+          type: "narration",
+        };
+      }
+
+      return {
+        text: String(
+          line?.text || ""
+        ).trim(),
+
+        type: String(
+          line?.type ||
+            "narration"
+        ).trim(),
+      };
+    })
+    .filter(
+      (line) => line.text
+    );
+
+  /*
+   * Safety fallback.
+   *
+   * Normally Gemini will always return
+   * 2–5 lines because of the schema.
+   *
+   * This fallback prevents an old/partial
+   * response from breaking the complete
+   * render pipeline.
+   */
+  if (lines.length >= 2) {
+    return lines.slice(0, 5);
+  }
+
+  const fallbackSource =
+    String(
+      scene?.narration ||
+        scene?.dialogue ||
+        scene?.caption ||
+        ""
+    ).trim();
+
+  if (!fallbackSource) {
+    throw new Error(
+      `Scene ${index + 1} does not contain usable lines.`
+    );
+  }
+
+  /*
+   * Split longer narration into short
+   * readable lines.
+   */
+  const words =
+    fallbackSource.split(/\s+/);
+
+  const fallbackLines = [];
+
+  if (words.length <= 4) {
+    fallbackLines.push({
+      text: fallbackSource,
+      type: "narration",
+    });
+  } else {
+    const chunkSize = Math.ceil(
+      words.length / 3
+    );
+
+    for (
+      let i = 0;
+      i < words.length &&
+      fallbackLines.length < 5;
+      i += chunkSize
+    ) {
+      const text =
+        words
+          .slice(
+            i,
+            i + chunkSize
+          )
+          .join(" ")
+          .trim();
+
+      if (text) {
+        fallbackLines.push({
+          text,
+          type: "narration",
+        });
+      }
+    }
+  }
+
+  while (
+    fallbackLines.length < 2
+  ) {
+    fallbackLines.push({
+      text: fallbackSource,
+      type: "narration",
+    });
+  }
+
+  return fallbackLines.slice(
+    0,
+    5
+  );
 }
 
 function normalizeScenes(
@@ -148,22 +302,42 @@ function normalizeScenes(
         );
       }
 
+      const lines =
+        normalizeLines(
+          scene,
+          index
+        );
+
       return {
         visualPrompt,
         narration,
         dialogue,
         caption,
+        lines,
         duration: 1,
       };
     }
   );
 
-  const baseDuration = Math.floor(
-    totalDuration / requiredCount
-  );
+  /*
+   * Server remains the final authority
+   * for total scene duration.
+   *
+   * This guarantees:
+   *
+   * 30 sec -> exactly 30 sec
+   * 60 sec -> exactly 60 sec
+   * 180 sec -> exactly 180 sec
+   */
+  const baseDuration =
+    Math.floor(
+      totalDuration /
+        requiredCount
+    );
 
   const remainder =
-    totalDuration % requiredCount;
+    totalDuration %
+    requiredCount;
 
   normalized.forEach(
     (scene, index) => {
@@ -180,7 +354,10 @@ function normalizeScenes(
       0
     );
 
-  if (currentTotal !== totalDuration) {
+  if (
+    currentTotal !==
+    totalDuration
+  ) {
     throw new Error(
       `Scene duration mismatch. Expected ${totalDuration}s but received ${currentTotal}s.`
     );
@@ -200,7 +377,9 @@ function getGeminiErrorMessage(
   );
 }
 
-function isRetryableStatus(status) {
+function isRetryableStatus(
+  status
+) {
   return (
     status === 408 ||
     status === 429 ||
@@ -231,36 +410,39 @@ async function callGeminiModel(
     const controller =
       new AbortController();
 
-    const timeout = setTimeout(
-      () => controller.abort(),
-      30000
-    );
+    const timeout =
+      setTimeout(
+        () =>
+          controller.abort(),
+        30000
+      );
 
     try {
       console.log(
         `Gemini ${model} attempt ${attempt}/${maxAttempts}`
       );
 
-      const response = await fetch(
-        endpoint,
-        {
-          method: "POST",
+      const response =
+        await fetch(
+          endpoint,
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json",
+            headers: {
+              "Content-Type":
+                "application/json",
 
-            "x-goog-api-key":
-              apiKey,
-          },
+              "x-goog-api-key":
+                apiKey,
+            },
 
-          body: JSON.stringify(
-            requestBody
-          ),
+            body: JSON.stringify(
+              requestBody
+            ),
 
-          signal: controller.signal,
-        }
-      );
+            signal: controller.signal,
+          }
+        );
 
       clearTimeout(timeout);
 
@@ -271,7 +453,9 @@ async function callGeminiModel(
 
       try {
         data =
-          JSON.parse(responseText);
+          JSON.parse(
+            responseText
+          );
       } catch {
         data = {
           error: {
@@ -314,17 +498,11 @@ async function callGeminiModel(
       };
 
       if (
-        isRetryableStatus(status) &&
+        isRetryableStatus(
+          status
+        ) &&
         attempt < maxAttempts
       ) {
-        /*
-         * Exponential backoff:
-         *
-         * attempt 1 -> 2s + jitter
-         * attempt 2 -> 4s + jitter
-         *
-         * This is especially important for 503.
-         */
         const baseDelay =
           Math.min(
             2000 *
@@ -347,7 +525,9 @@ async function callGeminiModel(
           `Retrying ${model} in ${waitTime}ms`
         );
 
-        await sleep(waitTime);
+        await sleep(
+          waitTime
+        );
 
         continue;
       }
@@ -371,14 +551,16 @@ async function callGeminiModel(
       lastError = {
         status: 0,
 
-        statusText: isTimeout
-          ? "Timeout"
-          : "Network error",
+        statusText:
+          isTimeout
+            ? "Timeout"
+            : "Network error",
 
-        message: isTimeout
-          ? "Gemini request timed out."
-          : error?.message ||
-            "Unknown network error.",
+        message:
+          isTimeout
+            ? "Gemini request timed out."
+            : error?.message ||
+              "Unknown network error.",
       };
 
       console.error(
@@ -387,7 +569,8 @@ async function callGeminiModel(
       );
 
       if (
-        attempt < maxAttempts
+        attempt <
+        maxAttempts
       ) {
         const baseDelay =
           Math.min(
@@ -420,7 +603,8 @@ async function callGeminiModel(
 
     model,
 
-    attempts: maxAttempts,
+    attempts:
+      maxAttempts,
   };
 }
 
@@ -446,23 +630,24 @@ async function callGemini(
 
     lastResult = result;
 
-    /*
-     * If the model returned a non-retryable
-     * client error such as 400/403, don't
-     * blindly switch models.
-     */
     const status =
       result.error?.status;
 
+    /*
+     * Do not blindly switch models
+     * for client/configuration errors.
+     */
     if (
       status &&
-      !isRetryableStatus(status)
+      !isRetryableStatus(
+        status
+      )
     ) {
       return result;
     }
 
     /*
-     * 503/429/5xx:
+     * 503 / 429 / 5xx:
      * try the fallback model.
      */
     console.log(
@@ -506,12 +691,13 @@ export default async function handler(
     const body =
       req.body || {};
 
-    const story = String(
-      body.story ||
-        body.idea ||
-        body.joke ||
-        ""
-    ).trim();
+    const story =
+      String(
+        body.story ||
+          body.idea ||
+          body.joke ||
+          ""
+      ).trim();
 
     if (!story) {
       return res.status(400).json({
@@ -535,7 +721,9 @@ export default async function handler(
     }
 
     const duration =
-      Number(body.duration) || 30;
+      Number(
+        body.duration
+      ) || 30;
 
     if (
       !ALLOWED_DURATIONS.has(
@@ -551,17 +739,21 @@ export default async function handler(
     }
 
     const sceneCount =
-      getSceneCount(duration);
+      getSceneCount(
+        duration
+      );
 
-    const videoType = String(
-      body.videoType ||
-        "Custom"
-    ).trim();
+    const videoType =
+      String(
+        body.videoType ||
+          "Custom"
+      ).trim();
 
-    const language = String(
-      body.language ||
-        "Hindi"
-    ).trim();
+    const language =
+      String(
+        body.language ||
+          "Hindi"
+      ).trim();
 
     const aspectRatio =
       String(
@@ -569,19 +761,23 @@ export default async function handler(
           "9:16"
       ).trim();
 
-    const voice = String(
-      body.voice ||
-        "Neutral"
-    ).trim();
+    const voice =
+      String(
+        body.voice ||
+          "Neutral"
+      ).trim();
 
-    const music = String(
-      body.music ||
-        "Background Music"
-    ).trim();
+    const music =
+      String(
+        body.music ||
+          "Background Music"
+      ).trim();
 
-    const branding = String(
-      body.branding || ""
-    ).trim();
+    const branding =
+      String(
+        body.branding ||
+          ""
+      ).trim();
 
     const systemInstruction = `
 You are the lead AI director and professional short-form video scriptwriter for ViralTap Studio.
@@ -608,7 +804,54 @@ Rules:
   narration
   dialogue
   caption
+  lines
   duration
+
+IMPORTANT LINE-BY-LINE RULE:
+
+Every scene must contain 2 to 5 short lines.
+
+The lines are the individual pieces of text that will appear on screen one after another.
+
+Each line must be short enough to read comfortably.
+
+Do NOT put the entire scene narration into one giant line.
+
+Break the scene into natural beats.
+
+Example:
+
+Line 1:
+"Raat ke 2 baje..."
+
+Line 2:
+"Usse ek ajeeb awaaz sunai di."
+
+Line 3:
+"Darwaza khud-ba-khud khul gaya."
+
+Line 4:
+"Ab andar kaun tha?"
+
+Each line must contain:
+text
+type
+
+The type should normally be:
+narration
+dialogue
+caption
+
+Use narration for spoken narration.
+Use dialogue for character speech.
+Use caption for important on-screen text.
+
+Keep line order meaningful.
+
+Short lines should feel fast.
+Longer lines can naturally remain on screen longer.
+
+Do not create empty lines.
 `;
 
     const prompt = `
@@ -629,16 +872,37 @@ Generate exactly ${sceneCount} scenes.
 
 The total requested video duration is exactly ${duration} seconds.
 
-The server will assign the final scene durations.
+For every scene:
 
-Focus on:
-1. Strong visual storytelling.
-2. Natural narration.
-3. Clear scene progression.
-4. Engaging opening.
-5. Satisfying ending.
-6. Useful captions.
-7. Detailed visual prompts.
+1. Create a detailed visualPrompt.
+2. Create natural narration.
+3. Add dialogue only when useful.
+4. Create a short caption.
+5. Create 2–5 short lines.
+6. Each line must have:
+   - text
+   - type
+7. Keep lines short and readable.
+8. Break long narration into multiple natural lines.
+9. Preserve the story flow from one scene to the next.
+10. Make the opening immediately engaging.
+11. Build tension/emotion/action naturally.
+12. Give the story a satisfying ending.
+
+LINE TIMING INTENT:
+
+The final video renderer will show these lines one after another.
+
+Therefore:
+
+- Very short lines should be suitable for quick display.
+- Medium lines should have normal reading time.
+- Longer lines should stay visible longer.
+- Dramatic or suspense lines may be slightly slower.
+- Do not make every line the same length.
+- Do not combine several sentences into one unnecessarily long line.
+
+The server will assign the final scene durations.
 
 Return only valid JSON matching the requested schema.
 `;
@@ -674,7 +938,8 @@ Return only valid JSON matching the requested schema.
             sceneCount
           ),
 
-        maxOutputTokens: 8192,
+        maxOutputTokens:
+          8192,
       },
     };
 
@@ -699,16 +964,20 @@ Return only valid JSON matching the requested schema.
           null,
 
         geminiHttpStatus:
-          error?.status || null,
+          error?.status ||
+          null,
 
         geminiStatusText:
-          error?.statusText || null,
+          error?.statusText ||
+          null,
 
         geminiError:
-          error?.message || null,
+          error?.message ||
+          null,
 
         attempts:
-          geminiResult.attempts || 3,
+          geminiResult.attempts ||
+          3,
       });
     }
 
