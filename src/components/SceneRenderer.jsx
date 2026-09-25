@@ -46,10 +46,10 @@ export default function SceneRenderer({
     }
   );
 
-  const scale = interpolate(
+  const imageScale = interpolate(
     frame,
-    [0, Math.min(30, safeSceneFrames)],
-    [1.04, 1],
+    [0, safeSceneFrames],
+    [1.06, 1],
     {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
@@ -61,32 +61,65 @@ export default function SceneRenderer({
     frame
   );
 
+  const imageUrl =
+    scene?.visualUrl ||
+    scene?.visualAsset?.url ||
+    "";
+
   return (
     <AbsoluteFill
       style={{
-        background:
-          "linear-gradient(135deg, #050505 0%, #171717 45%, #050505 100%)",
+        background: "#050505",
         color: "#fff",
         fontFamily:
           "Arial, Helvetica, sans-serif",
         overflow: "hidden",
       }}
     >
-      {/* Cinematic background */}
+      {/* AI-generated scene image */}
+      {imageUrl ? (
+        <AbsoluteFill
+          style={{
+            overflow: "hidden",
+            opacity,
+          }}
+        >
+          <img
+            src={imageUrl}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              transform: `scale(${imageScale})`,
+              transformOrigin: "center center",
+            }}
+          />
+        </AbsoluteFill>
+      ) : (
+        /* Safe fallback when no AI image exists */
+        <AbsoluteFill
+          style={{
+            background:
+              "linear-gradient(135deg, #050505 0%, #171717 45%, #050505 100%)",
+          }}
+        />
+      )}
+
+      {/* Cinematic dark overlay */}
       <AbsoluteFill
         style={{
           background:
-            "radial-gradient(circle at 50% 25%, rgba(255,255,255,.12), transparent 35%)",
-          transform: `scale(${scale})`,
-          opacity,
+            "linear-gradient(to bottom, rgba(0,0,0,.18), rgba(0,0,0,.82))",
         }}
       />
 
-      {/* Dark cinematic overlay */}
+      {/* Extra center cinematic glow */}
       <AbsoluteFill
         style={{
           background:
-            "linear-gradient(to bottom, rgba(0,0,0,.12), rgba(0,0,0,.88))",
+            "radial-gradient(circle at 50% 35%, rgba(255,255,255,.08), transparent 42%)",
+          opacity,
         }}
       />
 
@@ -109,6 +142,8 @@ export default function SceneRenderer({
             fontSize: 26,
             fontWeight: 900,
             letterSpacing: 1,
+            textShadow:
+              "0 3px 12px rgba(0,0,0,.8)",
           }}
         >
           ViralTap
@@ -117,8 +152,11 @@ export default function SceneRenderer({
         <div
           style={{
             fontSize: 18,
-            color: "rgba(255,255,255,.55)",
+            color:
+              "rgba(255,255,255,.72)",
             fontWeight: 700,
+            textShadow:
+              "0 3px 12px rgba(0,0,0,.8)",
           }}
         >
           {sceneIndex + 1}/{totalScenes}
@@ -137,6 +175,9 @@ export default function SceneRenderer({
             fontSize: 48,
             fontWeight: 800,
             opacity,
+            zIndex: 25,
+            textShadow:
+              "0 4px 20px rgba(0,0,0,.9)",
           }}
         >
           {scene.caption}
