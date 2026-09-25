@@ -29,53 +29,41 @@ permissions:
   id-token: write
 
 jobs:
-
   render:
-
     runs-on: ubuntu-latest
 
     timeout-minutes: 60
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
-
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-
-      - name: Cache npm
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: viraltap-npm-node20-${{ hashFiles('package.json') }}
-          restore-keys: |
-            viraltap-npm-node20-
-
+          cache: npm
 
       - name: Cache Remotion browser
         uses: actions/cache@v4
         with:
           path: node_modules/.remotion
-          key: viraltap-remotion-browser-${{ hashFiles('package.json') }}
+          key: viraltap-remotion-browser-${{ hashFiles('package-lock.json', 'package.json') }}
           restore-keys: |
             viraltap-remotion-browser-
-
 
       - name: Install FFmpeg
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends ffmpeg
 
-
       - name: Install dependencies
         run: |
-          npm install --no-audit --no-fund
-
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
 
       - name: Render video
         env:
