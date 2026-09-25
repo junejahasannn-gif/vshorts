@@ -10,7 +10,7 @@ const GEMINI_MODEL =
   "gemini-3.1-flash-image";
 
 const GEMINI_ENDPOINT =
-  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent`;
 
 function clean(value) {
   if (
@@ -161,6 +161,7 @@ async function generateImage({
         headers: {
           "Content-Type":
             "application/json",
+
           "x-goog-api-key":
             apiKey,
         },
@@ -169,6 +170,7 @@ async function generateImage({
           contents: [
             {
               role: "user",
+
               parts: [
                 {
                   text: prompt,
@@ -182,9 +184,11 @@ async function generateImage({
               "IMAGE",
             ],
 
-            imageConfig: {
-              aspectRatio,
-              imageSize: "1K",
+            responseFormat: {
+              image: {
+                aspectRatio,
+                imageSize: "1K",
+              },
             },
           },
         }),
@@ -292,8 +296,10 @@ async function uploadImage({
 
   return {
     pathname,
+
     sizeBytes:
       buffer.length,
+
     mimeType:
       image.mimeType,
   };
