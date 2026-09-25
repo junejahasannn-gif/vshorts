@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover"
@@ -154,6 +155,15 @@
       animation: spin 0.7s linear infinite;
     }
 
+    .dark-loader {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(0,0,0,.12);
+      border-top-color: #111827;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
     @keyframes spin {
       to {
         transform: rotate(360deg);
@@ -232,12 +242,34 @@
       transition:
         border-color .2s ease,
         background .2s ease,
-        transform .2s ease;
+        transform .2s ease,
+        box-shadow .2s ease;
     }
 
     .option-card:hover {
       transform: translateY(-1px);
       border-color: #cfd3da;
+    }
+
+    .music-card {
+      transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        transform .2s ease,
+        background .2s ease;
+    }
+
+    .music-card:hover {
+      transform: translateY(-1px);
+      border-color: #c9cdd4;
+      box-shadow:
+        0 14px 30px rgba(0,0,0,.07);
+    }
+
+    .music-card.selected {
+      border-color: #111827;
+      box-shadow:
+        0 0 0 3px rgba(17,24,39,.07);
     }
 
     .status-dot {
@@ -266,6 +298,45 @@
     .safe-bottom {
       padding-bottom:
         max(24px, env(safe-area-inset-bottom));
+    }
+
+    .music-wave {
+      height: 30px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      overflow: hidden;
+    }
+
+    .music-wave span {
+      width: 3px;
+      border-radius: 999px;
+      background: #111827;
+      opacity: .25;
+      animation: wave 1s ease-in-out infinite;
+    }
+
+    .music-wave span:nth-child(1) { height: 10px; animation-delay: 0s; }
+    .music-wave span:nth-child(2) { height: 20px; animation-delay: .08s; }
+    .music-wave span:nth-child(3) { height: 14px; animation-delay: .16s; }
+    .music-wave span:nth-child(4) { height: 26px; animation-delay: .24s; }
+    .music-wave span:nth-child(5) { height: 16px; animation-delay: .32s; }
+    .music-wave span:nth-child(6) { height: 24px; animation-delay: .40s; }
+    .music-wave span:nth-child(7) { height: 12px; animation-delay: .48s; }
+    .music-wave span:nth-child(8) { height: 21px; animation-delay: .56s; }
+
+    .music-wave.playing span {
+      opacity: 1;
+    }
+
+    @keyframes wave {
+      0%,100% {
+        transform: scaleY(.65);
+      }
+
+      50% {
+        transform: scaleY(1.15);
+      }
     }
 
     @media (max-width: 640px) {
@@ -298,926 +369,1147 @@
 
 <body>
 
-  <!-- =====================================================
-       HOME
-  ====================================================== -->
+<!-- =====================================================
+     HOME
+====================================================== -->
 
-  <section
-    id="homePage"
-    class="page"
+<section
+  id="homePage"
+  class="page"
+>
+
+  <header
+    class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
+  >
+    <div
+      class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between"
+    >
+
+      <button
+        onclick="goHome()"
+        class="text-left"
+        aria-label="ViralTap home"
+      >
+        <div class="text-2xl font-black tracking-tight">
+          ViralTap
+        </div>
+
+        <div
+          class="text-[11px] text-gray-500 font-semibold tracking-wide"
+        >
+          AI VIDEO STUDIO
+        </div>
+      </button>
+
+      <button
+        onclick="openNormalStudio()"
+        class="primary-btn bg-black text-white px-5 py-2.5 rounded-xl font-bold text-sm"
+      >
+        Create Video
+      </button>
+
+    </div>
+  </header>
+
+
+  <main
+    class="relative overflow-hidden hero-grid"
   >
 
-    <header
-      class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
-    >
-      <div
-        class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between"
-      >
+    <div
+      class="hero-glow"
+      style="top:-100px;left:-100px;"
+    ></div>
 
-        <button
-          onclick="goHome()"
-          class="text-left"
-          aria-label="ViralTap home"
-        >
-          <div class="text-2xl font-black tracking-tight">
-            ViralTap
-          </div>
-
-          <div class="text-[11px] text-gray-500 font-semibold tracking-wide">
-            AI VIDEO STUDIO
-          </div>
-        </button>
-
-        <button
-          onclick="openNormalStudio()"
-          class="primary-btn bg-black text-white px-5 py-2.5 rounded-xl font-bold text-sm"
-        >
-          Create Video
-        </button>
-
-      </div>
-    </header>
+    <div
+      class="hero-glow"
+      style="right:-160px;top:260px;"
+    ></div>
 
 
-    <main
-      class="relative overflow-hidden hero-grid"
+    <div
+      class="relative max-w-6xl mx-auto px-5 pt-16 md:pt-24 pb-12"
     >
 
       <div
-        class="hero-glow"
-        style="top:-100px;left:-100px;"
-      ></div>
-
-      <div
-        class="hero-glow"
-        style="right:-160px;top:260px;"
-      ></div>
-
-
-      <!-- HERO -->
-
-      <div
-        class="relative max-w-6xl mx-auto px-5 pt-16 md:pt-24 pb-12"
+        class="text-center max-w-4xl mx-auto"
       >
 
         <div
-          class="text-center max-w-4xl mx-auto"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-bold"
         >
-
-          <div
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-bold"
-          >
-            <span>⚡</span>
-            <span>AI Reel & Short Video Maker</span>
-          </div>
-
-
-          <h1
-            class="hero-title text-6xl md:text-8xl font-black tracking-tight leading-none mt-7"
-          >
-            Turn Ideas Into
-            <span class="gradient-text">
-              Viral Videos.
-            </span>
-          </h1>
-
-
-          <p
-            class="text-gray-600 text-base md:text-xl leading-relaxed mt-7 max-w-2xl mx-auto"
-          >
-            Write your idea, choose your style,
-            and let ViralTap build your video
-            scene by scene.
-          </p>
-
+          <span>⚡</span>
+          <span>AI Reel & Short Video Maker</span>
         </div>
 
 
-        <!-- IDEA BOX -->
-
-        <div
-          class="max-w-3xl mx-auto mt-12 glass rounded-[28px] p-4 md:p-6"
+        <h1
+          class="hero-title text-6xl md:text-8xl font-black tracking-tight leading-none mt-7"
         >
-
-          <div
-            class="flex items-center justify-between gap-3"
-          >
-
-            <label
-              for="homeStory"
-              class="font-black text-lg"
-            >
-              Your story / idea
-            </label>
-
-            <span
-              id="homeCounter"
-              class="text-xs text-gray-400 font-semibold"
-            >
-              0 characters
-            </span>
-
-          </div>
+          Turn Ideas Into
+          <span class="gradient-text">
+            Viral Videos.
+          </span>
+        </h1>
 
 
-          <textarea
-            id="homeStory"
-            rows="6"
-            maxlength="5000"
-            class="studio-input mt-3 resize-none"
-            placeholder="Example: Ek funny reel banao jisme ek dost dusre dost ko late aane par roast karta hai..."
-            oninput="updateCharacterCount('homeStory','homeCounter')"
-          ></textarea>
-
-
-          <div
-            id="homeValidation"
-            class="hidden text-sm text-red-600 font-semibold mt-3"
-          ></div>
-
-
-          <div
-            class="grid md:grid-cols-2 gap-3 mt-4"
-          >
-
-            <button
-              onclick="openNormalStudio()"
-              class="primary-btn bg-black text-white rounded-2xl py-4 font-black"
-            >
-              🎬 Video Banao
-            </button>
-
-            <button
-              onclick="openFunnyStudio()"
-              class="option-card border border-gray-300 bg-white rounded-2xl py-4 font-black"
-            >
-              😂 Funny Reel Banao
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <!-- FEATURES -->
-
-        <div
-          class="grid md:grid-cols-3 gap-4 mt-10"
+        <p
+          class="text-gray-600 text-base md:text-xl leading-relaxed mt-7 max-w-2xl mx-auto"
         >
-
-          <div
-            class="bg-white border border-gray-200 rounded-2xl p-6"
-          >
-            <div class="text-3xl">✍️</div>
-
-            <h3 class="font-black text-lg mt-4">
-              Story to Video
-            </h3>
-
-            <p class="text-gray-500 text-sm leading-relaxed mt-2">
-              Idea ko AI-generated scenes aur
-              real MP4 video workflow me convert karo.
-            </p>
-          </div>
-
-
-          <div
-            class="bg-white border border-gray-200 rounded-2xl p-6"
-          >
-            <div class="text-3xl">🎬</div>
-
-            <h3 class="font-black text-lg mt-4">
-              Scene-by-Scene
-            </h3>
-
-            <p class="text-gray-500 text-sm leading-relaxed mt-2">
-              AI story ko multiple scenes aur
-              short caption lines me break karo.
-            </p>
-          </div>
-
-
-          <div
-            class="bg-white border border-gray-200 rounded-2xl p-6"
-          >
-            <div class="text-3xl">⚡</div>
-
-            <h3 class="font-black text-lg mt-4">
-              Real MP4 Render
-            </h3>
-
-            <p class="text-gray-500 text-sm leading-relaxed mt-2">
-              Background render ke baad actual
-              MP4 preview aur download.
-            </p>
-          </div>
-
-        </div>
-
-
-        <!-- SUPPORTED -->
-
-        <div
-          class="max-w-3xl mx-auto mt-12 bg-white border border-gray-200 rounded-2xl p-5"
-        >
-
-          <div class="text-xs font-black text-gray-400 uppercase tracking-wider">
-            Create different types of videos
-          </div>
-
-          <div
-            class="flex flex-wrap gap-2 mt-3"
-          >
-
-            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-              😂 Comedy
-            </span>
-
-            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-              👻 Horror
-            </span>
-
-            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-              ❤️ Romance
-            </span>
-
-            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-              🔥 Action
-            </span>
-
-            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-              💪 Motivation
-            </span>
-
-            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-              📚 Education
-            </span>
-
-            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-              🎭 Drama
-            </span>
-
-            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-              🕵️ Suspense
-            </span>
-
-          </div>
-
-        </div>
-
-
-        <footer
-          class="text-center mt-14 pb-10 text-sm text-gray-500"
-        >
-          Support: WhatsApp +91 63530 68575
-          ·
-          junejahass@gmail.com
-        </footer>
-
-      </div>
-
-    </main>
-
-  </section>
-
-
-  <!-- =====================================================
-       STUDIO
-  ====================================================== -->
-
-  <section
-    id="studioPage"
-    class="page hidden"
-  >
-
-    <header
-      class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
-    >
-
-      <div
-        class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between"
-      >
-
-        <button
-          onclick="goHome()"
-          class="text-gray-600 font-bold"
-        >
-          ← Back
-        </button>
-
-        <div class="font-black text-xl">
-          ViralTap Studio
-        </div>
-
-        <div class="w-12"></div>
-
-      </div>
-
-    </header>
-
-
-    <main
-      class="max-w-5xl mx-auto px-5 py-10"
-    >
-
-      <div class="mb-8">
-
-        <div
-          id="studioBadge"
-          class="inline-flex px-3 py-1.5 rounded-full bg-gray-100 text-sm font-bold"
-        >
-          ✨ AI Video
-        </div>
-
-        <h2
-          id="studioTitle"
-          class="text-4xl md:text-5xl font-black mt-4 tracking-tight"
-        >
-          Create Your Video
-        </h2>
-
-        <p class="text-gray-500 mt-2">
-          Set your preferences and generate your AI video.
+          Write your idea, choose your style,
+          and let ViralTap build your video
+          scene by scene.
         </p>
 
       </div>
 
 
       <div
-        class="grid lg:grid-cols-3 gap-6"
+        class="max-w-3xl mx-auto mt-12 glass rounded-[28px] p-4 md:p-6"
       >
 
         <div
-          class="lg:col-span-2 bg-white border border-gray-200 rounded-[28px] p-5 md:p-6"
+          class="flex items-center justify-between gap-3"
         >
 
-          <div
-            class="flex items-center justify-between gap-3"
+          <label
+            for="homeStory"
+            class="font-black text-lg"
           >
+            Your story / idea
+          </label>
 
-            <label
-              for="studioStory"
-              class="font-black"
-            >
-              Story / Idea
-            </label>
-
-            <span
-              id="studioCounter"
-              class="text-xs text-gray-400 font-semibold"
-            >
-              0 characters
-            </span>
-
-          </div>
-
-
-          <textarea
-            id="studioStory"
-            rows="7"
-            maxlength="5000"
-            class="studio-input mt-3 resize-none"
-            placeholder="Apni story ya idea yahan likho..."
-            oninput="updateCharacterCount('studioStory','studioCounter')"
-          ></textarea>
-
-
-          <div
-            id="studioValidation"
-            class="hidden text-sm text-red-600 font-semibold mt-3"
-          ></div>
-
-
-          <div
-            class="grid md:grid-cols-2 gap-4 mt-6"
+          <span
+            id="homeCounter"
+            class="text-xs text-gray-400 font-semibold"
           >
+            0 characters
+          </span>
 
-            <div>
-              <label
-                for="language"
-                class="text-sm font-bold"
-              >
-                Language
-              </label>
-
-              <select
-                id="language"
-                class="studio-input mt-2"
-              >
-                <option value="Hindi">Hindi</option>
-                <option value="Hinglish">Hinglish</option>
-                <option value="English">English</option>
-                <option value="Gujarati">Gujarati</option>
-              </select>
-            </div>
+        </div>
 
 
-            <div>
-              <label
-                for="aspectRatio"
-                class="text-sm font-bold"
-              >
-                Aspect Ratio
-              </label>
-
-              <select
-                id="aspectRatio"
-                class="studio-input mt-2"
-              >
-                <option value="9:16">
-                  9:16 — Reel / Short
-                </option>
-
-                <option value="16:9">
-                  16:9 — YouTube
-                </option>
-
-                <option value="1:1">
-                  1:1 — Square
-                </option>
-              </select>
-            </div>
+        <textarea
+          id="homeStory"
+          rows="6"
+          maxlength="5000"
+          class="studio-input mt-3 resize-none"
+          placeholder="Example: Ek funny reel banao jisme ek dost dusre dost ko late aane par roast karta hai..."
+          oninput="updateCharacterCount('homeStory','homeCounter')"
+        ></textarea>
 
 
-            <div>
-              <label
-                for="duration"
-                class="text-sm font-bold"
-              >
-                Duration
-              </label>
-
-              <select
-                id="duration"
-                class="studio-input mt-2"
-              >
-                <option value="30">
-                  30 seconds
-                </option>
-
-                <option value="60">
-                  60 seconds
-                </option>
-
-                <option value="180">
-                  3 minutes
-                </option>
-              </select>
-            </div>
+        <div
+          id="homeValidation"
+          class="hidden text-sm text-red-600 font-semibold mt-3"
+        ></div>
 
 
-            <div>
-              <label
-                for="voice"
-                class="text-sm font-bold"
-              >
-                Voice
-              </label>
-
-              <select
-                id="voice"
-                class="studio-input mt-2"
-              >
-                <option value="Natural Male">
-                  Natural Male
-                </option>
-
-                <option value="Natural Female">
-                  Natural Female
-                </option>
-              </select>
-            </div>
-
-
-            <div>
-              <label
-                for="music"
-                class="text-sm font-bold"
-              >
-                Music
-              </label>
-
-              <select
-                id="music"
-                class="studio-input mt-2"
-              >
-                <option value="None">
-                  No Music
-                </option>
-
-                <option value="Cinematic">
-                  Cinematic
-                </option>
-
-                <option value="Funny">
-                  Funny
-                </option>
-
-                <option value="Energetic">
-                  Energetic
-                </option>
-              </select>
-            </div>
-
-
-            <div>
-              <label
-                for="branding"
-                class="text-sm font-bold"
-              >
-                Branding
-              </label>
-
-              <select
-                id="branding"
-                class="studio-input mt-2"
-              >
-                <option value="ViralTap">
-                  ViralTap
-                </option>
-
-                <option value="None">
-                  No Branding
-                </option>
-              </select>
-            </div>
-
-          </div>
-
+        <div
+          class="grid md:grid-cols-2 gap-3 mt-4"
+        >
 
           <button
-            id="generateButton"
-            onclick="generateCurrentVideo()"
-            class="primary-btn w-full mt-7 bg-black text-white rounded-2xl py-4 font-black text-lg flex items-center justify-center gap-3"
+            onclick="openNormalStudio()"
+            class="primary-btn bg-black text-white rounded-2xl py-4 font-black"
           >
-            <span id="generateButtonIcon">
-              🚀
-            </span>
+            🎬 Video Banao
+          </button>
 
-            <span id="generateButtonText">
-              Generate Video
-            </span>
+          <button
+            onclick="openFunnyStudio()"
+            class="option-card border border-gray-300 bg-white rounded-2xl py-4 font-black"
+          >
+            😂 Funny Reel Banao
           </button>
 
         </div>
 
+      </div>
 
-        <!-- SIDE INFO -->
+
+      <div
+        class="grid md:grid-cols-3 gap-4 mt-10"
+      >
 
         <div
-          class="bg-[#090a0d] text-white rounded-[28px] p-6 h-fit"
+          class="bg-white border border-gray-200 rounded-2xl p-6"
+        >
+          <div class="text-3xl">✍️</div>
+
+          <h3 class="font-black text-lg mt-4">
+            Story to Video
+          </h3>
+
+          <p class="text-gray-500 text-sm leading-relaxed mt-2">
+            Idea ko AI-generated scenes aur
+            real MP4 video workflow me convert karo.
+          </p>
+        </div>
+
+
+        <div
+          class="bg-white border border-gray-200 rounded-2xl p-6"
+        >
+          <div class="text-3xl">🎬</div>
+
+          <h3 class="font-black text-lg mt-4">
+            Scene-by-Scene
+          </h3>
+
+          <p class="text-gray-500 text-sm leading-relaxed mt-2">
+            AI story ko multiple scenes aur
+            short caption lines me break karo.
+          </p>
+        </div>
+
+
+        <div
+          class="bg-white border border-gray-200 rounded-2xl p-6"
+        >
+          <div class="text-3xl">⚡</div>
+
+          <h3 class="font-black text-lg mt-4">
+            Real MP4 Render
+          </h3>
+
+          <p class="text-gray-500 text-sm leading-relaxed mt-2">
+            Background render ke baad actual
+            MP4 preview aur download.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div
+        class="max-w-3xl mx-auto mt-12 bg-white border border-gray-200 rounded-2xl p-5"
+      >
+
+        <div
+          class="text-xs font-black text-gray-400 uppercase tracking-wider"
+        >
+          Create different types of videos
+        </div>
+
+        <div
+          class="flex flex-wrap gap-2 mt-3"
         >
 
-          <div class="text-sm text-gray-500">
-            Current mode
-          </div>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+            😂 Comedy
+          </span>
 
-          <div
-            id="sideMode"
-            class="text-2xl font-black mt-2"
-          >
-            AI Video
-          </div>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+            👻 Horror
+          </span>
 
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+            ❤️ Romance
+          </span>
 
-          <div
-            class="mt-8 space-y-4 text-sm text-gray-300"
-          >
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+            🔥 Action
+          </span>
 
-            <div class="flex items-center gap-3">
-              <span class="text-green-400">✓</span>
-              AI Script
-            </div>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+            💪 Motivation
+          </span>
 
-            <div class="flex items-center gap-3">
-              <span class="text-green-400">✓</span>
-              Scene Breakdown
-            </div>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+            📚 Education
+          </span>
 
-            <div class="flex items-center gap-3">
-              <span class="text-green-400">✓</span>
-              Line-by-Line Captions
-            </div>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+            🎭 Drama
+          </span>
 
-            <div class="flex items-center gap-3">
-              <span class="text-green-400">✓</span>
-              Visual Prompts
-            </div>
-
-            <div class="flex items-center gap-3">
-              <span class="text-green-400">✓</span>
-              Real MP4 Render
-            </div>
-
-          </div>
-
-
-          <div
-            class="mt-8 pt-5 border-t border-white/10 text-xs text-gray-500 leading-relaxed"
-          >
-            Rendering happens in the background.
-            You can follow the real render progress
-            on the next screen.
-          </div>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+            🕵️ Suspense
+          </span>
 
         </div>
 
       </div>
 
-    </main>
 
-  </section>
+      <footer
+        class="text-center mt-14 pb-10 text-sm text-gray-500"
+      >
+        Support: WhatsApp +91 63530 68575
+        ·
+        junejahass@gmail.com
+      </footer>
+
+    </div>
+
+  </main>
+
+</section>
 
 
-  <!-- =====================================================
-       GENERATING
-  ====================================================== -->
+<!-- =====================================================
+     STUDIO
+====================================================== -->
 
-  <section
-    id="generatingPage"
-    class="page hidden min-h-screen bg-[#08090b] text-white flex items-center justify-center"
+<section
+  id="studioPage"
+  class="page hidden"
+>
+
+  <header
+    class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
   >
 
     <div
-      class="w-full max-w-xl mx-auto px-5 py-12 text-center"
+      class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between"
     >
 
-      <div
-        class="loader mx-auto"
-      ></div>
-
-
-      <div
-        class="inline-flex items-center gap-2 mt-8 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-gray-300"
+      <button
+        onclick="goHome()"
+        class="text-gray-600 font-bold"
       >
+        ← Back
+      </button>
 
-        <span
-          class="status-dot"
-        ></span>
-
-        <span>
-          RENDER ENGINE
-        </span>
-
+      <div class="font-black text-xl">
+        ViralTap Studio
       </div>
 
+      <div class="w-12"></div>
+
+    </div>
+
+  </header>
+
+
+  <main
+    class="max-w-5xl mx-auto px-5 py-10"
+  >
+
+    <div class="mb-8">
+
+      <div
+        id="studioBadge"
+        class="inline-flex px-3 py-1.5 rounded-full bg-gray-100 text-sm font-bold"
+      >
+        ✨ AI Video
+      </div>
 
       <h2
-        class="text-3xl md:text-4xl font-black mt-5"
+        id="studioTitle"
+        class="text-4xl md:text-5xl font-black mt-4 tracking-tight"
       >
-        Creating your video...
+        Create Your Video
       </h2>
 
-
-      <p
-        id="generationMessage"
-        class="text-gray-400 mt-3 leading-relaxed"
-      >
-        AI is preparing your story.
-      </p>
-
-
-      <div
-        class="w-full bg-white/10 rounded-full h-3 mt-9 overflow-hidden"
-      >
-
-        <div
-          id="progressBar"
-          class="progress bg-white h-full rounded-full"
-          style="width:5%"
-        ></div>
-
-      </div>
-
-
-      <div
-        class="flex items-center justify-between mt-3 text-xs text-gray-500"
-      >
-
-        <span>
-          Live render status
-        </span>
-
-        <span
-          id="progressText"
-          class="font-black text-white"
-        >
-          5%
-        </span>
-
-      </div>
-
-
-      <div
-        id="generationDetails"
-        class="mt-8 bg-white/5 border border-white/10 rounded-2xl p-5 text-left"
-      >
-
-        <div
-          class="flex items-center justify-between"
-        >
-
-          <span class="text-sm text-gray-400">
-            Job status
-          </span>
-
-          <span
-            id="generationStatus"
-            class="text-sm font-bold text-white"
-          >
-            Starting
-          </span>
-
-        </div>
-
-
-        <div
-          class="flex items-center justify-between mt-3"
-        >
-
-          <span class="text-sm text-gray-400">
-            Job ID
-          </span>
-
-          <span
-            id="generationJobId"
-            class="text-xs font-mono text-gray-500 truncate max-w-[220px]"
-          >
-            —
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <p
-        class="text-xs text-gray-600 mt-6"
-      >
-        Please keep this page open while the render is running.
+      <p class="text-gray-500 mt-2">
+        Set your preferences and generate your AI video.
       </p>
 
     </div>
 
-  </section>
 
-
-  <!-- =====================================================
-       RESULT
-  ====================================================== -->
-
-  <section
-    id="resultPage"
-    class="page hidden"
-  >
-
-    <header
-      class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
+    <div
+      class="grid lg:grid-cols-3 gap-6"
     >
 
       <div
-        class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between"
+        class="lg:col-span-2 bg-white border border-gray-200 rounded-[28px] p-5 md:p-6"
       >
 
-        <button
-          onclick="goHome()"
-          class="font-bold text-gray-600"
+        <div
+          class="flex items-center justify-between gap-3"
         >
-          ← Home
-        </button>
 
+          <label
+            for="studioStory"
+            class="font-black"
+          >
+            Story / Idea
+          </label>
 
-        <div class="font-black text-xl">
-          ViralTap
+          <span
+            id="studioCounter"
+            class="text-xs text-gray-400 font-semibold"
+          >
+            0 characters
+          </span>
+
         </div>
 
 
-        <button
-          onclick="openNormalStudio()"
-          class="font-bold"
-        >
-          + New Video
-        </button>
+        <textarea
+          id="studioStory"
+          rows="7"
+          maxlength="5000"
+          class="studio-input mt-3 resize-none"
+          placeholder="Apni story ya idea yahan likho..."
+          oninput="updateCharacterCount('studioStory','studioCounter')"
+        ></textarea>
 
-      </div>
-
-    </header>
-
-
-    <main
-      class="max-w-6xl mx-auto px-5 py-10"
-    >
-
-      <div class="mb-8">
 
         <div
-          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-bold"
+          id="studioValidation"
+          class="hidden text-sm text-red-600 font-semibold mt-3"
+        ></div>
+
+
+        <div
+          class="grid md:grid-cols-2 gap-4 mt-6"
         >
-          <span>✓</span>
-          <span>Video Ready</span>
+
+          <div>
+            <label
+              for="language"
+              class="text-sm font-bold"
+            >
+              Language
+            </label>
+
+            <select
+              id="language"
+              class="studio-input mt-2"
+            >
+              <option value="Hindi">
+                Hindi
+              </option>
+
+              <option value="Hinglish">
+                Hinglish
+              </option>
+
+              <option value="English">
+                English
+              </option>
+
+              <option value="Gujarati">
+                Gujarati
+              </option>
+            </select>
+          </div>
+
+
+          <div>
+            <label
+              for="aspectRatio"
+              class="text-sm font-bold"
+            >
+              Aspect Ratio
+            </label>
+
+            <select
+              id="aspectRatio"
+              class="studio-input mt-2"
+            >
+              <option value="9:16">
+                9:16 — Reel / Short
+              </option>
+
+              <option value="16:9">
+                16:9 — YouTube
+              </option>
+
+              <option value="1:1">
+                1:1 — Square
+              </option>
+            </select>
+          </div>
+
+
+          <div>
+            <label
+              for="duration"
+              class="text-sm font-bold"
+            >
+              Duration
+            </label>
+
+            <select
+              id="duration"
+              class="studio-input mt-2"
+            >
+              <option value="30">
+                30 seconds
+              </option>
+
+              <option value="60">
+                60 seconds
+              </option>
+
+              <option value="180">
+                3 minutes
+              </option>
+            </select>
+          </div>
+
+
+          <div>
+            <label
+              for="voice"
+              class="text-sm font-bold"
+            >
+              Voice
+            </label>
+
+            <select
+              id="voice"
+              class="studio-input mt-2"
+            >
+              <option value="Natural Male">
+                Natural Male
+              </option>
+
+              <option value="Natural Female">
+                Natural Female
+              </option>
+            </select>
+          </div>
+
+
+          <div>
+            <label
+              for="branding"
+              class="text-sm font-bold"
+            >
+              Branding
+            </label>
+
+            <select
+              id="branding"
+              class="studio-input mt-2"
+            >
+              <option value="ViralTap">
+                ViralTap
+              </option>
+
+              <option value="None">
+                No Branding
+              </option>
+            </select>
+          </div>
+
         </div>
 
 
-        <h1
-          id="resultTitle"
-          class="text-4xl md:text-5xl font-black mt-4 tracking-tight"
-        >
-          Your Video
-        </h1>
-
-
-        <p
-          id="resultDescription"
-          class="text-gray-500 mt-2 max-w-3xl leading-relaxed"
-        ></p>
-
-      </div>
-
-
-      <div
-        class="grid lg:grid-cols-3 gap-6"
-      >
-
-        <!-- VIDEO -->
-
         <div
-          class="lg:col-span-2"
+          class="mt-6 bg-gray-50 border border-gray-200 rounded-2xl p-4"
         >
 
           <div
-            id="previewBox"
-            class="video-frame bg-black rounded-[28px] min-h-[520px] flex items-center justify-center overflow-hidden border border-gray-800"
+            class="flex items-start gap-3"
           >
 
             <div
-              id="noVideoMessage"
-              class="text-center text-white px-6"
+              class="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shrink-0"
             >
+              🎵
+            </div>
 
-              <div class="text-5xl">
-                🎬
+            <div>
+
+              <div class="font-black">
+                AI Music comes after your video
               </div>
 
-              <h3 class="text-2xl font-black mt-5">
-                Video Ready
-              </h3>
-
-              <p class="text-gray-400 mt-3">
-                Your rendered MP4 will appear here automatically.
-              </p>
+              <div
+                class="text-sm text-gray-500 leading-relaxed mt-1"
+              >
+                ViralTap pehle tumhara video generate karega.
+                Uske baad video/story ke mood ke according
+                AI music recommend hoga, jise tum preview
+                karke apply kar sakoge.
+              </div>
 
             </div>
 
-
-            <video
-              id="videoPlayer"
-              class="hidden max-h-[700px] max-w-full"
-              controls
-              playsinline
-              preload="metadata"
-            ></video>
-
           </div>
 
-
-          <div
-            class="grid grid-cols-2 gap-3 mt-5"
-          >
-
-            <button
-              onclick="playPreview()"
-              class="bg-black text-white rounded-xl py-3.5 font-bold"
-            >
-              ▶ Preview
-            </button>
+        </div>
 
 
-            <button
-              onclick="downloadVideo()"
-              class="border border-gray-300 bg-white rounded-xl py-3.5 font-bold"
-            >
-              ↓ Download
-            </button>
+        <button
+          id="generateButton"
+          onclick="generateCurrentVideo()"
+          class="primary-btn w-full mt-7 bg-black text-white rounded-2xl py-4 font-black text-lg flex items-center justify-center gap-3"
+        >
 
+          <span id="generateButtonIcon">
+            🚀
+          </span>
+
+          <span id="generateButtonText">
+            Generate Video
+          </span>
+
+        </button>
+
+      </div>
+
+
+      <div
+        class="bg-[#090a0d] text-white rounded-[28px] p-6 h-fit"
+      >
+
+        <div class="text-sm text-gray-500">
+          Current mode
+        </div>
+
+        <div
+          id="sideMode"
+          class="text-2xl font-black mt-2"
+        >
+          AI Video
+        </div>
+
+
+        <div
+          class="mt-8 space-y-4 text-sm text-gray-300"
+        >
+
+          <div class="flex items-center gap-3">
+            <span class="text-green-400">✓</span>
+            AI Script
           </div>
 
+          <div class="flex items-center gap-3">
+            <span class="text-green-400">✓</span>
+            Scene Breakdown
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-green-400">✓</span>
+            Line-by-Line Captions
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-green-400">✓</span>
+            AI Visuals
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-green-400">✓</span>
+            AI Voice
+          </div>
+
+          <div class="flex items-center gap-3">
+            <span class="text-green-400">✓</span>
+            AI Music Recommendations
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</section>
+
+
+<!-- =====================================================
+     GENERATING
+====================================================== -->
+
+<section
+  id="generatingPage"
+  class="page hidden"
+>
+
+  <main
+    class="min-h-screen flex items-center justify-center px-5"
+  >
+
+    <div
+      class="w-full max-w-2xl bg-white border border-gray-200 rounded-[32px] p-7 md:p-10 shadow-sm"
+    >
+
+      <div class="flex justify-center">
+        <div class="loader"></div>
+      </div>
+
+      <div
+        class="text-center mt-7"
+      >
+
+        <div
+          class="text-xs uppercase tracking-[0.2em] font-black text-gray-400"
+        >
+          ViralTap Studio
+        </div>
+
+        <h2
+          class="text-3xl md:text-4xl font-black mt-3"
+        >
+          Creating your video
+        </h2>
+
+        <p
+          id="generationMessage"
+          class="text-gray-500 mt-3 leading-relaxed"
+        >
+          AI is understanding your idea...
+        </p>
+
+      </div>
+
+
+      <div class="mt-9">
+
+        <div
+          class="flex items-center justify-between text-xs font-bold text-gray-500 mb-2"
+        >
+
+          <span id="generationStatus">
+            Starting
+          </span>
+
+          <span id="progressText">
+            5%
+          </span>
+
+        </div>
+
+        <div
+          class="h-3 rounded-full bg-gray-100 overflow-hidden"
+        >
 
           <div
-            id="resultMeta"
-            class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5"
+            id="progressBar"
+            class="progress h-full bg-black rounded-full"
+            style="width:5%"
           ></div>
 
         </div>
 
+      </div>
 
-        <!-- SIDE -->
+
+      <div
+        class="mt-8 grid grid-cols-3 gap-3"
+      >
 
         <div
-          class="bg-white border border-gray-200 rounded-[28px] p-5 md:p-6 h-fit"
+          class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center"
+        >
+          <div class="text-xl">
+            🧠
+          </div>
+
+          <div
+            class="text-xs font-bold text-gray-500 mt-2"
+          >
+            Script
+          </div>
+        </div>
+
+
+        <div
+          class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center"
+        >
+          <div class="text-xl">
+            🎬
+          </div>
+
+          <div
+            class="text-xs font-bold text-gray-500 mt-2"
+          >
+            Visuals
+          </div>
+        </div>
+
+
+        <div
+          class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center"
+        >
+          <div class="text-xl">
+            🎙️
+          </div>
+
+          <div
+            class="text-xs font-bold text-gray-500 mt-2"
+          >
+            Voice
+          </div>
+        </div>
+
+      </div>
+
+
+      <div
+        class="mt-7 text-center text-xs text-gray-400"
+      >
+        Job ID:
+        <span
+          id="generationJobId"
+          class="font-mono"
+        >
+          —
+        </span>
+      </div>
+
+    </div>
+
+  </main>
+
+</section>
+
+
+<!-- =====================================================
+     RESULT
+====================================================== -->
+
+<section
+  id="resultPage"
+  class="page hidden"
+>
+
+  <header
+    class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
+  >
+
+    <div
+      class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between"
+    >
+
+      <button
+        onclick="goHome()"
+        class="text-gray-600 font-bold"
+      >
+        ← Home
+      </button>
+
+      <div class="font-black text-xl">
+        Video Ready
+      </div>
+
+      <button
+        onclick="openNormalStudio()"
+        class="text-sm font-bold bg-black text-white px-4 py-2 rounded-xl"
+      >
+        New Video
+      </button>
+
+    </div>
+
+  </header>
+
+
+  <main
+    class="max-w-6xl mx-auto px-5 py-8 safe-bottom"
+  >
+
+    <div
+      class="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start"
+    >
+
+      <!-- VIDEO -->
+
+      <div
+        class="bg-[#090a0d] rounded-[28px] p-4 md:p-6"
+      >
+
+        <div
+          class="flex items-center justify-between gap-3 text-white mb-4"
+        >
+
+          <div>
+
+            <div
+              class="text-xs uppercase tracking-[0.16em] text-gray-500 font-black"
+            >
+              Final MP4
+            </div>
+
+            <h1
+              id="resultTitle"
+              class="text-2xl md:text-3xl font-black mt-1"
+            >
+              Your Viral Video
+            </h1>
+
+          </div>
+
+          <div
+            class="flex items-center gap-2 text-xs text-gray-400"
+          >
+            <span class="status-dot"></span>
+            Ready
+          </div>
+
+        </div>
+
+
+        <div
+          class="video-frame rounded-2xl overflow-hidden relative"
+        >
+
+          <video
+            id="videoPlayer"
+            class="w-full max-h-[720px] mx-auto bg-black"
+            controls
+            playsinline
+            preload="metadata"
+          ></video>
+
+
+          <div
+            id="noVideoMessage"
+            class="hidden min-h-[420px] flex items-center justify-center text-center text-white p-8"
+          >
+
+            <div>
+
+              <div class="text-4xl">
+                🎬
+              </div>
+
+              <div class="font-black text-xl mt-3">
+                Video is not available yet
+              </div>
+
+              <div class="text-gray-400 text-sm mt-2">
+                Please wait for the render to finish.
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="grid grid-cols-2 gap-3 mt-4"
+        >
+
+          <button
+            onclick="playPreview()"
+            class="primary-btn bg-white text-black rounded-2xl py-3.5 font-black"
+          >
+            ▶ Preview
+          </button>
+
+          <button
+            onclick="downloadVideo()"
+            class="primary-btn bg-gray-800 text-white border border-gray-700 rounded-2xl py-3.5 font-black"
+          >
+            ↓ Download MP4
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- RIGHT SIDE -->
+
+      <div class="space-y-5">
+
+        <!-- DESCRIPTION -->
+
+        <div
+          class="bg-white border border-gray-200 rounded-[28px] p-6"
         >
 
           <div
-            class="flex gap-2 mb-6"
+            class="text-xs uppercase tracking-wider text-gray-400 font-black"
+          >
+            Video
+          </div>
+
+          <div
+            id="resultDescription"
+            class="text-sm text-gray-600 leading-relaxed mt-3"
+          >
+            AI generated video script.
+          </div>
+
+        </div>
+
+
+        <!-- META -->
+
+        <div
+          id="resultMeta"
+          class="grid grid-cols-2 gap-3"
+        ></div>
+
+
+        <!-- AI MUSIC -->
+
+        <div
+          class="bg-white border border-gray-200 rounded-[28px] p-6"
+        >
+
+          <div
+            class="flex items-start justify-between gap-4"
+          >
+
+            <div>
+
+              <div
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-black"
+              >
+                <span>✨</span>
+                AI Recommended
+              </div>
+
+              <h2
+                class="text-2xl font-black mt-3"
+              >
+                Music for your video
+              </h2>
+
+              <p
+                class="text-sm text-gray-500 leading-relaxed mt-2"
+              >
+                Video ke mood ke according music choose karo,
+                preview karo aur pasand aaye to apply kar do.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <!-- MUSIC LOADING -->
+
+          <div
+            id="musicLoading"
+            class="mt-5 rounded-2xl bg-gray-50 border border-gray-200 p-5"
+          >
+
+            <div class="flex items-center gap-3">
+
+              <span class="dark-loader"></span>
+
+              <div>
+
+                <div class="font-black text-sm">
+                  Finding the right music...
+                </div>
+
+                <div class="text-xs text-gray-500 mt-1">
+                  AI is matching music with your video mood.
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- MUSIC ERROR -->
+
+          <div
+            id="musicError"
+            class="hidden mt-5 rounded-2xl bg-red-50 border border-red-200 p-4"
+          >
+
+            <div
+              class="text-sm font-bold text-red-700"
+              id="musicErrorText"
+            >
+              Music recommendation failed.
+            </div>
+
+            <button
+              onclick="generateRecommendedMusic()"
+              class="mt-3 text-sm font-black text-red-800 underline"
+            >
+              Try again
+            </button>
+
+          </div>
+
+
+          <!-- MUSIC CONTENT -->
+
+          <div
+            id="musicContent"
+            class="hidden mt-5"
+          >
+
+            <!-- RECOMMENDED -->
+
+            <div
+              id="recommendedMusicCard"
+              class="music-card selected border border-gray-200 rounded-2xl p-4"
+            ></div>
+
+
+            <!-- RELATED -->
+
+            <div class="mt-6">
+
+              <div
+                class="text-xs uppercase tracking-wider font-black text-gray-400"
+              >
+                Related styles
+              </div>
+
+              <div
+                id="relatedMusicList"
+                class="grid grid-cols-1 gap-3 mt-3"
+              ></div>
+
+            </div>
+
+          </div>
+
+
+          <!-- APPLY STATUS -->
+
+          <div
+            id="musicApplyStatus"
+            class="hidden mt-5 rounded-2xl bg-gray-50 border border-gray-200 p-4"
+          >
+
+            <div
+              class="flex items-center gap-3"
+            >
+
+              <span
+                id="musicApplyLoader"
+                class="dark-loader"
+              ></span>
+
+              <div>
+
+                <div
+                  id="musicApplyTitle"
+                  class="font-black text-sm"
+                >
+                  Applying music...
+                </div>
+
+                <div
+                  id="musicApplyMessage"
+                  class="text-xs text-gray-500 mt-1"
+                >
+                  Creating your updated MP4.
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- TABS -->
+
+        <div
+          class="bg-white border border-gray-200 rounded-[28px] p-6"
+        >
+
+          <div
+            class="flex gap-2"
           >
 
             <button
@@ -1225,16 +1517,15 @@
               onclick="showScenes()"
               class="px-4 py-2 bg-black text-white rounded-xl font-bold text-sm"
             >
-              SCENES
+              Scenes
             </button>
-
 
             <button
               id="previewTab"
               onclick="showPreviewInfo()"
               class="px-4 py-2 bg-gray-100 rounded-xl font-bold text-sm"
             >
-              INFO
+              Info
             </button>
 
           </div>
@@ -1242,38 +1533,67 @@
 
           <div
             id="sceneList"
+            class="mt-5"
           ></div>
 
 
           <div
             id="previewInfo"
-            class="hidden text-sm text-gray-500 leading-relaxed"
+            class="hidden mt-5"
           >
-            Your video was generated through the ViralTap
-            script → render pipeline. The preview above
-            uses the finished MP4 returned by the renderer.
+
+            <div
+              class="text-sm text-gray-600 leading-relaxed"
+            >
+              ViralTap generated this video using
+              AI script generation, AI visuals,
+              AI voice and an optional AI music layer.
+            </div>
+
           </div>
 
         </div>
 
       </div>
 
-    </main>
+    </div>
 
-  </section>
+  </main>
+
+</section>
 
 
 <script>
-"use strict";
 
 /* =====================================================
-   STATE
+   GLOBAL STATE
 ===================================================== */
 
-let currentVideoType = "normal";
-let generatedVideoData = null;
-let renderJobData = null;
-let generationInProgress = false;
+let currentVideoType =
+  "normal";
+
+let generatedVideoData =
+  null;
+
+let renderJobData =
+  null;
+
+let generationInProgress =
+  false;
+
+let musicGenerationInProgress =
+  false;
+
+let musicApplyInProgress =
+  false;
+
+let musicOptions = [];
+
+let selectedMusic =
+  null;
+
+let musicPreviewAudio =
+  null;
 
 
 /* =====================================================
@@ -1281,148 +1601,155 @@ let generationInProgress = false;
 ===================================================== */
 
 function hideAllPages() {
-  document
-    .getElementById("homePage")
-    .classList.add("hidden");
 
-  document
-    .getElementById("studioPage")
-    .classList.add("hidden");
+  [
+    "homePage",
+    "studioPage",
+    "generatingPage",
+    "resultPage"
+  ].forEach(
+    (id) => {
+      const el =
+        document.getElementById(id);
 
-  document
-    .getElementById("generatingPage")
-    .classList.add("hidden");
-
-  document
-    .getElementById("resultPage")
-    .classList.add("hidden");
+      if (el) {
+        el.classList.add(
+          "hidden"
+        );
+      }
+    }
+  );
 }
 
 
 function goHome() {
-  if (generationInProgress) {
-    return;
-  }
 
   hideAllPages();
 
   document
-    .getElementById("homePage")
-    .classList.remove("hidden");
+    .getElementById(
+      "homePage"
+    )
+    .classList
+    .remove("hidden");
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 }
 
 
+/* =====================================================
+   STUDIO
+===================================================== */
+
 function openNormalStudio() {
 
-  if (generationInProgress) {
-    return;
-  }
+  currentVideoType =
+    "normal";
 
-  currentVideoType = "normal";
-
-  const homeText =
-    document
-      .getElementById("homeStory")
-      .value
-      .trim();
-
-
-  document
-    .getElementById("studioTitle")
-    .textContent =
-    "Create Your Video";
-
-
-  document
-    .getElementById("studioBadge")
-    .textContent =
-    "✨ AI Video";
-
-
-  document
-    .getElementById("sideMode")
-    .textContent =
-    "AI Video";
-
-
-  document
-    .getElementById("studioStory")
-    .value =
-    homeText;
-
-
-  updateCharacterCount(
-    "studioStory",
-    "studioCounter"
-  );
-
-
-  hideAllPages();
-
-  document
-    .getElementById("studioPage")
-    .classList
-    .remove("hidden");
+  openStudio();
 }
 
 
 function openFunnyStudio() {
 
-  if (generationInProgress) {
-    return;
-  }
+  currentVideoType =
+    "funny";
 
-  currentVideoType = "funny";
+  openStudio();
+}
 
-  const homeText =
+
+function openStudio() {
+
+  const homeStory =
     document
-      .getElementById("homeStory")
+      .getElementById(
+        "homeStory"
+      )
       .value
       .trim();
 
-
-  document
-    .getElementById("studioTitle")
-    .textContent =
-    "Funny Reel Studio";
-
-
-  document
-    .getElementById("studioBadge")
-    .textContent =
-    "😂 Funny Reel";
+  const studioStory =
+    document
+      .getElementById(
+        "studioStory"
+      );
 
 
-  document
-    .getElementById("sideMode")
-    .textContent =
-    "Funny Reel";
+  if (
+    homeStory &&
+    !studioStory.value.trim()
+  ) {
+    studioStory.value =
+      homeStory;
 
-
-  document
-    .getElementById("studioStory")
-    .value =
-    homeText;
-
-
-  updateCharacterCount(
-    "studioStory",
-    "studioCounter"
-  );
-
-
-  document
-    .getElementById("duration")
-    .value =
-    "30";
+    updateCharacterCount(
+      "studioStory",
+      "studioCounter"
+    );
+  }
 
 
   hideAllPages();
 
   document
-    .getElementById("studioPage")
+    .getElementById(
+      "studioPage"
+    )
     .classList
     .remove("hidden");
+
+
+  const badge =
+    document.getElementById(
+      "studioBadge"
+    );
+
+  const title =
+    document.getElementById(
+      "studioTitle"
+    );
+
+  const sideMode =
+    document.getElementById(
+      "sideMode"
+    );
+
+
+  if (
+    currentVideoType ===
+    "funny"
+  ) {
+
+    badge.textContent =
+      "😂 Funny Reel";
+
+    title.textContent =
+      "Create Funny Reel";
+
+    sideMode.textContent =
+      "Funny Reel";
+
+  } else {
+
+    badge.textContent =
+      "✨ AI Video";
+
+    title.textContent =
+      "Create Your Video";
+
+    sideMode.textContent =
+      "AI Video";
+  }
+
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 }
 
 
@@ -1445,153 +1772,122 @@ function updateCharacterCount(
       counterId
     );
 
-  if (!input || !counter) {
+  if (
+    !input ||
+    !counter
+  ) {
     return;
   }
 
-  const length =
+  const count =
     input.value.length;
 
   counter.textContent =
-    `${length.toLocaleString()} characters`;
+    `${count} characters`;
 }
 
 
 /* =====================================================
-   VALIDATION
-===================================================== */
-
-function validateStory(
-  story,
-  targetId
-) {
-
-  const box =
-    document.getElementById(
-      targetId
-    );
-
-  if (!box) {
-    return false;
-  }
-
-  box.classList.add("hidden");
-  box.textContent = "";
-
-
-  if (!story) {
-
-    box.textContent =
-      "Pehle story ya idea likho.";
-
-    box.classList.remove(
-      "hidden"
-    );
-
-    return false;
-  }
-
-
-  if (story.length < 5) {
-
-    box.textContent =
-      "Thoda aur detail me idea likho.";
-
-    box.classList.remove(
-      "hidden"
-    );
-
-    return false;
-  }
-
-
-  if (story.length > 5000) {
-
-    box.textContent =
-      "Story maximum 5000 characters tak ho sakti hai.";
-
-    box.classList.remove(
-      "hidden"
-    );
-
-    return false;
-  }
-
-
-  return true;
-}
-
-
-/* =====================================================
-   GENERATE
+   GENERATE CURRENT VIDEO
 ===================================================== */
 
 async function generateCurrentVideo() {
 
-  if (generationInProgress) {
-    return;
-  }
-
-
   const story =
     document
-      .getElementById("studioStory")
+      .getElementById(
+        "studioStory"
+      )
       .value
       .trim();
 
 
-  if (
-    !validateStory(
-      story,
+  const validation =
+    document.getElementById(
       "studioValidation"
-    )
+    );
+
+
+  validation.classList.add(
+    "hidden"
+  );
+
+
+  if (
+    !story
   ) {
+
+    validation.textContent =
+      "Pehle apni story ya idea likho.";
+
+    validation.classList.remove(
+      "hidden"
+    );
+
+    return;
+  }
+
+
+  if (
+    story.length <
+    10
+  ) {
+
+    validation.textContent =
+      "Thoda detailed idea likho, taaki AI better video bana sake.";
+
+    validation.classList.remove(
+      "hidden"
+    );
+
     return;
   }
 
 
   const options = {
 
-    story: story,
-
-    idea: story,
-
-    joke: story,
+    story,
 
     videoType:
       currentVideoType,
 
     language:
       document
-        .getElementById("language")
+        .getElementById(
+          "language"
+        )
         .value,
 
     aspectRatio:
       document
-        .getElementById("aspectRatio")
+        .getElementById(
+          "aspectRatio"
+        )
         .value,
 
     duration:
       Number(
         document
-          .getElementById("duration")
+          .getElementById(
+            "duration"
+          )
           .value
       ),
 
     voice:
       document
-        .getElementById("voice")
-        .value,
-
-    music:
-      document
-        .getElementById("music")
+        .getElementById(
+          "voice"
+        )
         .value,
 
     branding:
       document
-        .getElementById("branding")
+        .getElementById(
+          "branding"
+        )
         .value
+
   };
 
 
@@ -1661,7 +1957,9 @@ async function startGeneration(
   options
 ) {
 
-  if (generationInProgress) {
+  if (
+    generationInProgress
+  ) {
     return;
   }
 
@@ -1695,7 +1993,7 @@ async function startGeneration(
   try {
 
     /* -----------------------------------------------
-       STEP 1 — GEMINI SCRIPT
+       STEP 1 — SCRIPT
     ------------------------------------------------ */
 
     const scriptResponse =
@@ -1758,6 +2056,7 @@ async function startGeneration(
         scriptData.details
           ? `Details: ${scriptData.details}`
           : ""
+
       ]
         .filter(Boolean)
         .join("\n");
@@ -1782,7 +2081,9 @@ async function startGeneration(
 
 
     /* -----------------------------------------------
-       STEP 2 — START RENDER
+       STEP 2 — RENDER
+       IMPORTANT:
+       No music is requested here.
     ------------------------------------------------ */
 
     const renderResponse =
@@ -1800,17 +2101,12 @@ async function startGeneration(
             JSON.stringify({
 
               scenes:
-                scriptData.scenes || [],
+                scriptData.scenes ||
+                [],
 
               videoType:
                 options.videoType,
 
-              /*
-                IMPORTANT:
-                Keep the selected language in the
-                render request so the backend and
-                visual-generation pipeline receive it.
-              */
               language:
                 options.language,
 
@@ -1822,9 +2118,6 @@ async function startGeneration(
 
               voice:
                 options.voice,
-
-              music:
-                options.music,
 
               branding:
                 options.branding
@@ -1853,7 +2146,9 @@ async function startGeneration(
     }
 
 
-    if (!renderData.jobId) {
+    if (
+      !renderData.jobId
+    ) {
 
       throw new Error(
         "Render job ID was not returned by the server."
@@ -1881,7 +2176,7 @@ async function startGeneration(
 
 
     /* -----------------------------------------------
-       STEP 3 — WAIT FOR REAL RENDER
+       STEP 3 — WAIT FOR RENDER
     ------------------------------------------------ */
 
     const completedData =
@@ -1943,6 +2238,14 @@ async function startGeneration(
       .remove("hidden");
 
 
+    /*
+     * Music recommendation starts AFTER
+     * the actual video is ready.
+     */
+
+    void generateRecommendedMusic();
+
+
   } catch (error) {
 
     console.error(
@@ -1976,11 +2279,14 @@ async function waitForRenderCompletion(
   jobId
 ) {
 
-  const maxAttempts = 180;
+  const maxAttempts =
+    180;
 
-  const pollInterval = 3000;
+  const pollInterval =
+    3000;
 
-  let lastFrontendProgress = 60;
+  let lastFrontendProgress =
+    60;
 
 
   for (
@@ -1992,7 +2298,9 @@ async function waitForRenderCompletion(
     const response =
       await fetch(
         "/api/check-status?jobId=" +
-        encodeURIComponent(jobId),
+        encodeURIComponent(
+          jobId
+        ),
         {
           method: "GET",
           cache: "no-store"
@@ -2018,12 +2326,9 @@ async function waitForRenderCompletion(
     }
 
 
-    /* -----------------------------------------------
-       FAILED
-    ------------------------------------------------ */
-
     if (
-      data.status === "failed"
+      data.status ===
+      "failed"
     ) {
 
       throw new Error(
@@ -2033,12 +2338,9 @@ async function waitForRenderCompletion(
     }
 
 
-    /* -----------------------------------------------
-       COMPLETED
-    ------------------------------------------------ */
-
     if (
-      data.status === "completed" &&
+      data.status ===
+        "completed" &&
       data.videoUrl
     ) {
 
@@ -2052,12 +2354,10 @@ async function waitForRenderCompletion(
     }
 
 
-    /* -----------------------------------------------
-       REAL BACKEND PROGRESS
-    ------------------------------------------------ */
-
     const backendProgress =
-      Number(data.progress);
+      Number(
+        data.progress
+      );
 
 
     if (
@@ -2103,33 +2403,13 @@ async function waitForRenderCompletion(
         "queued"
       ) {
 
-        message =
-          data.message ||
-          "Render job is queued...";
-
         statusText =
           "Queued";
 
       } else if (
         data.status ===
-        "rendering"
-      ) {
-
-        message =
-          data.message ||
-          "Remotion is rendering your MP4...";
-
-        statusText =
-          "Rendering";
-
-      } else if (
-        data.status ===
         "uploading"
       ) {
-
-        message =
-          data.message ||
-          "Uploading your finished MP4...";
 
         statusText =
           "Uploading";
@@ -2231,7 +2511,9 @@ function prepareResult(
     "";
 
 
-  if (videoUrl) {
+  if (
+    videoUrl
+  ) {
 
     video.src =
       videoUrl;
@@ -2263,6 +2545,8 @@ function prepareResult(
 
 
   showScenes();
+
+  resetMusicUI();
 }
 
 
@@ -2326,11 +2610,17 @@ function createResultMeta(
         item => `
           <div class="bg-white border border-gray-200 rounded-2xl p-4">
             <div class="text-[11px] uppercase tracking-wide font-black text-gray-400">
-              ${escapeHtml(item.label)}
+              ${escapeHtml(
+                item.label
+              )}
             </div>
 
             <div class="font-black mt-1">
-              ${escapeHtml(String(item.value))}
+              ${escapeHtml(
+                String(
+                  item.value
+                )
+              )}
             </div>
           </div>
         `
@@ -2354,7 +2644,16 @@ function createScenes(
       );
 
 
-  if (!scenes.length) {
+  if (
+    !list
+  ) {
+    return;
+  }
+
+
+  if (
+    !scenes.length
+  ) {
 
     list.innerHTML =
       `
@@ -2411,13 +2710,21 @@ function createScenes(
                 <div class="mt-3 space-y-2">
                   ${lines
                     .map(
-                      (line, lineIndex) => `
+                      (
+                        line,
+                        lineIndex
+                      ) => `
                         <div class="scene-line pl-3 text-xs text-gray-500">
                           <span class="font-bold text-gray-400 mr-1">
-                            ${lineIndex + 1}.
+                            ${
+                              lineIndex +
+                              1
+                            }.
                           </span>
                           ${escapeHtml(
-                            String(line)
+                            String(
+                              line
+                            )
                           )}
                         </div>
                       `
@@ -2434,7 +2741,10 @@ function createScenes(
               <div class="flex items-center justify-between gap-3">
 
                 <div class="font-black text-sm">
-                  Scene ${index + 1}
+                  Scene ${
+                    index +
+                    1
+                  }
                 </div>
 
                 ${
@@ -2442,7 +2752,9 @@ function createScenes(
                     ? `
                       <div class="text-xs text-gray-400 font-semibold">
                         ${escapeHtml(
-                          String(duration)
+                          String(
+                            duration
+                          )
                         )}s
                       </div>
                     `
@@ -2453,11 +2765,15 @@ function createScenes(
 
               <div class="text-sm text-gray-600 mt-2 leading-relaxed">
                 ${escapeHtml(
-                  String(caption)
+                  String(
+                    caption
+                  )
                 )}
               </div>
 
-              ${linesHtml}
+              ${
+                linesHtml
+              }
 
             </div>
           `;
@@ -2469,7 +2785,1120 @@ function createScenes(
 
 
 /* =====================================================
-   PREVIEW
+   MUSIC UI RESET
+===================================================== */
+
+function resetMusicUI() {
+
+  musicOptions =
+    [];
+
+  selectedMusic =
+    null;
+
+  musicGenerationInProgress =
+    false;
+
+  musicApplyInProgress =
+    false;
+
+
+  stopMusicPreview();
+
+
+  const loading =
+    document.getElementById(
+      "musicLoading"
+    );
+
+  const error =
+    document.getElementById(
+      "musicError"
+    );
+
+  const content =
+    document.getElementById(
+      "musicContent"
+    );
+
+  const apply =
+    document.getElementById(
+      "musicApplyStatus"
+    );
+
+
+  if (loading) {
+    loading.classList.remove(
+      "hidden"
+    );
+  }
+
+  if (error) {
+    error.classList.add(
+      "hidden"
+    );
+  }
+
+  if (content) {
+    content.classList.add(
+      "hidden"
+    );
+  }
+
+  if (apply) {
+    apply.classList.add(
+      "hidden"
+    );
+  }
+}
+
+
+/* =====================================================
+   MUSIC RECOMMENDATION
+===================================================== */
+
+async function generateRecommendedMusic(
+  style = ""
+) {
+
+  if (
+    musicGenerationInProgress
+  ) {
+    return;
+  }
+
+
+  const jobId =
+    renderJobData?.jobId;
+
+
+  if (
+    !jobId
+  ) {
+
+    showMusicError(
+      "Render job ID is missing."
+    );
+
+    return;
+  }
+
+
+  musicGenerationInProgress =
+    true;
+
+
+  const loading =
+    document.getElementById(
+      "musicLoading"
+    );
+
+  const error =
+    document.getElementById(
+      "musicError"
+    );
+
+  const content =
+    document.getElementById(
+      "musicContent"
+    );
+
+
+  loading.classList.remove(
+    "hidden"
+  );
+
+  error.classList.add(
+    "hidden"
+  );
+
+  content.classList.add(
+    "hidden"
+  );
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/generate-music",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+
+              jobId,
+
+              scenes:
+                generatedVideoData?.scenes ||
+                [],
+
+              language:
+                renderJobData?.language ||
+                "Hindi",
+
+              musicStyle:
+                style || ""
+
+            })
+        }
+      );
+
+
+    const data =
+      await readJsonResponse(
+        response
+      );
+
+
+    if (
+      !response.ok ||
+      !data.success ||
+      !data.musicUrl
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Music generation failed."
+      );
+    }
+
+
+    const musicItem = {
+
+      id:
+        `${data.musicStyle}-${Date.now()}`,
+
+      style:
+        data.musicStyle ||
+        "cinematic",
+
+      label:
+        getMusicLabel(
+          data.musicStyle
+        ),
+
+      description:
+        getMusicDescription(
+          data.musicStyle
+        ),
+
+      url:
+        data.musicUrl,
+
+      model:
+        data.model ||
+        "lyria-3-clip-preview",
+
+      recommended:
+        true
+
+    };
+
+
+    musicOptions =
+      [
+        musicItem,
+
+        ...musicOptions.filter(
+          item =>
+            item.style !==
+            musicItem.style
+        )
+      ];
+
+
+    selectedMusic =
+      musicItem;
+
+
+    renderMusicOptions();
+
+
+  } catch (error) {
+
+    console.error(
+      "MUSIC GENERATION ERROR:",
+      error
+    );
+
+    showMusicError(
+      error?.message ||
+      "Music recommendation failed."
+    );
+
+  } finally {
+
+    musicGenerationInProgress =
+      false;
+  }
+}
+
+
+/* =====================================================
+   MUSIC LABELS
+===================================================== */
+
+function getMusicLabel(
+  style
+) {
+
+  const labels = {
+
+    cinematic:
+      "Cinematic",
+
+    action:
+      "Epic Action",
+
+    suspense:
+      "Dark Suspense",
+
+    emotional:
+      "Emotional",
+
+    romantic:
+      "Soft Romantic",
+
+    funny:
+      "Playful Comedy",
+
+    energetic:
+      "Energetic",
+
+    calm:
+      "Calm Ambient"
+
+  };
+
+
+  return (
+    labels[
+      style
+    ] ||
+    "AI Recommended"
+  );
+}
+
+
+function getMusicDescription(
+  style
+) {
+
+  const descriptions = {
+
+    cinematic:
+      "Cinematic instrumental score with space for narration.",
+
+    action:
+      "High-energy action score with powerful percussion.",
+
+    suspense:
+      "Dark tension-focused score for suspenseful moments.",
+
+    emotional:
+      "Warm emotional score with soft piano and strings.",
+
+    romantic:
+      "Soft romantic instrumental with a gentle emotional feel.",
+
+    funny:
+      "Light playful comedy music with a cheerful rhythm.",
+
+    energetic:
+      "Upbeat energetic music for fast and motivating videos.",
+
+    calm:
+      "Peaceful ambient music designed to stay behind narration."
+
+  };
+
+
+  return (
+    descriptions[
+      style
+    ] ||
+    "AI-generated instrumental music matched to your video."
+  );
+}
+
+
+/* =====================================================
+   MUSIC OPTIONS UI
+===================================================== */
+
+function renderMusicOptions() {
+
+  const loading =
+    document.getElementById(
+      "musicLoading"
+    );
+
+  const content =
+    document.getElementById(
+      "musicContent"
+    );
+
+  const recommended =
+    document.getElementById(
+      "recommendedMusicCard"
+    );
+
+  const related =
+    document.getElementById(
+      "relatedMusicList"
+    );
+
+
+  if (
+    !selectedMusic ||
+    !recommended
+  ) {
+    return;
+  }
+
+
+  loading.classList.add(
+    "hidden"
+  );
+
+  content.classList.remove(
+    "hidden"
+  );
+
+
+  recommended.innerHTML =
+    buildMusicCardHtml(
+      selectedMusic,
+      true
+    );
+
+
+  const relatedStyles =
+    getRelatedStyles(
+      selectedMusic.style
+    );
+
+
+  related.innerHTML =
+    relatedStyles
+      .map(
+        style => {
+
+          const existing =
+            musicOptions.find(
+              item =>
+                item.style ===
+                style
+            );
+
+
+          if (
+            existing
+          ) {
+            return buildMusicCardHtml(
+              existing,
+              false
+            );
+          }
+
+
+          return `
+            <div
+              class="border border-gray-200 rounded-2xl p-4"
+            >
+
+              <div class="flex items-start gap-3">
+
+                <div
+                  class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center"
+                >
+                  🎵
+                </div>
+
+                <div class="flex-1 min-w-0">
+
+                  <div class="font-black">
+                    ${escapeHtml(
+                      getMusicLabel(
+                        style
+                      )
+                    )}
+                  </div>
+
+                  <div
+                    class="text-xs text-gray-500 mt-1 leading-relaxed"
+                  >
+                    ${escapeHtml(
+                      getMusicDescription(
+                        style
+                      )
+                    )}
+                  </div>
+
+                  <button
+                    onclick="generateRelatedMusic('${escapeHtml(style)}')"
+                    class="mt-3 text-sm font-black underline"
+                  >
+                    Generate this style
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+          `;
+        }
+      )
+      .join("");
+}
+
+
+/* =====================================================
+   RELATED STYLES
+===================================================== */
+
+function getRelatedStyles(
+  currentStyle
+) {
+
+  const map = {
+
+    suspense:
+      [
+        "cinematic",
+        "action",
+        "emotional"
+      ],
+
+    action:
+      [
+        "energetic",
+        "cinematic",
+        "suspense"
+      ],
+
+    funny:
+      [
+        "energetic",
+        "cinematic",
+        "calm"
+      ],
+
+    romantic:
+      [
+        "emotional",
+        "calm",
+        "cinematic"
+      ],
+
+    emotional:
+      [
+        "romantic",
+        "cinematic",
+        "calm"
+      ],
+
+    energetic:
+      [
+        "action",
+        "cinematic",
+        "funny"
+      ],
+
+    calm:
+      [
+        "emotional",
+        "cinematic",
+        "romantic"
+      ],
+
+    cinematic:
+      [
+        "emotional",
+        "action",
+        "suspense"
+      ]
+
+  };
+
+
+  return (
+    map[
+      currentStyle
+    ] ||
+    [
+      "cinematic",
+      "emotional",
+      "energetic"
+    ]
+  );
+}
+
+
+/* =====================================================
+   GENERATE RELATED MUSIC
+===================================================== */
+
+async function generateRelatedMusic(
+  style
+) {
+
+  if (
+    !style ||
+    musicGenerationInProgress
+  ) {
+    return;
+  }
+
+
+  await generateRecommendedMusic(
+    style
+  );
+}
+
+
+/* =====================================================
+   MUSIC CARD HTML
+===================================================== */
+
+function buildMusicCardHtml(
+  item,
+  recommended
+) {
+
+  const isSelected =
+    selectedMusic?.id ===
+    item.id;
+
+
+  return `
+    <div>
+
+      <div class="flex items-start gap-3">
+
+        <div
+          class="w-11 h-11 rounded-xl bg-black text-white flex items-center justify-center shrink-0"
+        >
+          ${
+            recommended
+              ? "✨"
+              : "🎵"
+          }
+        </div>
+
+
+        <div class="flex-1 min-w-0">
+
+          <div
+            class="flex items-center gap-2 flex-wrap"
+          >
+
+            <div class="font-black">
+              ${escapeHtml(
+                item.label
+              )}
+            </div>
+
+            ${
+              recommended
+                ? `
+                  <span
+                    class="px-2 py-1 rounded-full bg-gray-100 text-[10px] font-black"
+                  >
+                    RECOMMENDED
+                  </span>
+                `
+                : ""
+            }
+
+          </div>
+
+
+          <div
+            class="text-xs text-gray-500 mt-1 leading-relaxed"
+          >
+            ${escapeHtml(
+              item.description
+            )}
+          </div>
+
+
+          <div
+            class="music-wave mt-3"
+            id="musicWave-${escapeHtml(item.id)}"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+
+
+          <div
+            class="grid grid-cols-2 gap-2 mt-3"
+          >
+
+            <button
+              onclick="previewMusic('${escapeHtml(item.id)}')"
+              class="border border-gray-200 rounded-xl py-2.5 text-sm font-black"
+            >
+              ▶ Preview
+            </button>
+
+            <button
+              onclick="selectMusic('${escapeHtml(item.id)}')"
+              class="bg-black text-white rounded-xl py-2.5 text-sm font-black"
+            >
+              ${
+                isSelected
+                  ? "✓ Selected"
+                  : "Select"
+              }
+            </button>
+
+          </div>
+
+
+          ${
+            isSelected
+              ? `
+                <button
+                  onclick="applySelectedMusic()"
+                  class="primary-btn w-full mt-2 bg-black text-white rounded-xl py-3 text-sm font-black"
+                >
+                  🎵 Apply Music to Video
+                </button>
+              `
+              : ""
+          }
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =====================================================
+   SELECT MUSIC
+===================================================== */
+
+function selectMusic(
+  musicId
+) {
+
+  const item =
+    musicOptions.find(
+      option =>
+        option.id ===
+        musicId
+    );
+
+
+  if (
+    !item
+  ) {
+    return;
+  }
+
+
+  selectedMusic =
+    item;
+
+
+  renderMusicOptions();
+}
+
+
+/* =====================================================
+   PREVIEW MUSIC
+===================================================== */
+
+function previewMusic(
+  musicId
+) {
+
+  const item =
+    musicOptions.find(
+      option =>
+        option.id ===
+        musicId
+    );
+
+
+  if (
+    !item ||
+    !item.url
+  ) {
+    return;
+  }
+
+
+  stopMusicPreview();
+
+
+  musicPreviewAudio =
+    new Audio(
+      item.url
+    );
+
+  musicPreviewAudio.loop =
+    true;
+
+
+  const wave =
+    document.getElementById(
+      `musicWave-${musicId}`
+    );
+
+
+  if (
+    wave
+  ) {
+    wave.classList.add(
+      "playing"
+    );
+  }
+
+
+  musicPreviewAudio
+    .play()
+    .catch(
+      error =>
+        console.warn(
+          "Music preview blocked:",
+          error
+        )
+    );
+}
+
+
+/* =====================================================
+   STOP MUSIC PREVIEW
+===================================================== */
+
+function stopMusicPreview() {
+
+  if (
+    musicPreviewAudio
+  ) {
+
+    try {
+      musicPreviewAudio.pause();
+    } catch {}
+
+    musicPreviewAudio =
+      null;
+  }
+
+
+  document
+    .querySelectorAll(
+      ".music-wave.playing"
+    )
+    .forEach(
+      element =>
+        element.classList.remove(
+          "playing"
+        )
+    );
+}
+
+
+/* =====================================================
+   APPLY MUSIC
+===================================================== */
+
+async function applySelectedMusic() {
+
+  if (
+    !selectedMusic ||
+    !selectedMusic.url
+  ) {
+
+    alert(
+      "Pehle music select karo."
+    );
+
+    return;
+  }
+
+
+  if (
+    musicApplyInProgress
+  ) {
+    return;
+  }
+
+
+  const originalJobId =
+    renderJobData?.jobId;
+
+  const videoUrl =
+    renderJobData?.videoUrl;
+
+
+  if (
+    !originalJobId ||
+    !videoUrl
+  ) {
+
+    alert(
+      "Original video information missing hai."
+    );
+
+    return;
+  }
+
+
+  musicApplyInProgress =
+    true;
+
+
+  stopMusicPreview();
+
+
+  const status =
+    document.getElementById(
+      "musicApplyStatus"
+    );
+
+  const title =
+    document.getElementById(
+      "musicApplyTitle"
+    );
+
+  const message =
+    document.getElementById(
+      "musicApplyMessage"
+    );
+
+
+  status.classList.remove(
+    "hidden"
+  );
+
+
+  title.textContent =
+    "Applying music...";
+
+  message.textContent =
+    "New MP4 ban raha hai. Original video aur voice same rahenge.";
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/apply-music",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body:
+            JSON.stringify({
+
+              originalJobId,
+
+              videoUrl,
+
+              musicUrl:
+                selectedMusic.url,
+
+              musicStyle:
+                selectedMusic.style,
+
+              duration:
+                Number(
+                  document
+                    .getElementById(
+                      "duration"
+                    )?.value ||
+                  renderJobData?.duration ||
+                  30
+                )
+
+            })
+        }
+      );
+
+
+    const data =
+      await readJsonResponse(
+        response
+      );
+
+
+    if (
+      !response.ok ||
+      !data.success ||
+      !data.jobId
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Music apply job could not be started."
+      );
+    }
+
+
+    title.textContent =
+      "Creating updated MP4...";
+
+    message.textContent =
+      "Music mix ho raha hai. Please wait.";
+
+
+    const completed =
+      await waitForRenderCompletion(
+        data.jobId
+      );
+
+
+    if (
+      completed.status !==
+        "completed" ||
+      !completed.videoUrl
+    ) {
+
+      throw new Error(
+        completed.error ||
+        "Updated MP4 was not created."
+      );
+    }
+
+
+    renderJobData = {
+
+      ...renderJobData,
+
+      ...completed,
+
+      jobId:
+        data.jobId,
+
+      videoUrl:
+        completed.videoUrl,
+
+      musicStyle:
+        selectedMusic.style,
+
+      musicUrl:
+        selectedMusic.url
+
+    };
+
+
+    const video =
+      document.getElementById(
+        "videoPlayer"
+      );
+
+
+    video.src =
+      completed.videoUrl;
+
+    video.load();
+
+
+    title.textContent =
+      "Music applied successfully";
+
+    message.textContent =
+      "Updated MP4 ready hai. Neeche preview ya download kar sakte ho.";
+
+
+    await wait(800);
+
+
+    status.classList.add(
+      "hidden"
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "APPLY MUSIC ERROR:",
+      error
+    );
+
+
+    title.textContent =
+      "Music apply nahi hua";
+
+    message.textContent =
+      error?.message ||
+      "Could not create updated MP4.";
+
+
+  } finally {
+
+    musicApplyInProgress =
+      false;
+  }
+}
+
+
+/* =====================================================
+   MUSIC ERROR
+===================================================== */
+
+function showMusicError(
+  message
+) {
+
+  document
+    .getElementById(
+      "musicLoading"
+    )
+    .classList
+    .add("hidden");
+
+  document
+    .getElementById(
+      "musicContent"
+    )
+    .classList
+    .add("hidden");
+
+  document
+    .getElementById(
+      "musicError"
+    )
+    .classList
+    .remove("hidden");
+
+  document
+    .getElementById(
+      "musicErrorText"
+    )
+    .textContent =
+    message ||
+    "Music recommendation failed.";
+}
+
+
+/* =====================================================
+   PREVIEW VIDEO
 ===================================================== */
 
 function playPreview() {
@@ -2555,9 +3984,7 @@ function downloadVideo() {
 
     a.click();
 
-
     a.remove();
-
 
     return;
   }
@@ -2686,19 +4113,23 @@ function setProgress(
       0,
       Math.min(
         100,
-        Number(percent) || 0
+        Number(
+          percent
+        ) || 0
       )
     );
 
 
   bar.style.width =
-    safePercent + "%";
+    safePercent +
+    "%";
 
 
   text.textContent =
     Math.round(
       safePercent
-    ) + "%";
+    ) +
+    "%";
 
 
   msg.textContent =
@@ -2800,7 +4231,9 @@ async function readJsonResponse(
    WAIT
 ===================================================== */
 
-function wait(ms) {
+function wait(
+  ms
+) {
 
   return new Promise(
     resolve =>
@@ -2820,7 +4253,9 @@ function escapeHtml(
   value
 ) {
 
-  return String(value)
+  return String(
+    value
+  )
     .replace(
       /&/g,
       "&amp;"
@@ -2845,7 +4280,7 @@ function escapeHtml(
 
 
 /* =====================================================
-   INITIAL PAGE
+   INITIALIZE
 ===================================================== */
 
 updateCharacterCount(
