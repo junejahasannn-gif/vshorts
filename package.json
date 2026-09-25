@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "remotion": "remotion"
+    "remotion": "remotion",
+    "render": "remotion render",
+    "preview": "remotion studio"
   },
   "dependencies": {
     "@remotion/cli": "4.0.527",
