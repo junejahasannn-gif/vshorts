@@ -2,7 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+
+  <meta
+    name="description"
+    content="ViralTap Studio — AI Reel and Short Video Maker"
+  />
+
+  <meta
+    name="theme-color"
+    content="#08090b"
+  />
+
   <title>ViralTap Studio</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,11 +26,37 @@
       box-sizing: border-box;
     }
 
+    :root {
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --text: #101114;
+      --muted: #69707d;
+      --border: #e6e8ec;
+      --dark: #090a0d;
+      --dark2: #12141a;
+      --success: #16a34a;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f7f7f8;
-      color: #111;
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        Helvetica,
+        sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
     button,
@@ -24,6 +64,17 @@
     select,
     input {
       font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    textarea,
+    select,
+    input {
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     .hidden {
@@ -35,25 +86,72 @@
     }
 
     .glass {
-      background: rgba(255,255,255,.88);
-      border: 1px solid #e5e7eb;
-      box-shadow: 0 15px 40px rgba(0,0,0,.06);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid var(--border);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.06),
+        0 2px 8px rgba(0, 0, 0, 0.03);
+      backdrop-filter: blur(18px);
     }
 
     .gradient-text {
-      background: linear-gradient(90deg,#111,#555);
+      background:
+        linear-gradient(
+          90deg,
+          #111827 0%,
+          #4b5563 50%,
+          #111827 100%
+        );
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
 
+    .hero-grid {
+      background-image:
+        linear-gradient(
+          rgba(0, 0, 0, 0.035) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0.035) 1px,
+          transparent 1px
+        );
+      background-size: 32px 32px;
+    }
+
+    .hero-glow {
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      border-radius: 999px;
+      background:
+        radial-gradient(
+          circle,
+          rgba(17, 24, 39, 0.10),
+          transparent 68%
+        );
+      filter: blur(12px);
+      pointer-events: none;
+    }
+
     .loader {
-      width: 46px;
-      height: 46px;
+      width: 52px;
+      height: 52px;
       border: 4px solid #e5e7eb;
-      border-top-color: #111;
+      border-top-color: #111827;
       border-radius: 50%;
-      animation: spin .8s linear infinite;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .small-loader {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
     }
 
     @keyframes spin {
@@ -63,116 +161,442 @@
     }
 
     .progress {
-      transition: width .4s ease;
+      transition:
+        width 0.5s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .fade-in {
+      animation: fadeIn 0.35s ease both;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .studio-input {
+      width: 100%;
+      border: 1px solid #e1e4e8;
+      background: #fff;
+      border-radius: 16px;
+      padding: 14px 15px;
+      outline: none;
+      transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+    }
+
+    .studio-input:focus {
+      border-color: #111827;
+      box-shadow:
+        0 0 0 4px rgba(17,24,39,.07);
+    }
+
+    .studio-input::placeholder {
+      color: #a0a6b0;
+    }
+
+    .primary-btn {
+      position: relative;
+      overflow: hidden;
+      transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        opacity .18s ease;
+    }
+
+    .primary-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow:
+        0 12px 28px rgba(0,0,0,.16);
+    }
+
+    .primary-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .primary-btn:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .option-card {
+      transition:
+        border-color .2s ease,
+        background .2s ease,
+        transform .2s ease;
+    }
+
+    .option-card:hover {
+      transform: translateY(-1px);
+      border-color: #cfd3da;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow:
+        0 0 0 5px rgba(34,197,94,.10);
+    }
+
+    .video-frame {
+      background:
+        radial-gradient(
+          circle at 50% 30%,
+          #242832 0%,
+          #0b0c0f 55%,
+          #050506 100%
+        );
+    }
+
+    .scene-line {
+      border-left: 3px solid #111827;
+    }
+
+    .safe-bottom {
+      padding-bottom:
+        max(24px, env(safe-area-inset-bottom));
+    }
+
+    @media (max-width: 640px) {
+      .hero-title {
+        font-size: 42px;
+        line-height: 1.02;
+      }
+
+      .hero-glow {
+        width: 280px;
+        height: 280px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- HOME -->
-  <section id="homePage" class="page">
-    <header class="border-b border-gray-200 bg-white">
-      <div class="max-w-6xl mx-auto px-5 py-5 flex items-center justify-between">
-        <div>
-          <div class="text-2xl font-black">ViralTap</div>
-          <div class="text-xs text-gray-500">AI Video Studio</div>
-        </div>
+  <!-- =====================================================
+       HOME
+  ====================================================== -->
+
+  <section
+    id="homePage"
+    class="page"
+  >
+
+    <header
+      class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
+    >
+      <div
+        class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between"
+      >
+
+        <button
+          onclick="goHome()"
+          class="text-left"
+          aria-label="ViralTap home"
+        >
+          <div class="text-2xl font-black tracking-tight">
+            ViralTap
+          </div>
+
+          <div class="text-[11px] text-gray-500 font-semibold tracking-wide">
+            AI VIDEO STUDIO
+          </div>
+        </button>
 
         <button
           onclick="openNormalStudio()"
-          class="bg-black text-white px-5 py-2.5 rounded-xl font-bold"
+          class="primary-btn bg-black text-white px-5 py-2.5 rounded-xl font-bold text-sm"
         >
           Create Video
         </button>
+
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-5 py-14">
 
-      <div class="text-center max-w-3xl mx-auto">
-        <div class="inline-flex px-4 py-2 rounded-full bg-gray-100 text-sm font-bold mb-5">
-          ⚡ AI Reel & Short Video Maker
-        </div>
+    <main
+      class="relative overflow-hidden hero-grid"
+    >
 
-        <h1 class="text-5xl md:text-7xl font-black leading-tight">
-          Turn Your Ideas Into
-          <span class="gradient-text"> Viral Videos.</span>
-        </h1>
+      <div
+        class="hero-glow"
+        style="top:-100px;left:-100px;"
+      ></div>
 
-        <p class="text-gray-600 text-lg mt-6">
-          Write your idea, choose your style and let ViralTap create the video.
-        </p>
-      </div>
+      <div
+        class="hero-glow"
+        style="right:-160px;top:260px;"
+      ></div>
 
-      <div class="max-w-3xl mx-auto mt-12 glass rounded-3xl p-6">
-        <label class="font-bold text-lg">Your story / idea</label>
 
-        <textarea
-          id="homeStory"
-          rows="6"
-          class="w-full mt-3 border border-gray-200 rounded-2xl p-4 outline-none focus:border-black resize-none"
-          placeholder="Example: Ek funny reel banao jisme ek dost dusre dost ko late aane par roast karta hai..."
-        ></textarea>
+      <!-- HERO -->
 
-        <div class="grid md:grid-cols-2 gap-4 mt-5">
-          <button
-            onclick="openNormalStudio()"
-            class="bg-black text-white rounded-2xl py-4 font-bold"
+      <div
+        class="relative max-w-6xl mx-auto px-5 pt-16 md:pt-24 pb-12"
+      >
+
+        <div
+          class="text-center max-w-4xl mx-auto"
+        >
+
+          <div
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-bold"
           >
-            🎬 Video Banao
-          </button>
+            <span>⚡</span>
+            <span>AI Reel & Short Video Maker</span>
+          </div>
 
-          <button
-            onclick="openFunnyStudio()"
-            class="border border-gray-300 bg-white rounded-2xl py-4 font-bold"
+
+          <h1
+            class="hero-title text-6xl md:text-8xl font-black tracking-tight leading-none mt-7"
           >
-            😂 Funny Reel Banao
-          </button>
-        </div>
-      </div>
+            Turn Ideas Into
+            <span class="gradient-text">
+              Viral Videos.
+            </span>
+          </h1>
 
-      <div class="grid md:grid-cols-3 gap-5 mt-12">
 
-        <div class="bg-white border border-gray-200 rounded-2xl p-6">
-          <div class="text-3xl">✍️</div>
-          <h3 class="font-black text-lg mt-4">Story to Video</h3>
-          <p class="text-gray-500 text-sm mt-2">
-            Idea ko AI-generated scenes aur video me convert karo.
+          <p
+            class="text-gray-600 text-base md:text-xl leading-relaxed mt-7 max-w-2xl mx-auto"
+          >
+            Write your idea, choose your style,
+            and let ViralTap build your video
+            scene by scene.
           </p>
+
         </div>
 
-        <div class="bg-white border border-gray-200 rounded-2xl p-6">
-          <div class="text-3xl">😂</div>
-          <h3 class="font-black text-lg mt-4">Funny Reels</h3>
-          <p class="text-gray-500 text-sm mt-2">
-            Short comedy concepts ke liye AI scripting.
-          </p>
+
+        <!-- IDEA BOX -->
+
+        <div
+          class="max-w-3xl mx-auto mt-12 glass rounded-[28px] p-4 md:p-6"
+        >
+
+          <div
+            class="flex items-center justify-between gap-3"
+          >
+
+            <label
+              for="homeStory"
+              class="font-black text-lg"
+            >
+              Your story / idea
+            </label>
+
+            <span
+              id="homeCounter"
+              class="text-xs text-gray-400 font-semibold"
+            >
+              0 characters
+            </span>
+
+          </div>
+
+
+          <textarea
+            id="homeStory"
+            rows="6"
+            maxlength="5000"
+            class="studio-input mt-3 resize-none"
+            placeholder="Example: Ek funny reel banao jisme ek dost dusre dost ko late aane par roast karta hai..."
+            oninput="updateCharacterCount('homeStory','homeCounter')"
+          ></textarea>
+
+
+          <div
+            id="homeValidation"
+            class="hidden text-sm text-red-600 font-semibold mt-3"
+          ></div>
+
+
+          <div
+            class="grid md:grid-cols-2 gap-3 mt-4"
+          >
+
+            <button
+              onclick="openNormalStudio()"
+              class="primary-btn bg-black text-white rounded-2xl py-4 font-black"
+            >
+              🎬 Video Banao
+            </button>
+
+            <button
+              onclick="openFunnyStudio()"
+              class="option-card border border-gray-300 bg-white rounded-2xl py-4 font-black"
+            >
+              😂 Funny Reel Banao
+            </button>
+
+          </div>
+
         </div>
 
-        <div class="bg-white border border-gray-200 rounded-2xl p-6">
-          <div class="text-3xl">🎙️</div>
-          <h3 class="font-black text-lg mt-4">Voice + Music</h3>
-          <p class="text-gray-500 text-sm mt-2">
-            Voice, music aur branding options.
-          </p>
+
+        <!-- FEATURES -->
+
+        <div
+          class="grid md:grid-cols-3 gap-4 mt-10"
+        >
+
+          <div
+            class="bg-white border border-gray-200 rounded-2xl p-6"
+          >
+            <div class="text-3xl">✍️</div>
+
+            <h3 class="font-black text-lg mt-4">
+              Story to Video
+            </h3>
+
+            <p class="text-gray-500 text-sm leading-relaxed mt-2">
+              Idea ko AI-generated scenes aur
+              real MP4 video workflow me convert karo.
+            </p>
+          </div>
+
+
+          <div
+            class="bg-white border border-gray-200 rounded-2xl p-6"
+          >
+            <div class="text-3xl">🎬</div>
+
+            <h3 class="font-black text-lg mt-4">
+              Scene-by-Scene
+            </h3>
+
+            <p class="text-gray-500 text-sm leading-relaxed mt-2">
+              AI story ko multiple scenes aur
+              short caption lines me break karo.
+            </p>
+          </div>
+
+
+          <div
+            class="bg-white border border-gray-200 rounded-2xl p-6"
+          >
+            <div class="text-3xl">⚡</div>
+
+            <h3 class="font-black text-lg mt-4">
+              Real MP4 Render
+            </h3>
+
+            <p class="text-gray-500 text-sm leading-relaxed mt-2">
+              Background render ke baad actual
+              MP4 preview aur download.
+            </p>
+          </div>
+
         </div>
 
-      </div>
 
-      <div class="text-center mt-14 text-sm text-gray-500">
-        Support: WhatsApp +91 63530 68575 · junejahass@gmail.com
+        <!-- SUPPORTED -->
+
+        <div
+          class="max-w-3xl mx-auto mt-12 bg-white border border-gray-200 rounded-2xl p-5"
+        >
+
+          <div class="text-xs font-black text-gray-400 uppercase tracking-wider">
+            Create different types of videos
+          </div>
+
+          <div
+            class="flex flex-wrap gap-2 mt-3"
+          >
+
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+              😂 Comedy
+            </span>
+
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+              👻 Horror
+            </span>
+
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+              ❤️ Romance
+            </span>
+
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+              🔥 Action
+            </span>
+
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+              💪 Motivation
+            </span>
+
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+              📚 Education
+            </span>
+
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+              🎭 Drama
+            </span>
+
+            <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
+              🕵️ Suspense
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <footer
+          class="text-center mt-14 pb-10 text-sm text-gray-500"
+        >
+          Support: WhatsApp +91 63530 68575
+          ·
+          junejahass@gmail.com
+        </footer>
+
       </div>
 
     </main>
+
   </section>
 
 
-  <!-- STUDIO -->
-  <section id="studioPage" class="page hidden">
+  <!-- =====================================================
+       STUDIO
+  ====================================================== -->
 
-    <header class="border-b border-gray-200 bg-white">
-      <div class="max-w-5xl mx-auto px-5 py-5 flex items-center justify-between">
+  <section
+    id="studioPage"
+    class="page hidden"
+  >
+
+    <header
+      class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
+    >
+
+      <div
+        class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between"
+      >
 
         <button
           onclick="goHome()"
@@ -185,25 +609,29 @@
           ViralTap Studio
         </div>
 
-        <div></div>
+        <div class="w-12"></div>
 
       </div>
+
     </header>
 
-    <main class="max-w-5xl mx-auto px-5 py-10">
+
+    <main
+      class="max-w-5xl mx-auto px-5 py-10"
+    >
 
       <div class="mb-8">
 
         <div
           id="studioBadge"
-          class="inline-flex px-3 py-1 rounded-full bg-gray-100 text-sm font-bold"
+          class="inline-flex px-3 py-1.5 rounded-full bg-gray-100 text-sm font-bold"
         >
           ✨ AI Video
         </div>
 
         <h2
           id="studioTitle"
-          class="text-4xl font-black mt-4"
+          class="text-4xl md:text-5xl font-black mt-4 tracking-tight"
         >
           Create Your Video
         </h2>
@@ -214,31 +642,67 @@
 
       </div>
 
-      <div class="grid lg:grid-cols-3 gap-6">
 
-        <div class="lg:col-span-2 bg-white border border-gray-200 rounded-3xl p-6">
+      <div
+        class="grid lg:grid-cols-3 gap-6"
+      >
 
-          <label class="font-bold">
-            Story / Idea
-          </label>
+        <div
+          class="lg:col-span-2 bg-white border border-gray-200 rounded-[28px] p-5 md:p-6"
+        >
+
+          <div
+            class="flex items-center justify-between gap-3"
+          >
+
+            <label
+              for="studioStory"
+              class="font-black"
+            >
+              Story / Idea
+            </label>
+
+            <span
+              id="studioCounter"
+              class="text-xs text-gray-400 font-semibold"
+            >
+              0 characters
+            </span>
+
+          </div>
+
 
           <textarea
             id="studioStory"
             rows="7"
-            class="w-full mt-3 border border-gray-200 rounded-2xl p-4 outline-none focus:border-black resize-none"
+            maxlength="5000"
+            class="studio-input mt-3 resize-none"
             placeholder="Apni story ya idea yahan likho..."
+            oninput="updateCharacterCount('studioStory','studioCounter')"
           ></textarea>
 
-          <div class="grid md:grid-cols-2 gap-5 mt-6">
+
+          <div
+            id="studioValidation"
+            class="hidden text-sm text-red-600 font-semibold mt-3"
+          ></div>
+
+
+          <div
+            class="grid md:grid-cols-2 gap-4 mt-6"
+          >
 
             <div>
-              <label class="text-sm font-bold">
+              <label
+                for="language"
+                class="text-sm font-bold"
+              >
                 Language
               </label>
 
               <select
                 id="language"
-                class="w-full mt-2 border border-gray-200 rounded-xl p-3"
+                class="studio-input mt-2"
               >
                 <option value="Hindi">Hindi</option>
                 <option value="Hinglish">Hinglish</option>
@@ -247,94 +711,164 @@
               </select>
             </div>
 
+
             <div>
-              <label class="text-sm font-bold">
+              <label
+                for="aspectRatio"
+                class="text-sm font-bold"
+              >
                 Aspect Ratio
               </label>
 
               <select
                 id="aspectRatio"
-                class="w-full mt-2 border border-gray-200 rounded-xl p-3"
+                class="studio-input mt-2"
               >
-                <option value="9:16">9:16 — Reel / Short</option>
-                <option value="16:9">16:9 — YouTube</option>
-                <option value="1:1">1:1 — Square</option>
+                <option value="9:16">
+                  9:16 — Reel / Short
+                </option>
+
+                <option value="16:9">
+                  16:9 — YouTube
+                </option>
+
+                <option value="1:1">
+                  1:1 — Square
+                </option>
               </select>
             </div>
 
+
             <div>
-              <label class="text-sm font-bold">
+              <label
+                for="duration"
+                class="text-sm font-bold"
+              >
                 Duration
               </label>
 
               <select
                 id="duration"
-                class="w-full mt-2 border border-gray-200 rounded-xl p-3"
+                class="studio-input mt-2"
               >
-                <option value="30">30 seconds</option>
-                <option value="60">60 seconds</option>
-                <option value="180">3 minutes</option>
+                <option value="30">
+                  30 seconds
+                </option>
+
+                <option value="60">
+                  60 seconds
+                </option>
+
+                <option value="180">
+                  3 minutes
+                </option>
               </select>
             </div>
 
+
             <div>
-              <label class="text-sm font-bold">
+              <label
+                for="voice"
+                class="text-sm font-bold"
+              >
                 Voice
               </label>
 
               <select
                 id="voice"
-                class="w-full mt-2 border border-gray-200 rounded-xl p-3"
+                class="studio-input mt-2"
               >
-                <option value="Natural Male">Natural Male</option>
-                <option value="Natural Female">Natural Female</option>
+                <option value="Natural Male">
+                  Natural Male
+                </option>
+
+                <option value="Natural Female">
+                  Natural Female
+                </option>
               </select>
             </div>
 
+
             <div>
-              <label class="text-sm font-bold">
+              <label
+                for="music"
+                class="text-sm font-bold"
+              >
                 Music
               </label>
 
               <select
                 id="music"
-                class="w-full mt-2 border border-gray-200 rounded-xl p-3"
+                class="studio-input mt-2"
               >
-                <option value="None">No Music</option>
-                <option value="Cinematic">Cinematic</option>
-                <option value="Funny">Funny</option>
-                <option value="Energetic">Energetic</option>
+                <option value="None">
+                  No Music
+                </option>
+
+                <option value="Cinematic">
+                  Cinematic
+                </option>
+
+                <option value="Funny">
+                  Funny
+                </option>
+
+                <option value="Energetic">
+                  Energetic
+                </option>
               </select>
             </div>
 
+
             <div>
-              <label class="text-sm font-bold">
+              <label
+                for="branding"
+                class="text-sm font-bold"
+              >
                 Branding
               </label>
 
               <select
                 id="branding"
-                class="w-full mt-2 border border-gray-200 rounded-xl p-3"
+                class="studio-input mt-2"
               >
-                <option value="ViralTap">ViralTap</option>
-                <option value="None">No Branding</option>
+                <option value="ViralTap">
+                  ViralTap
+                </option>
+
+                <option value="None">
+                  No Branding
+                </option>
               </select>
             </div>
 
           </div>
 
+
           <button
+            id="generateButton"
             onclick="generateCurrentVideo()"
-            class="w-full mt-7 bg-black text-white rounded-2xl py-4 font-black text-lg"
+            class="primary-btn w-full mt-7 bg-black text-white rounded-2xl py-4 font-black text-lg flex items-center justify-center gap-3"
           >
-            🚀 Generate Video
+            <span id="generateButtonIcon">
+              🚀
+            </span>
+
+            <span id="generateButtonText">
+              Generate Video
+            </span>
           </button>
 
         </div>
 
-        <div class="bg-black text-white rounded-3xl p-6 h-fit">
 
-          <div class="text-sm text-gray-400">
+        <!-- SIDE INFO -->
+
+        <div
+          class="bg-[#090a0d] text-white rounded-[28px] p-6 h-fit"
+        >
+
+          <div class="text-sm text-gray-500">
             Current mode
           </div>
 
@@ -345,12 +879,45 @@
             AI Video
           </div>
 
-          <div class="mt-8 space-y-4 text-sm text-gray-300">
-            <div>✓ AI Script</div>
-            <div>✓ Scene Breakdown</div>
-            <div>✓ Captions</div>
-            <div>✓ Visual Prompts</div>
-            <div>✓ Real MP4 Render</div>
+
+          <div
+            class="mt-8 space-y-4 text-sm text-gray-300"
+          >
+
+            <div class="flex items-center gap-3">
+              <span class="text-green-400">✓</span>
+              AI Script
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="text-green-400">✓</span>
+              Scene Breakdown
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="text-green-400">✓</span>
+              Line-by-Line Captions
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="text-green-400">✓</span>
+              Visual Prompts
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="text-green-400">✓</span>
+              Real MP4 Render
+            </div>
+
+          </div>
+
+
+          <div
+            class="mt-8 pt-5 border-t border-white/10 text-xs text-gray-500 leading-relaxed"
+          >
+            Rendering happens in the background.
+            You can follow the real render progress
+            on the next screen.
           </div>
 
         </div>
@@ -362,55 +929,155 @@
   </section>
 
 
-  <!-- GENERATING -->
+  <!-- =====================================================
+       GENERATING
+  ====================================================== -->
+
   <section
     id="generatingPage"
-    class="page hidden flex items-center justify-center"
+    class="page hidden min-h-screen bg-[#08090b] text-white flex items-center justify-center"
   >
 
-    <div class="text-center max-w-lg mx-auto px-5">
+    <div
+      class="w-full max-w-xl mx-auto px-5 py-12 text-center"
+    >
 
-      <div class="loader mx-auto"></div>
+      <div
+        class="loader mx-auto"
+      ></div>
 
-      <h2 class="text-3xl font-black mt-8">
+
+      <div
+        class="inline-flex items-center gap-2 mt-8 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-gray-300"
+      >
+
+        <span
+          class="status-dot"
+        ></span>
+
+        <span>
+          RENDER ENGINE
+        </span>
+
+      </div>
+
+
+      <h2
+        class="text-3xl md:text-4xl font-black mt-5"
+      >
         Creating your video...
       </h2>
 
+
       <p
         id="generationMessage"
-        class="text-gray-500 mt-3"
+        class="text-gray-400 mt-3 leading-relaxed"
       >
         AI is preparing your story.
       </p>
 
-      <div class="w-full bg-gray-200 rounded-full h-3 mt-8 overflow-hidden">
+
+      <div
+        class="w-full bg-white/10 rounded-full h-3 mt-9 overflow-hidden"
+      >
 
         <div
           id="progressBar"
-          class="progress bg-black h-full rounded-full"
+          class="progress bg-white h-full rounded-full"
           style="width:5%"
         ></div>
 
       </div>
 
+
       <div
-        id="progressText"
-        class="font-bold mt-3"
+        class="flex items-center justify-between mt-3 text-xs text-gray-500"
       >
-        5%
+
+        <span>
+          Live render status
+        </span>
+
+        <span
+          id="progressText"
+          class="font-black text-white"
+        >
+          5%
+        </span>
+
       </div>
+
+
+      <div
+        id="generationDetails"
+        class="mt-8 bg-white/5 border border-white/10 rounded-2xl p-5 text-left"
+      >
+
+        <div
+          class="flex items-center justify-between"
+        >
+
+          <span class="text-sm text-gray-400">
+            Job status
+          </span>
+
+          <span
+            id="generationStatus"
+            class="text-sm font-bold text-white"
+          >
+            Starting
+          </span>
+
+        </div>
+
+
+        <div
+          class="flex items-center justify-between mt-3"
+        >
+
+          <span class="text-sm text-gray-400">
+            Job ID
+          </span>
+
+          <span
+            id="generationJobId"
+            class="text-xs font-mono text-gray-500 truncate max-w-[220px]"
+          >
+            —
+          </span>
+
+        </div>
+
+      </div>
+
+
+      <p
+        class="text-xs text-gray-600 mt-6"
+      >
+        Please keep this page open while the render is running.
+      </p>
 
     </div>
 
   </section>
 
 
-  <!-- RESULT -->
-  <section id="resultPage" class="page hidden">
+  <!-- =====================================================
+       RESULT
+  ====================================================== -->
 
-    <header class="border-b border-gray-200 bg-white">
+  <section
+    id="resultPage"
+    class="page hidden"
+  >
 
-      <div class="max-w-6xl mx-auto px-5 py-5 flex items-center justify-between">
+    <header
+      class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
+    >
+
+      <div
+        class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between"
+      >
 
         <button
           onclick="goHome()"
@@ -419,9 +1086,11 @@
           ← Home
         </button>
 
+
         <div class="font-black text-xl">
           ViralTap
         </div>
+
 
         <button
           onclick="openNormalStudio()"
@@ -435,36 +1104,49 @@
     </header>
 
 
-    <main class="max-w-6xl mx-auto px-5 py-10">
+    <main
+      class="max-w-6xl mx-auto px-5 py-10"
+    >
 
       <div class="mb-8">
 
-        <div class="inline-flex px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-bold">
-          ✓ Video Ready
+        <div
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-bold"
+        >
+          <span>✓</span>
+          <span>Video Ready</span>
         </div>
+
 
         <h1
           id="resultTitle"
-          class="text-4xl font-black mt-4"
+          class="text-4xl md:text-5xl font-black mt-4 tracking-tight"
         >
           Your Video
         </h1>
 
+
         <p
           id="resultDescription"
-          class="text-gray-500 mt-2"
+          class="text-gray-500 mt-2 max-w-3xl leading-relaxed"
         ></p>
 
       </div>
 
 
-      <div class="grid lg:grid-cols-3 gap-6">
+      <div
+        class="grid lg:grid-cols-3 gap-6"
+      >
 
-        <div class="lg:col-span-2">
+        <!-- VIDEO -->
+
+        <div
+          class="lg:col-span-2"
+        >
 
           <div
             id="previewBox"
-            class="bg-black rounded-3xl min-h-[500px] flex items-center justify-center overflow-hidden"
+            class="video-frame bg-black rounded-[28px] min-h-[520px] flex items-center justify-center overflow-hidden border border-gray-800"
           >
 
             <div
@@ -486,40 +1168,57 @@
 
             </div>
 
+
             <video
               id="videoPlayer"
               class="hidden max-h-[700px] max-w-full"
               controls
               playsinline
+              preload="metadata"
             ></video>
 
           </div>
 
 
-          <div class="flex gap-3 mt-5">
+          <div
+            class="grid grid-cols-2 gap-3 mt-5"
+          >
 
             <button
               onclick="playPreview()"
-              class="flex-1 bg-black text-white rounded-xl py-3 font-bold"
+              class="bg-black text-white rounded-xl py-3.5 font-bold"
             >
               ▶ Preview
             </button>
 
+
             <button
               onclick="downloadVideo()"
-              class="flex-1 border border-gray-300 rounded-xl py-3 font-bold"
+              class="border border-gray-300 bg-white rounded-xl py-3.5 font-bold"
             >
               ↓ Download
             </button>
 
           </div>
 
+
+          <div
+            id="resultMeta"
+            class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5"
+          ></div>
+
         </div>
 
 
-        <div class="bg-white border border-gray-200 rounded-3xl p-6">
+        <!-- SIDE -->
 
-          <div class="flex gap-2 mb-6">
+        <div
+          class="bg-white border border-gray-200 rounded-[28px] p-5 md:p-6 h-fit"
+        >
+
+          <div
+            class="flex gap-2 mb-6"
+          >
 
             <button
               id="scenesTab"
@@ -529,23 +1228,30 @@
               SCENES
             </button>
 
+
             <button
               id="previewTab"
               onclick="showPreviewInfo()"
               class="px-4 py-2 bg-gray-100 rounded-xl font-bold text-sm"
             >
-              PREVIEW
+              INFO
             </button>
 
           </div>
 
-          <div id="sceneList"></div>
+
+          <div
+            id="sceneList"
+          ></div>
+
 
           <div
             id="previewInfo"
-            class="hidden text-sm text-gray-500"
+            class="hidden text-sm text-gray-500 leading-relaxed"
           >
-            Preview information for your completed rendered video.
+            Your video was generated through the ViralTap
+            script → render pipeline. The preview above
+            uses the finished MP4 returned by the renderer.
           </div>
 
         </div>
@@ -560,18 +1266,21 @@
 <script>
 "use strict";
 
+/* =====================================================
+   STATE
+===================================================== */
 
 let currentVideoType = "normal";
 let generatedVideoData = null;
 let renderJobData = null;
+let generationInProgress = false;
 
 
-/* ------------------------------
+/* =====================================================
    PAGE HELPERS
------------------------------- */
+===================================================== */
 
 function hideAllPages() {
-
   document
     .getElementById("homePage")
     .classList.add("hidden");
@@ -591,6 +1300,9 @@ function hideAllPages() {
 
 
 function goHome() {
+  if (generationInProgress) {
+    return;
+  }
 
   hideAllPages();
 
@@ -602,6 +1314,10 @@ function goHome() {
 
 function openNormalStudio() {
 
+  if (generationInProgress) {
+    return;
+  }
+
   currentVideoType = "normal";
 
   const homeText =
@@ -610,25 +1326,36 @@ function openNormalStudio() {
       .value
       .trim();
 
+
   document
     .getElementById("studioTitle")
     .textContent =
     "Create Your Video";
+
 
   document
     .getElementById("studioBadge")
     .textContent =
     "✨ AI Video";
 
+
   document
     .getElementById("sideMode")
     .textContent =
     "AI Video";
 
+
   document
     .getElementById("studioStory")
     .value =
     homeText;
+
+
+  updateCharacterCount(
+    "studioStory",
+    "studioCounter"
+  );
+
 
   hideAllPages();
 
@@ -641,6 +1368,10 @@ function openNormalStudio() {
 
 function openFunnyStudio() {
 
+  if (generationInProgress) {
+    return;
+  }
+
   currentVideoType = "funny";
 
   const homeText =
@@ -649,30 +1380,42 @@ function openFunnyStudio() {
       .value
       .trim();
 
+
   document
     .getElementById("studioTitle")
     .textContent =
     "Funny Reel Studio";
+
 
   document
     .getElementById("studioBadge")
     .textContent =
     "😂 Funny Reel";
 
+
   document
     .getElementById("sideMode")
     .textContent =
     "Funny Reel";
+
 
   document
     .getElementById("studioStory")
     .value =
     homeText;
 
+
+  updateCharacterCount(
+    "studioStory",
+    "studioCounter"
+  );
+
+
   document
     .getElementById("duration")
     .value =
     "30";
+
 
   hideAllPages();
 
@@ -683,11 +1426,112 @@ function openFunnyStudio() {
 }
 
 
-/* ------------------------------
-   GENERATION
------------------------------- */
+/* =====================================================
+   CHARACTER COUNT
+===================================================== */
+
+function updateCharacterCount(
+  inputId,
+  counterId
+) {
+
+  const input =
+    document.getElementById(
+      inputId
+    );
+
+  const counter =
+    document.getElementById(
+      counterId
+    );
+
+  if (!input || !counter) {
+    return;
+  }
+
+  const length =
+    input.value.length;
+
+  counter.textContent =
+    `${length.toLocaleString()} characters`;
+}
+
+
+/* =====================================================
+   VALIDATION
+===================================================== */
+
+function validateStory(
+  story,
+  targetId
+) {
+
+  const box =
+    document.getElementById(
+      targetId
+    );
+
+  if (!box) {
+    return false;
+  }
+
+  box.classList.add("hidden");
+  box.textContent = "";
+
+
+  if (!story) {
+
+    box.textContent =
+      "Pehle story ya idea likho.";
+
+    box.classList.remove(
+      "hidden"
+    );
+
+    return false;
+  }
+
+
+  if (story.length < 5) {
+
+    box.textContent =
+      "Thoda aur detail me idea likho.";
+
+    box.classList.remove(
+      "hidden"
+    );
+
+    return false;
+  }
+
+
+  if (story.length > 5000) {
+
+    box.textContent =
+      "Story maximum 5000 characters tak ho sakti hai.";
+
+    box.classList.remove(
+      "hidden"
+    );
+
+    return false;
+  }
+
+
+  return true;
+}
+
+
+/* =====================================================
+   GENERATE
+===================================================== */
 
 async function generateCurrentVideo() {
+
+  if (generationInProgress) {
+    return;
+  }
+
 
   const story =
     document
@@ -695,14 +1539,16 @@ async function generateCurrentVideo() {
       .value
       .trim();
 
-  if (!story) {
 
-    alert(
-      "Pehle story ya idea likho."
-    );
-
+  if (
+    !validateStory(
+      story,
+      "studioValidation"
+    )
+  ) {
     return;
   }
+
 
   const options = {
 
@@ -748,30 +1594,109 @@ async function generateCurrentVideo() {
         .value
   };
 
-  await startGeneration(options);
+
+  await startGeneration(
+    options
+  );
 }
 
 
-async function startGeneration(options) {
+/* =====================================================
+   GENERATE BUTTON STATE
+===================================================== */
+
+function setGenerateButtonLoading(
+  loading
+) {
+
+  const button =
+    document.getElementById(
+      "generateButton"
+    );
+
+  const icon =
+    document.getElementById(
+      "generateButtonIcon"
+    );
+
+  const text =
+    document.getElementById(
+      "generateButtonText"
+    );
+
+
+  if (!button) {
+    return;
+  }
+
+
+  button.disabled =
+    loading;
+
+
+  if (loading) {
+
+    icon.innerHTML =
+      '<span class="small-loader"></span>';
+
+    text.textContent =
+      "Generating...";
+
+  } else {
+
+    icon.textContent =
+      "🚀";
+
+    text.textContent =
+      "Generate Video";
+  }
+}
+
+
+/* =====================================================
+   START GENERATION
+===================================================== */
+
+async function startGeneration(
+  options
+) {
+
+  if (generationInProgress) {
+    return;
+  }
+
+
+  generationInProgress =
+    true;
+
+
+  setGenerateButtonLoading(
+    true
+  );
+
 
   hideAllPages();
 
   document
-    .getElementById("generatingPage")
+    .getElementById(
+      "generatingPage"
+    )
     .classList
     .remove("hidden");
 
+
   setProgress(
-    10,
-    "AI is understanding your idea..."
+    5,
+    "AI is understanding your idea...",
+    "Starting"
   );
 
 
   try {
 
-    /* ------------------------------
-       STEP 1: GEMINI SCRIPT
-    ------------------------------ */
+    /* -----------------------------------------------
+       STEP 1 — GEMINI SCRIPT
+    ------------------------------------------------ */
 
     const scriptResponse =
       await fetch(
@@ -785,7 +1710,9 @@ async function startGeneration(options) {
           },
 
           body:
-            JSON.stringify(options)
+            JSON.stringify(
+              options
+            )
         }
       );
 
@@ -803,30 +1730,38 @@ async function startGeneration(options) {
 
       const detailedError = [
         scriptData.error,
+
         scriptData.geminiError
           ? `Gemini: ${scriptData.geminiError}`
           : "",
+
         scriptData.geminiHttpStatus
           ? `HTTP: ${scriptData.geminiHttpStatus}`
           : "",
+
         scriptData.geminiStatusText
           ? `Status: ${scriptData.geminiStatusText}`
           : "",
+
         scriptData.finishReason
           ? `Finish: ${scriptData.finishReason}`
           : "",
+
         scriptData.parseError
           ? `Parse: ${scriptData.parseError}`
           : "",
+
         scriptData.attempts
           ? `Attempts: ${scriptData.attempts}`
           : "",
+
         scriptData.details
           ? `Details: ${scriptData.details}`
           : ""
       ]
         .filter(Boolean)
         .join("\n");
+
 
       throw new Error(
         detailedError ||
@@ -840,14 +1775,15 @@ async function startGeneration(options) {
 
 
     setProgress(
-      55,
-      "AI scenes created. Starting video render..."
+      45,
+      "AI scenes created. Preparing your render...",
+      "Script ready"
     );
 
 
-    /* ------------------------------
-       STEP 2: START RENDER JOB
-    ------------------------------ */
+    /* -----------------------------------------------
+       STEP 2 — START RENDER
+    ------------------------------------------------ */
 
     const renderResponse =
       await fetch(
@@ -920,15 +1856,24 @@ async function startGeneration(options) {
       renderData;
 
 
+    document
+      .getElementById(
+        "generationJobId"
+      )
+      .textContent =
+      renderData.jobId;
+
+
     setProgress(
       60,
-      "Render job started. Creating your MP4..."
+      "Render job started. Creating your MP4...",
+      "Queued"
     );
 
 
-    /* ------------------------------
-       STEP 3: WAIT FOR REAL RENDER
-    ------------------------------ */
+    /* -----------------------------------------------
+       STEP 3 — WAIT FOR REAL RENDER
+    ------------------------------------------------ */
 
     const completedData =
       await waitForRenderCompletion(
@@ -960,27 +1905,31 @@ async function startGeneration(options) {
 
     setProgress(
       100,
-      "Your video is ready."
+      "Your video is ready. 🎉",
+      "Completed"
     );
 
 
-    await wait(400);
+    await wait(500);
 
 
-    /* ------------------------------
-       STEP 4: SHOW RESULT
-    ------------------------------ */
+    /* -----------------------------------------------
+       STEP 4 — RESULT
+    ------------------------------------------------ */
 
     prepareResult(
       scriptData,
-      completedData
+      completedData,
+      options
     );
 
 
     hideAllPages();
 
     document
-      .getElementById("resultPage")
+      .getElementById(
+        "resultPage"
+      )
       .classList
       .remove("hidden");
 
@@ -993,32 +1942,36 @@ async function startGeneration(options) {
     );
 
 
-    alert(
-      "Video generate nahi hua.\n\n" +
-      (
-        error.message ||
-        "Unknown error"
-      )
+    showGenerationError(
+      error
     );
 
 
-    goHome();
+  } finally {
+
+    generationInProgress =
+      false;
+
+    setGenerateButtonLoading(
+      false
+    );
   }
 }
 
 
-/* ------------------------------
-   RENDER STATUS POLLING
------------------------------- */
+/* =====================================================
+   RENDER STATUS
+===================================================== */
 
 async function waitForRenderCompletion(
   jobId
 ) {
 
   const maxAttempts = 180;
+
   const pollInterval = 3000;
 
-  let lastProgress = 60;
+  let lastFrontendProgress = 60;
 
 
   for (
@@ -1056,9 +2009,9 @@ async function waitForRenderCompletion(
     }
 
 
-    /* ------------------------------
+    /* -----------------------------------------------
        FAILED
-    ------------------------------ */
+    ------------------------------------------------ */
 
     if (
       data.status === "failed"
@@ -1071,9 +2024,9 @@ async function waitForRenderCompletion(
     }
 
 
-    /* ------------------------------
+    /* -----------------------------------------------
        COMPLETED
-    ------------------------------ */
+    ------------------------------------------------ */
 
     if (
       data.status === "completed" &&
@@ -1082,37 +2035,64 @@ async function waitForRenderCompletion(
 
       setProgress(
         100,
-        "Video ready! 🎉"
+        "Video ready! 🎉",
+        "Completed"
       );
 
       return data;
     }
 
 
-    /* ------------------------------
-       REAL PROGRESS
-    ------------------------------ */
+    /* -----------------------------------------------
+       REAL BACKEND PROGRESS
+
+       Backend progress:
+       0 → 100
+
+       Frontend generation stage:
+       60 → 99
+    ------------------------------------------------ */
+
+    const backendProgress =
+      Number(data.progress);
+
 
     if (
       Number.isFinite(
-        Number(data.progress)
+        backendProgress
       )
     ) {
 
-      const backendProgress =
-        Number(data.progress);
-
-      const actualProgress =
+      const normalized =
         Math.min(
-          99,
+          100,
           Math.max(
-            60,
+            0,
             backendProgress
           )
         );
 
-      lastProgress =
-        actualProgress;
+
+      /*
+        Keep generation screen at 60%
+        when render starts.
+
+        Backend 0%   => frontend 60%
+        Backend 50%  => frontend 79.5%
+        Backend 100% => frontend 99%
+      */
+
+      const frontendProgress =
+        Math.min(
+          99,
+          60 +
+            normalized *
+              0.39
+        );
+
+
+      lastFrontendProgress =
+        frontendProgress;
 
 
       let message =
@@ -1120,49 +2100,62 @@ async function waitForRenderCompletion(
         "Rendering your video...";
 
 
+      let statusText =
+        "Rendering";
+
+
       if (
-        data.status === "queued"
+        data.status ===
+        "queued"
       ) {
 
         message =
           data.message ||
           "Render job is queued...";
 
+        statusText =
+          "Queued";
+
       } else if (
-        data.status === "rendering"
+        data.status ===
+        "rendering"
       ) {
 
         message =
           data.message ||
           "Remotion is rendering your MP4...";
 
+        statusText =
+          "Rendering";
+
       } else if (
-        data.status === "uploading"
+        data.status ===
+        "uploading"
       ) {
 
         message =
           data.message ||
           "Uploading your finished MP4...";
+
+        statusText =
+          "Uploading";
       }
 
 
       setProgress(
-        actualProgress,
-        message
+        frontendProgress,
+        message,
+        statusText
       );
 
     } else {
 
-      /*
-       * Agar backend ne abhi progress
-       * nahi bheji hai, progress ko fake
-       * tarike se aage nahi badhayenge.
-       */
-
       setProgress(
-        lastProgress,
+        lastFrontendProgress,
         data.message ||
-        "Rendering your video..."
+          "Rendering your video...",
+        data.status ||
+          "Rendering"
       );
     }
 
@@ -1179,13 +2172,14 @@ async function waitForRenderCompletion(
 }
 
 
-/* ------------------------------
+/* =====================================================
    RESULT
------------------------------- */
+===================================================== */
 
 function prepareResult(
   data,
-  completedData = null
+  completedData = null,
+  options = {}
 ) {
 
   const title =
@@ -1266,12 +2260,94 @@ function prepareResult(
     noVideo.classList
       .remove("hidden");
   }
+
+
+  createResultMeta(
+    completedData,
+    options
+  );
+
+
+  showScenes();
 }
 
 
-/* ------------------------------
+/* =====================================================
+   RESULT META
+===================================================== */
+
+function createResultMeta(
+  completedData,
+  options
+) {
+
+  const box =
+    document.getElementById(
+      "resultMeta"
+    );
+
+
+  if (!box) {
+    return;
+  }
+
+
+  const items = [
+
+    {
+      label: "Duration",
+      value:
+        options.duration
+          ? `${options.duration}s`
+          : "—"
+    },
+
+    {
+      label: "Format",
+      value:
+        options.aspectRatio ||
+        completedData?.aspectRatio ||
+        "—"
+    },
+
+    {
+      label: "Scenes",
+      value:
+        completedData?.sceneCount ??
+        generatedVideoData?.scenes?.length ??
+        "—"
+    },
+
+    {
+      label: "Status",
+      value: "Ready"
+    }
+
+  ];
+
+
+  box.innerHTML =
+    items
+      .map(
+        item => `
+          <div class="bg-white border border-gray-200 rounded-2xl p-4">
+            <div class="text-[11px] uppercase tracking-wide font-black text-gray-400">
+              ${escapeHtml(item.label)}
+            </div>
+
+            <div class="font-black mt-1">
+              ${escapeHtml(String(item.value))}
+            </div>
+          </div>
+        `
+      )
+      .join("");
+}
+
+
+/* =====================================================
    SCENES
------------------------------- */
+===================================================== */
 
 function createScenes(
   scenes
@@ -1287,7 +2363,11 @@ function createScenes(
   if (!scenes.length) {
 
     list.innerHTML =
-      '<div class="text-sm text-gray-500">No scenes found.</div>';
+      `
+        <div class="text-sm text-gray-500">
+          No scenes found.
+        </div>
+      `;
 
     return;
   }
@@ -1315,8 +2395,47 @@ function createScenes(
             "";
 
 
+          const lines =
+            Array.isArray(
+              scene.lines
+            )
+              ? scene.lines
+                  .map(
+                    line =>
+                      typeof line ===
+                      "string"
+                        ? line
+                        : line?.text
+                  )
+                  .filter(Boolean)
+              : [];
+
+
+          const linesHtml =
+            lines.length
+              ? `
+                <div class="mt-3 space-y-2">
+                  ${lines
+                    .map(
+                      (line, lineIndex) => `
+                        <div class="scene-line pl-3 text-xs text-gray-500">
+                          <span class="font-bold text-gray-400 mr-1">
+                            ${lineIndex + 1}.
+                          </span>
+                          ${escapeHtml(
+                            String(line)
+                          )}
+                        </div>
+                      `
+                    )
+                    .join("")}
+                </div>
+              `
+              : "";
+
+
           return `
-            <div class="border border-gray-200 rounded-2xl p-4 mb-3">
+            <div class="border border-gray-200 rounded-2xl p-4 mb-3 fade-in">
 
               <div class="flex items-center justify-between gap-3">
 
@@ -1327,7 +2446,7 @@ function createScenes(
                 ${
                   duration
                     ? `
-                      <div class="text-xs text-gray-400">
+                      <div class="text-xs text-gray-400 font-semibold">
                         ${escapeHtml(
                           String(duration)
                         )}s
@@ -1338,11 +2457,13 @@ function createScenes(
 
               </div>
 
-              <div class="text-sm text-gray-600 mt-2">
+              <div class="text-sm text-gray-600 mt-2 leading-relaxed">
                 ${escapeHtml(
                   String(caption)
                 )}
               </div>
+
+              ${linesHtml}
 
             </div>
           `;
@@ -1353,9 +2474,9 @@ function createScenes(
 }
 
 
-/* ------------------------------
-   PREVIEW / DOWNLOAD
------------------------------- */
+/* =====================================================
+   PREVIEW
+===================================================== */
 
 function playPreview() {
 
@@ -1399,6 +2520,10 @@ function playPreview() {
   );
 }
 
+
+/* =====================================================
+   DOWNLOAD
+===================================================== */
 
 function downloadVideo() {
 
@@ -1450,9 +2575,9 @@ function downloadVideo() {
 }
 
 
-/* ------------------------------
+/* =====================================================
    TABS
------------------------------- */
+===================================================== */
 
 function showScenes() {
 
@@ -1524,13 +2649,14 @@ function showPreviewInfo() {
 }
 
 
-/* ------------------------------
+/* =====================================================
    PROGRESS
------------------------------- */
+===================================================== */
 
 function setProgress(
   percent,
-  message
+  message,
+  status
 ) {
 
   const bar =
@@ -1554,30 +2680,97 @@ function setProgress(
       );
 
 
-  bar.style.width =
+  const statusEl =
+    document
+      .getElementById(
+        "generationStatus"
+      );
+
+
+  const safePercent =
     Math.max(
       0,
       Math.min(
         100,
-        percent
+        Number(percent) || 0
       )
-    ) + "%";
+    );
+
+
+  bar.style.width =
+    safePercent + "%";
 
 
   text.textContent =
     Math.round(
-      percent
+      safePercent
     ) + "%";
 
 
   msg.textContent =
-    message;
+    message ||
+    "Working...";
+
+
+  statusEl.textContent =
+    status ||
+    "Working";
 }
 
 
-/* ------------------------------
-   HELPERS
------------------------------- */
+/* =====================================================
+   ERROR UI
+===================================================== */
+
+function showGenerationError(
+  error
+) {
+
+  const message =
+    error?.message ||
+    "Unknown error";
+
+
+  hideAllPages();
+
+
+  const studio =
+    document.getElementById(
+      "studioPage"
+    );
+
+
+  studio.classList.remove(
+    "hidden"
+  );
+
+
+  const validation =
+    document.getElementById(
+      "studioValidation"
+    );
+
+
+  validation.textContent =
+    "Video generate nahi hua: " +
+    message;
+
+
+  validation.classList.remove(
+    "hidden"
+  );
+
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+
+/* =====================================================
+   SERVER RESPONSE
+===================================================== */
 
 async function readJsonResponse(
   response
@@ -1600,7 +2793,7 @@ async function readJsonResponse(
   } catch {
 
     throw new Error(
-      "Server ne valid JSON response nahi diya."
+      `Server ne valid JSON response nahi diya. HTTP ${response.status}`
     );
   }
 
@@ -1608,6 +2801,10 @@ async function readJsonResponse(
   return data;
 }
 
+
+/* =====================================================
+   WAIT
+===================================================== */
 
 function wait(ms) {
 
@@ -1620,6 +2817,10 @@ function wait(ms) {
   );
 }
 
+
+/* =====================================================
+   HTML ESCAPE
+===================================================== */
 
 function escapeHtml(
   value
@@ -1649,9 +2850,19 @@ function escapeHtml(
 }
 
 
-/* ------------------------------
+/* =====================================================
    INITIAL PAGE
------------------------------- */
+===================================================== */
+
+updateCharacterCount(
+  "homeStory",
+  "homeCounter"
+);
+
+updateCharacterCount(
+  "studioStory",
+  "studioCounter"
+);
 
 goHome();
 
