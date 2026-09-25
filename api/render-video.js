@@ -2,7 +2,7 @@ import { put } from "@vercel/blob";
 
 export const maxDuration = 60;
 
-const OWNER = "junejahassannn-gif";
+const OWNER = "junejahasannn-gif";
 const REPO = "vshorts";
 const WORKFLOW = "render.yml";
 
@@ -43,51 +43,34 @@ async function writeStatus(jobId, payload) {
     `status/${jobId}.json`,
     JSON.stringify({
       jobId,
-      updatedAt:
-        new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       ...payload,
     }),
     {
       access: "private",
-      contentType:
-        "application/json",
+      contentType: "application/json",
       addRandomSuffix: false,
       allowOverwrite: true,
-
-      /*
-       * Do not use 0 here.
-       *
-       * The status endpoint itself uses
-       * useCache:false when reading the
-       * latest status.
-       */
       cacheControlMaxAge: 60,
     }
   );
 }
 
-export default async function handler(
-  req,
-  res
-) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error:
-        "Only POST requests are allowed.",
+      error: "Only POST requests are allowed.",
     });
   }
 
-  const body =
-    req.body || {};
+  const body = req.body || {};
 
-  const scenes =
-    Array.isArray(body.scenes)
-      ? body.scenes
-      : [];
+  const scenes = Array.isArray(body.scenes)
+    ? body.scenes
+    : [];
 
-  const duration =
-    Number(body.duration);
+  const duration = Number(body.duration);
 
   const aspectRatio = [
     "9:16",
@@ -97,29 +80,14 @@ export default async function handler(
     ? body.aspectRatio
     : "9:16";
 
-  /*
-   * Validate scenes first.
-   *
-   * Without scenes there is nothing
-   * for Remotion to render.
-   */
   if (!scenes.length) {
     return res.status(400).json({
       success: false,
-      error:
-        "No scenes were provided.",
+      error: "No scenes were provided.",
     });
   }
 
-  /*
-   * Only the durations supported by
-   * the GitHub Actions workflow are allowed.
-   */
-  if (
-    ![30, 60, 180].includes(
-      duration
-    )
-  ) {
+  if (![30, 60, 180].includes(duration)) {
     return res.status(400).json({
       success: false,
       error:
@@ -127,13 +95,6 @@ export default async function handler(
     });
   }
 
-  /*
-   * GitHub Personal Access Token.
-   *
-   * This token is used ONLY by this
-   * Vercel API to dispatch the GitHub
-   * Actions render workflow.
-   */
   const githubToken =
     process.env.GH_PAT_TOKEN;
 
@@ -145,21 +106,11 @@ export default async function handler(
     });
   }
 
-  const {
-    width,
-    height,
-  } =
-    getDimensions(
-      aspectRatio
-    );
+  const { width, height } =
+    getDimensions(aspectRatio);
 
-  const jobId =
-    makeJobId();
+  const jobId = makeJobId();
 
-  /*
-   * These are the props sent to the
-   * GitHub render worker.
-   */
   const props = {
     scenes,
     aspectRatio,
@@ -168,41 +119,25 @@ export default async function handler(
     duration,
 
     videoType:
-      body.videoType ||
-      "normal",
+      body.videoType || "normal",
 
     voice:
-      body.voice ||
-      "Natural Male",
+      body.voice || "Natural Male",
 
     music:
-      body.music ||
-      "None",
+      body.music || "None",
 
     branding:
-      body.branding ||
-      "ViralTap",
+      body.branding || "ViralTap",
   };
 
-  /*
-   * Convert Remotion props to Base64
-   * so GitHub Actions can safely receive
-   * the complete render payload.
-   */
   const propsBase64 =
     Buffer.from(
       JSON.stringify(props),
       "utf8"
     ).toString("base64");
 
-  /*
-   * Prevent an oversized GitHub workflow
-   * dispatch payload.
-   */
-  if (
-    propsBase64.length >
-    60000
-  ) {
+  if (propsBase64.length > 60000) {
     return res.status(413).json({
       success: false,
       error:
@@ -211,30 +146,11 @@ export default async function handler(
   }
 
   try {
-    /*
-     * Create the initial status object.
-     *
-     * Frontend will see:
-     * queued
-     *
-     * Then GitHub worker changes it to:
-     * rendering
-     * uploading
-     * completed
-     * or failed
-     */
-    await writeStatus(
-      jobId,
-      {
-        status: "queued",
-        message:
-          "Render job queued.",
-      }
-    );
+    await writeStatus(jobId, {
+      status: "queued",
+      message: "Render job queued.",
+    });
 
-    /*
-     * Start the GitHub Actions workflow.
-     */
     const githubResponse =
       await fetch(
         `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
@@ -263,41 +179,26 @@ export default async function handler(
 
             inputs: {
               jobId,
-              duration:
-                String(duration),
+              duration: String(duration),
               propsBase64,
             },
           }),
         }
       );
 
-    /*
-     * GitHub workflow dispatch failed.
-     */
-    if (
-      !githubResponse.ok
-    ) {
+    if (!githubResponse.ok) {
       const detail =
         await githubResponse.text();
 
       try {
-        await writeStatus(
-          jobId,
-          {
-            status:
-              "failed",
+        await writeStatus(jobId, {
+          status: "failed",
 
-            error:
-              "GitHub workflow dispatch failed: " +
-              detail.slice(
-                0,
-                500
-              ),
-          }
-        );
-      } catch (
-        statusError
-      ) {
+          error:
+            "GitHub workflow dispatch failed: " +
+            detail.slice(0, 500),
+        });
+      } catch (statusError) {
         console.error(
           "VIRALTAP FAILED STATUS WRITE ERROR:",
           statusError
@@ -312,12 +213,12 @@ export default async function handler(
 
         details:
           `GitHub returned HTTP ${githubResponse.status}.`,
+
+        githubError:
+          detail.slice(0, 1000),
       });
     }
 
-    /*
-     * Everything is successfully queued.
-     */
     return res.status(200).json({
       success: true,
 
@@ -337,25 +238,15 @@ export default async function handler(
       error
     );
 
-    /*
-     * Try to tell the frontend that
-     * the job failed.
-     */
     try {
-      await writeStatus(
-        jobId,
-        {
-          status:
-            "failed",
+      await writeStatus(jobId, {
+        status: "failed",
 
-          error:
-            error?.message ||
-            "Failed to dispatch render.",
-        }
-      );
-    } catch (
-      statusError
-    ) {
+        error:
+          error?.message ||
+          "Failed to dispatch render.",
+      });
+    } catch (statusError) {
       console.error(
         "VIRALTAP ERROR STATUS WRITE FAILED:",
         statusError
