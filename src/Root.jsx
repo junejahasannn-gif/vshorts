@@ -316,7 +316,7 @@ function buildTimedScenes(
 
 
 /* ==================================================
-   SCENE AUDIO
+   SCENE VOICE AUDIO
 ================================================== */
 
 function SceneAudio({
@@ -380,12 +380,46 @@ function SceneAudio({
 
 
 /* ==================================================
+   AI BACKGROUND MUSIC
+================================================== */
+
+function BackgroundMusic({
+  musicUrl,
+}) {
+  const safeMusicUrl =
+    typeof musicUrl ===
+      "string"
+      ? musicUrl.trim()
+      : "";
+
+  if (!safeMusicUrl) {
+    return null;
+  }
+
+  return (
+    <Audio
+      src={
+        safeMusicUrl
+      }
+
+      volume={
+        0.18
+      }
+
+      loop
+    />
+  );
+}
+
+
+/* ==================================================
    VIDEO CONTENT
 ================================================== */
 
 function VideoContent({
   scenes,
   duration,
+  musicUrl,
 }) {
   const frame =
     useCurrentFrame();
@@ -453,6 +487,17 @@ function VideoContent({
       <SceneAudio
         scenes={
           timedScenes
+        }
+      />
+
+
+      {/* ==========================================
+          AI BACKGROUND MUSIC
+      ========================================== */}
+
+      <BackgroundMusic
+        musicUrl={
+          musicUrl
         }
       />
 
@@ -557,6 +602,7 @@ function VideoContent({
 const ViralTapVideo = ({
   scenes = [],
   duration = 30,
+  musicUrl = "",
 }) => {
   return (
     <VideoContent
@@ -566,6 +612,10 @@ const ViralTapVideo = ({
 
       duration={
         duration
+      }
+
+      musicUrl={
+        musicUrl
       }
     />
   );
@@ -624,6 +674,12 @@ export const RemotionRoot =
             ],
           },
         ],
+
+        musicUrl:
+          "",
+
+        musicStyle:
+          "",
 
         aspectRatio:
           "9:16",
