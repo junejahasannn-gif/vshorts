@@ -13,8 +13,10 @@ export const maxDuration = 30;
 const EXPECTED_REPOSITORY =
   "junejahasannn-gif/vshorts";
 
-const EXPECTED_WORKFLOW =
-  "ViralTap Video Renderer";
+const EXPECTED_WORKFLOWS = [
+  "ViralTap Video Renderer",
+  "ViralTap Music Mixer",
+];
 
 const EXPECTED_BRANCH =
   "refs/heads/main";
@@ -98,8 +100,9 @@ async function verifyGitHubOidc(req) {
   }
 
   if (
-    payload.workflow !==
-    EXPECTED_WORKFLOW
+    !EXPECTED_WORKFLOWS.includes(
+      payload.workflow
+    )
   ) {
     throw new Error(
       "GitHub workflow is not authorized."
@@ -165,24 +168,25 @@ async function createStatusUploadUrl(
 
   const {
     presignedUrl,
-  } = await presignUrl(
-    token,
-    {
-      pathname,
-      operation: "put",
-      access: "private",
-      validUntil,
+  } =
+    await presignUrl(
+      token,
+      {
+        pathname,
+        operation: "put",
+        access: "private",
+        validUntil,
 
-      allowedContentTypes: [
-        "application/json",
-      ],
+        allowedContentTypes: [
+          "application/json",
+        ],
 
-      maximumSizeInBytes:
-        MAX_STATUS_SIZE,
+        maximumSizeInBytes:
+          MAX_STATUS_SIZE,
 
-      allowOverwrite: true,
-    }
-  );
+        allowOverwrite: true,
+      }
+    );
 
   return {
     url: presignedUrl,
@@ -229,24 +233,25 @@ async function createVideoUploadUrl(
 
   const {
     presignedUrl,
-  } = await presignUrl(
-    token,
-    {
-      pathname,
-      operation: "put",
-      access: "private",
-      validUntil,
+  } =
+    await presignUrl(
+      token,
+      {
+        pathname,
+        operation: "put",
+        access: "private",
+        validUntil,
 
-      allowedContentTypes: [
-        "video/mp4",
-      ],
+        allowedContentTypes: [
+          "video/mp4",
+        ],
 
-      maximumSizeInBytes:
-        sizeBytes,
+        maximumSizeInBytes:
+          sizeBytes,
 
-      allowOverwrite: false,
-    }
-  );
+        allowOverwrite: false,
+      }
+    );
 
   return {
     url: presignedUrl,
@@ -258,12 +263,6 @@ export default async function handler(
   req,
   res
 ) {
-  /*
-   * --------------------------------------------------
-   * METHOD CHECK
-   * --------------------------------------------------
-   */
-
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
@@ -272,16 +271,8 @@ export default async function handler(
     });
   }
 
-  /*
-   * --------------------------------------------------
-   * GITHUB OIDC AUTHENTICATION
-   * --------------------------------------------------
-   */
-
   try {
-    await verifyGitHubOidc(
-      req
-    );
+    await verifyGitHubOidc(req);
   } catch (error) {
     console.error(
       "VIRALTAP WORKER OIDC VERIFICATION ERROR:",
@@ -295,12 +286,6 @@ export default async function handler(
         "Worker authorization failed.",
     });
   }
-
-  /*
-   * --------------------------------------------------
-   * REQUEST DATA
-   * --------------------------------------------------
-   */
 
   const body =
     req.body || {};
@@ -319,12 +304,6 @@ export default async function handler(
     });
   }
 
-  /*
-   * --------------------------------------------------
-   * STATUS JSON UPLOAD URL
-   * --------------------------------------------------
-   */
-
   if (
     action ===
     "status-url"
@@ -337,7 +316,6 @@ export default async function handler(
 
       return res.status(200).json({
         success: true,
-
         url:
           result.url,
       });
@@ -355,12 +333,6 @@ export default async function handler(
       });
     }
   }
-
-  /*
-   * --------------------------------------------------
-   * VIDEO MP4 UPLOAD URL
-   * --------------------------------------------------
-   */
 
   if (
     action ===
@@ -416,12 +388,6 @@ export default async function handler(
       });
     }
   }
-
-  /*
-   * --------------------------------------------------
-   * UNKNOWN ACTION
-   * --------------------------------------------------
-   */
 
   return res.status(400).json({
     success: false,
