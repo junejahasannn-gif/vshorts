@@ -19,24 +19,45 @@ function buildResponseSchema(sceneCount) {
   return {
     type: "object",
     properties: {
-      title: { type: "string" },
-      description: { type: "string" },
+      title: {
+        type: "string",
+      },
+
+      description: {
+        type: "string",
+      },
+
       scenes: {
         type: "array",
         minItems: sceneCount,
         maxItems: sceneCount,
+
         items: {
           type: "object",
+
           properties: {
-            visualPrompt: { type: "string" },
-            narration: { type: "string" },
-            dialogue: { type: "string" },
-            caption: { type: "string" },
+            visualPrompt: {
+              type: "string",
+            },
+
+            narration: {
+              type: "string",
+            },
+
+            dialogue: {
+              type: "string",
+            },
+
+            caption: {
+              type: "string",
+            },
+
             duration: {
               type: "integer",
               minimum: 1,
             },
           },
+
           required: [
             "visualPrompt",
             "narration",
@@ -44,15 +65,18 @@ function buildResponseSchema(sceneCount) {
             "caption",
             "duration",
           ],
+
           additionalProperties: false,
         },
       },
     },
+
     required: [
       "title",
       "description",
       "scenes",
     ],
+
     additionalProperties: false,
   };
 }
@@ -113,7 +137,9 @@ function normalizeScenes(
   );
 
   // Duration is controlled by the server.
-  // This guarantees the total is EXACTLY the requested duration.
+  // This guarantees that the total is EXACTLY
+  // the requested video duration.
+
   const baseDuration = Math.floor(
     totalDuration / requiredCount
   );
@@ -190,7 +216,9 @@ async function callGemini(
           headers: {
             "Content-Type":
               "application/json",
-            "x-goog-api-key": apiKey,
+
+            "x-goog-api-key":
+              apiKey,
           },
 
           body: JSON.stringify(
@@ -239,8 +267,10 @@ async function callGemini(
 
       lastError = {
         status,
+
         statusText:
           response.statusText,
+
         message:
           getGeminiErrorMessage(
             data,
@@ -329,7 +359,9 @@ async function callGemini(
 
   return {
     ok: false,
+
     error: lastError,
+
     attempts: maxAttempts,
   };
 }
@@ -341,6 +373,7 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
+
       error:
         "Only POST requests are allowed.",
     });
@@ -360,6 +393,7 @@ export default async function handler(
     if (!story) {
       return res.status(400).json({
         success: false,
+
         error:
           "Story or idea is required.",
       });
@@ -371,6 +405,7 @@ export default async function handler(
     if (!apiKey) {
       return res.status(500).json({
         success: false,
+
         error:
           "GEMINI_API_KEY is missing in Vercel.",
       });
@@ -386,6 +421,7 @@ export default async function handler(
     ) {
       return res.status(400).json({
         success: false,
+
         error:
           "Duration must be 30, 60, or 180 seconds.",
       });
@@ -486,18 +522,18 @@ The server will assign the final scene durations, so focus on producing the corr
         },
       ],
 
-      generationConfig: {
-        responseFormat: {
-          text: {
-            mimeType:
-              "application/json",
+      // FIX:
+      // Use responseMimeType + responseSchema
+      // instead of responseFormat.text.mimeType.
 
-            schema:
-              buildResponseSchema(
-                sceneCount
-              ),
-          },
-        },
+      generationConfig: {
+        responseMimeType:
+          "application/json",
+
+        responseSchema:
+          buildResponseSchema(
+            sceneCount
+          ),
 
         temperature: 0.7,
 
