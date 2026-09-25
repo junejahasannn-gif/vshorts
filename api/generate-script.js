@@ -1,12 +1,20 @@
 export const maxDuration = 60;
 
-const GEMINI_ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
+const GEMINI_MODELS = [
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
+];
 
-const ALLOWED_DURATIONS = new Set([30, 60, 180]);
+const ALLOWED_DURATIONS = new Set([
+  30,
+  60,
+  180,
+]);
 
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function getSceneCount(duration) {
@@ -20,8 +28,8 @@ function getSceneCount(duration) {
  *
  * IMPORTANT:
  * Do NOT use additionalProperties here.
- * Gemini's responseSchema endpoint currently rejects it
- * in this REST configuration.
+ * Gemini REST responseSchema rejects it
+ * in this configuration.
  */
 function buildResponseSchema(sceneCount) {
   return {
@@ -87,19 +95,6 @@ function buildResponseSchema(sceneCount) {
   };
 }
 
-/**
- * Normalize and validate Gemini scenes.
- *
- * Gemini decides the content.
- * Server decides the final duration.
- *
- * This guarantees:
- * - exact scene count
- * - exact total duration
- * - no invalid empty visual prompts
- * - no invalid empty narration
- * - no invalid empty captions
- */
 function normalizeScenes(
   scenes,
   requiredCount,
@@ -163,15 +158,6 @@ function normalizeScenes(
     }
   );
 
-  /*
-   * Server controls final duration.
-   *
-   * Example:
-   * 30 sec / 5 scenes = 6 sec each
-   * 60 sec / 7 scenes = distributed exactly
-   * 180 sec / 10 scenes = distributed exactly
-   */
-
   const baseDuration = Math.floor(
     totalDuration / requiredCount
   );
@@ -203,9 +189,6 @@ function normalizeScenes(
   return normalized;
 }
 
-/**
- * Extract readable Gemini API error.
- */
 function getGeminiErrorMessage(
   data,
   fallback
@@ -217,13 +200,25 @@ function getGeminiErrorMessage(
   );
 }
 
-/**
- * Gemini API caller with retry support.
- */
-async function callGemini(
+function isRetryableStatus(status) {
+  return (
+    status === 408 ||
+    status === 429 ||
+    status === 500 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504
+  );
+}
+
+async function callGeminiModel(
+  model,
   requestBody,
   apiKey
 ) {
+  const endpoint =
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
   const maxAttempts = 3;
 
   let lastError = null;
@@ -238,16 +233,16 @@ async function callGemini(
 
     const timeout = setTimeout(
       () => controller.abort(),
-      15000
+      30000
     );
 
     try {
       console.log(
-        `Gemini request attempt ${attempt}/${maxAttempts}`
+        `Gemini ${model} attempt ${attempt}/${maxAttempts}`
       );
 
       const response = await fetch(
-        GEMINI_ENDPOINT,
+        endpoint,
         {
           method: "POST",
 
@@ -291,6 +286,7 @@ async function callGemini(
         return {
           ok: true,
           data,
+          model,
           attempts: attempt,
         };
       }
@@ -298,9 +294,14 @@ async function callGemini(
       const status =
         response.status;
 
+      const message =
+        getGeminiErrorMessage(
+          data,
+          "Gemini request failed."
+        );
+
       console.error(
-        `Gemini HTTP ${status} on attempt ${attempt}:`,
-        data
+        `Gemini ${model} HTTP ${status}: ${message}`
       );
 
       lastError = {
@@ -309,47 +310,42 @@ async function callGemini(
         statusText:
           response.statusText,
 
-        message:
-          getGeminiErrorMessage(
-            data,
-            "Gemini request failed."
-          ),
+        message,
       };
 
-      /*
-       * Retry only temporary/server-side errors.
-       */
-      const retryable =
-        status === 429 ||
-        status === 500 ||
-        status === 502 ||
-        status === 503 ||
-        status === 504;
-
       if (
-        retryable &&
+        isRetryableStatus(status) &&
         attempt < maxAttempts
       ) {
-        const retryAfterHeader =
-          response.headers.get(
-            "retry-after"
+        /*
+         * Exponential backoff:
+         *
+         * attempt 1 -> 2s + jitter
+         * attempt 2 -> 4s + jitter
+         *
+         * This is especially important for 503.
+         */
+        const baseDelay =
+          Math.min(
+            2000 *
+              Math.pow(
+                2,
+                attempt - 1
+              ),
+            15000
           );
 
-        const retryAfterSeconds =
-          Number(
-            retryAfterHeader
+        const jitter =
+          Math.floor(
+            Math.random() * 1000
           );
 
         const waitTime =
-          Number.isFinite(
-            retryAfterSeconds
-          ) &&
-          retryAfterSeconds > 0
-            ? Math.min(
-                retryAfterSeconds * 1000,
-                8000
-              )
-            : attempt * 2000;
+          baseDelay + jitter;
+
+        console.log(
+          `Retrying ${model} in ${waitTime}ms`
+        );
 
         await sleep(waitTime);
 
@@ -361,6 +357,8 @@ async function callGemini(
 
         error: lastError,
 
+        model,
+
         attempts: attempt,
       };
     } catch (error) {
@@ -369,11 +367,6 @@ async function callGemini(
       const isTimeout =
         error?.name ===
         "AbortError";
-
-      console.error(
-        `Gemini network error on attempt ${attempt}:`,
-        error
-      );
 
       lastError = {
         status: 0,
@@ -388,11 +381,31 @@ async function callGemini(
             "Unknown network error.",
       };
 
+      console.error(
+        `Gemini ${model} network error:`,
+        error
+      );
+
       if (
         attempt < maxAttempts
       ) {
+        const baseDelay =
+          Math.min(
+            2000 *
+              Math.pow(
+                2,
+                attempt - 1
+              ),
+            15000
+          );
+
+        const jitter =
+          Math.floor(
+            Math.random() * 1000
+          );
+
         await sleep(
-          attempt * 2000
+          baseDelay + jitter
         );
 
         continue;
@@ -405,17 +418,81 @@ async function callGemini(
 
     error: lastError,
 
+    model,
+
     attempts: maxAttempts,
   };
+}
+
+async function callGemini(
+  requestBody,
+  apiKey
+) {
+  let lastResult = null;
+
+  for (
+    const model of GEMINI_MODELS
+  ) {
+    const result =
+      await callGeminiModel(
+        model,
+        requestBody,
+        apiKey
+      );
+
+    if (result.ok) {
+      return result;
+    }
+
+    lastResult = result;
+
+    /*
+     * If the model returned a non-retryable
+     * client error such as 400/403, don't
+     * blindly switch models.
+     */
+    const status =
+      result.error?.status;
+
+    if (
+      status &&
+      !isRetryableStatus(status)
+    ) {
+      return result;
+    }
+
+    /*
+     * 503/429/5xx:
+     * try the fallback model.
+     */
+    console.log(
+      `Trying fallback Gemini model after ${model} failure.`
+    );
+  }
+
+  return (
+    lastResult || {
+      ok: false,
+
+      error: {
+        status: 503,
+
+        statusText:
+          "Service Unavailable",
+
+        message:
+          "All Gemini models are temporarily unavailable.",
+      },
+
+      attempts: 3,
+    }
+  );
 }
 
 export default async function handler(
   req,
   res
 ) {
-  /*
-   * Only POST is supported.
-   */
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
@@ -429,10 +506,6 @@ export default async function handler(
     const body =
       req.body || {};
 
-    /*
-     * Accept story / idea / joke
-     * so the existing frontend remains compatible.
-     */
     const story = String(
       body.story ||
         body.idea ||
@@ -449,10 +522,6 @@ export default async function handler(
       });
     }
 
-    /*
-     * Gemini API key must exist
-     * only on the server.
-     */
     const apiKey =
       process.env.GEMINI_API_KEY;
 
@@ -465,9 +534,6 @@ export default async function handler(
       });
     }
 
-    /*
-     * Supported durations.
-     */
     const duration =
       Number(body.duration) || 30;
 
@@ -484,9 +550,6 @@ export default async function handler(
       });
     }
 
-    /*
-     * Scene count is controlled by server.
-     */
     const sceneCount =
       getSceneCount(duration);
 
@@ -520,13 +583,10 @@ export default async function handler(
       body.branding || ""
     ).trim();
 
-    /*
-     * System instruction for Gemini.
-     */
     const systemInstruction = `
 You are the lead AI director and professional short-form video scriptwriter for ViralTap Studio.
 
-Your job is to transform the user's idea into a complete, engaging short-form video plan.
+Transform the user's idea into a complete, engaging short-form video plan.
 
 Return ONLY the requested JSON object.
 
@@ -551,9 +611,6 @@ Rules:
   duration
 `;
 
-    /*
-     * User prompt.
-     */
     const prompt = `
 USER STORY / IDEA:
 ${story}
@@ -586,15 +643,6 @@ Focus on:
 Return only valid JSON matching the requested schema.
 `;
 
-    /*
-     * Gemini request.
-     *
-     * IMPORTANT:
-     * responseMimeType + responseSchema are being used here.
-     *
-     * additionalProperties is intentionally NOT included
-     * because this REST responseSchema configuration rejects it.
-     */
     const requestBody = {
       systemInstruction: {
         parts: [
@@ -626,24 +674,16 @@ Return only valid JSON matching the requested schema.
             sceneCount
           ),
 
-        temperature: 0.7,
-
         maxOutputTokens: 8192,
       },
     };
 
-    /*
-     * Call Gemini.
-     */
     const geminiResult =
       await callGemini(
         requestBody,
         apiKey
       );
 
-    /*
-     * Gemini request failed.
-     */
     if (!geminiResult.ok) {
       const error =
         geminiResult.error;
@@ -653,6 +693,10 @@ Return only valid JSON matching the requested schema.
 
         error:
           "Gemini API request failed.",
+
+        geminiModel:
+          geminiResult.model ||
+          null,
 
         geminiHttpStatus:
           error?.status || null,
@@ -671,9 +715,6 @@ Return only valid JSON matching the requested schema.
     const data =
       geminiResult.data;
 
-    /*
-     * Get first Gemini candidate.
-     */
     const candidate =
       data?.candidates?.[0];
 
@@ -684,6 +725,9 @@ Return only valid JSON matching the requested schema.
         error:
           "Gemini returned no candidate.",
 
+        geminiModel:
+          geminiResult.model,
+
         geminiError:
           "No candidates were returned by Gemini.",
 
@@ -692,9 +736,6 @@ Return only valid JSON matching the requested schema.
       });
     }
 
-    /*
-     * Check Gemini finish reason.
-     */
     if (
       candidate.finishReason &&
       candidate.finishReason !==
@@ -706,6 +747,9 @@ Return only valid JSON matching the requested schema.
         error:
           "Gemini generation did not finish normally.",
 
+        geminiModel:
+          geminiResult.model,
+
         finishReason:
           candidate.finishReason,
 
@@ -714,9 +758,6 @@ Return only valid JSON matching the requested schema.
       });
     }
 
-    /*
-     * Extract generated JSON text.
-     */
     const generatedText =
       candidate?.content?.parts
         ?.map(
@@ -733,6 +774,9 @@ Return only valid JSON matching the requested schema.
         error:
           "Gemini returned no generated content.",
 
+        geminiModel:
+          geminiResult.model,
+
         finishReason:
           candidate.finishReason ||
           null,
@@ -742,9 +786,6 @@ Return only valid JSON matching the requested schema.
       });
     }
 
-    /*
-     * Parse Gemini JSON.
-     */
     let parsed;
 
     try {
@@ -765,6 +806,9 @@ Return only valid JSON matching the requested schema.
         error:
           "Gemini returned invalid JSON.",
 
+        geminiModel:
+          geminiResult.model,
+
         parseError:
           error?.message ||
           null,
@@ -774,9 +818,6 @@ Return only valid JSON matching the requested schema.
       });
     }
 
-    /*
-     * Validate and normalize scenes.
-     */
     let scenes;
 
     try {
@@ -799,14 +840,14 @@ Return only valid JSON matching the requested schema.
           error?.message ||
           "Invalid scenes returned by Gemini.",
 
+        geminiModel:
+          geminiResult.model,
+
         attempts:
           geminiResult.attempts,
       });
     }
 
-    /*
-     * Successful response to frontend.
-     */
     return res.status(200).json({
       success: true,
 
@@ -823,6 +864,9 @@ Return only valid JSON matching the requested schema.
         ).trim(),
 
       scenes,
+
+      geminiModel:
+        geminiResult.model,
 
       attempts:
         geminiResult.attempts,
