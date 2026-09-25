@@ -29,6 +29,10 @@ const voiceUrl =
   process.env.VIRALTAP_VOICE_URL ||
   "https://vshorts-app.vercel.app/api/generate-voice";
 
+const musicUrl =
+  process.env.VIRALTAP_MUSIC_URL ||
+  "https://vshorts-app.vercel.app/api/generate-music";
+
 const githubOidcRequestUrl =
   process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
 
@@ -736,6 +740,95 @@ async function generateAllVoices(
 
 
 /* ==================================================
+   AI BACKGROUND MUSIC
+================================================== */
+
+async function generateMusic(
+  props
+) {
+  console.log(
+    "Generating AI background music..."
+  );
+
+  await updateStatus({
+    status:
+      "rendering",
+
+    progress:
+      36,
+
+    message:
+      "Creating AI background music...",
+  });
+
+  const response =
+    await fetch(
+      musicUrl,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify({
+          jobId,
+
+          scenes:
+            props.scenes,
+
+          language:
+            props.language ||
+            "Hindi",
+        }),
+      }
+    );
+
+  const text =
+    await response.text();
+
+  let data;
+
+  try {
+    data =
+      JSON.parse(text);
+  } catch {
+    throw new Error(
+      "Music generation API returned invalid JSON: " +
+        text.slice(
+          0,
+          500
+        )
+    );
+  }
+
+  if (
+    !response.ok ||
+    !data?.success ||
+    !data?.asset?.url
+  ) {
+    throw new Error(
+      data?.error ||
+        "AI background music generation failed."
+    );
+  }
+
+  console.log(
+    "AI background music ready."
+  );
+
+  console.log(
+    "Music style:",
+    data.musicStyle ||
+      "cinematic"
+  );
+
+  return data;
+}
+
+
+/* ==================================================
    COMMAND RUNNER
 ================================================== */
 
@@ -1378,6 +1471,41 @@ async function main() {
 
   /*
    * ------------------------------------------------
+   * GENERATE AI BACKGROUND MUSIC
+   * ------------------------------------------------
+   */
+
+  console.log(
+    "Starting AI background music generation..."
+  );
+
+  const musicData =
+    await generateMusic(
+      props
+    );
+
+  if (
+    !musicData?.success ||
+    !musicData?.asset?.url
+  ) {
+    throw new Error(
+      "AI background music generation returned an incomplete asset."
+    );
+  }
+
+  props.musicAsset =
+    musicData.asset;
+
+  props.musicUrl =
+    musicData.asset.url;
+
+  props.musicStyle =
+    musicData.musicStyle ||
+    "cinematic";
+
+
+  /*
+   * ------------------------------------------------
    * PREPARE FILES
    * ------------------------------------------------
    */
@@ -1429,6 +1557,11 @@ async function main() {
   console.log(
     "Total frames:",
     totalFrames
+  );
+
+  console.log(
+    "Music style:",
+    props.musicStyle
   );
 
 
@@ -1525,6 +1658,12 @@ async function main() {
 
     sizeBytes:
       stat.size,
+
+    musicStyle:
+      props.musicStyle,
+
+    musicUrl:
+      props.musicUrl,
   });
 
 
@@ -1565,6 +1704,12 @@ async function main() {
     videoUrl:
       videoPath,
 
+    musicStyle:
+      props.musicStyle,
+
+    musicUrl:
+      props.musicUrl,
+
     sizeBytes:
       stat.size,
 
@@ -1595,6 +1740,11 @@ async function main() {
   console.log(
     "Video:",
     videoPath
+  );
+
+  console.log(
+    "Music:",
+    props.musicStyle
   );
 
   console.log(
