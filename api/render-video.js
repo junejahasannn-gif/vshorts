@@ -5,26 +5,29 @@ export const maxDuration = 60;
 const OWNER = "junejahasannn-gif";
 const REPO = "vshorts";
 const WORKFLOW = "render.yml";
+const BRANCH = "main";
 
 function getDimensions(aspectRatio) {
-  if (aspectRatio === "16:9") {
-    return {
-      width: 1920,
-      height: 1080,
-    };
-  }
+  switch (aspectRatio) {
+    case "16:9":
+      return {
+        width: 1920,
+        height: 1080,
+      };
 
-  if (aspectRatio === "1:1") {
-    return {
-      width: 1080,
-      height: 1080,
-    };
-  }
+    case "1:1":
+      return {
+        width: 1080,
+        height: 1080,
+      };
 
-  return {
-    width: 1080,
-    height: 1920,
-  };
+    case "9:16":
+    default:
+      return {
+        width: 1080,
+        height: 1920,
+      };
+  }
 }
 
 function makeJobId() {
@@ -38,17 +41,107 @@ function makeJobId() {
   );
 }
 
-async function writeStatus(jobId, payload) {
+function normalizeScenes(scenes) {
+  if (!Array.isArray(scenes)) {
+    return [];
+  }
+
+  return scenes
+    .filter(
+      (scene) =>
+        scene &&
+        typeof scene === "object"
+    )
+    .map((scene) => ({
+      ...scene,
+
+      caption:
+        typeof scene.caption === "string"
+          ? scene.caption.trim()
+          : "",
+
+      narration:
+        typeof scene.narration === "string"
+          ? scene.narration.trim()
+          : "",
+
+      dialogue:
+        typeof scene.dialogue === "string"
+          ? scene.dialogue.trim()
+          : "",
+
+      visualPrompt:
+        typeof scene.visualPrompt === "string"
+          ? scene.visualPrompt.trim()
+          : "",
+
+      lines: Array.isArray(scene.lines)
+        ? scene.lines
+            .map((line) => {
+              if (
+                typeof line === "string"
+              ) {
+                return {
+                  text: line.trim(),
+                  type: "dialogue",
+                };
+              }
+
+              if (
+                line &&
+                typeof line === "object"
+              ) {
+                return {
+                  text:
+                    typeof line.text ===
+                    "string"
+                      ? line.text.trim()
+                      : "",
+
+                  type:
+                    typeof line.type ===
+                    "string"
+                      ? line.type
+                      : "dialogue",
+                };
+              }
+
+              return null;
+            })
+            .filter(
+              (line) =>
+                line &&
+                line.text
+            )
+        : [],
+    }))
+    .filter((scene) => {
+      return (
+        scene.caption ||
+        scene.narration ||
+        scene.dialogue ||
+        scene.visualPrompt ||
+        scene.lines.length
+      );
+    });
+}
+
+async function writeStatus(
+  jobId,
+  payload
+) {
   return put(
     `status/${jobId}.json`,
     JSON.stringify({
       jobId,
-      updatedAt: new Date().toISOString(),
+      updatedAt:
+        new Date().toISOString(),
       ...payload,
     }),
     {
       access: "private",
-      contentType: "application/json",
+      contentType:
+        "application/json",
       addRandomSuffix: false,
       allowOverwrite: true,
       cacheControlMaxAge: 60,
@@ -56,38 +149,82 @@ async function writeStatus(jobId, payload) {
   );
 }
 
-export default async function handler(req, res) {
+function getGithubHeaders(
+  githubToken
+) {
+  return {
+    Authorization:
+      `Bearer ${githubToken}`,
+
+    Accept:
+      "application/vnd.github+json",
+
+    "Content-Type":
+      "application/json",
+
+    "X-GitHub-Api-Version":
+      "2022-11-28",
+
+    "User-Agent":
+      "ViralTap-Studio",
+  };
+}
+
+export default async function handler(
+  req,
+  res
+) {
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error: "Only POST requests are allowed.",
+      error:
+        "Only POST requests are allowed.",
     });
   }
 
-  const body = req.body || {};
+  const body =
+    req.body || {};
 
-  const scenes = Array.isArray(body.scenes)
-    ? body.scenes
-    : [];
+  const scenes =
+    normalizeScenes(
+      body.scenes
+    );
 
-  const duration = Number(body.duration);
+  const duration =
+    Number(body.duration);
 
-  const aspectRatio = [
+  const allowedAspectRatios = [
     "9:16",
     "16:9",
     "1:1",
-  ].includes(body.aspectRatio)
-    ? body.aspectRatio
-    : "9:16";
+  ];
+
+  const aspectRatio =
+    allowedAspectRatios.includes(
+      body.aspectRatio
+    )
+      ? body.aspectRatio
+      : "9:16";
+
+  /*
+   * --------------------------------------------------
+   * VALIDATION
+   * --------------------------------------------------
+   */
 
   if (!scenes.length) {
     return res.status(400).json({
       success: false,
-      error: "No scenes were provided.",
+      error:
+        "No valid scenes were provided.",
     });
   }
 
-  if (![30, 60, 180].includes(duration)) {
+  if (
+    ![30, 60, 180].includes(
+      duration
+    )
+  ) {
     return res.status(400).json({
       success: false,
       error:
@@ -106,38 +243,108 @@ export default async function handler(req, res) {
     });
   }
 
-  const { width, height } =
-    getDimensions(aspectRatio);
+  /*
+   * --------------------------------------------------
+   * VIDEO DIMENSIONS
+   * --------------------------------------------------
+   */
 
-  const jobId = makeJobId();
+  const {
+    width,
+    height,
+  } = getDimensions(
+    aspectRatio
+  );
+
+  /*
+   * --------------------------------------------------
+   * CREATE JOB
+   * --------------------------------------------------
+   */
+
+  const jobId =
+    makeJobId();
+
+  /*
+   * --------------------------------------------------
+   * REMOTION PROPS
+   * --------------------------------------------------
+   */
 
   const props = {
     scenes,
+
     aspectRatio,
+
     width,
+
     height,
+
     duration,
 
     videoType:
-      body.videoType || "normal",
+      typeof body.videoType ===
+      "string"
+        ? body.videoType
+        : "normal",
 
     voice:
-      body.voice || "Natural Male",
+      typeof body.voice ===
+      "string"
+        ? body.voice
+        : "Natural Male",
 
     music:
-      body.music || "None",
+      typeof body.music ===
+      "string"
+        ? body.music
+        : "None",
 
     branding:
-      body.branding || "ViralTap",
+      typeof body.branding ===
+      "string"
+        ? body.branding
+        : "ViralTap",
   };
 
-  const propsBase64 =
-    Buffer.from(
-      JSON.stringify(props),
-      "utf8"
-    ).toString("base64");
+  /*
+   * --------------------------------------------------
+   * ENCODE REMOTION PROPS
+   * --------------------------------------------------
+   */
 
-  if (propsBase64.length > 60000) {
+  let propsBase64;
+
+  try {
+    propsBase64 =
+      Buffer.from(
+        JSON.stringify(props),
+        "utf8"
+      ).toString(
+        "base64"
+      );
+  } catch (error) {
+    console.error(
+      "VIRALTAP PROPS ENCODE ERROR:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        "Could not prepare render data.",
+    });
+  }
+
+  /*
+   * GitHub workflow_dispatch inputs have
+   * a payload-size limit, so keep a safety margin.
+   */
+
+  if (
+    propsBase64.length >
+    60000
+  ) {
     return res.status(413).json({
       success: false,
       error:
@@ -145,60 +352,128 @@ export default async function handler(req, res) {
     });
   }
 
-  try {
-    await writeStatus(jobId, {
-      status: "queued",
-      message: "Render job queued.",
-    });
+  /*
+   * --------------------------------------------------
+   * QUEUED STATUS
+   * --------------------------------------------------
+   */
 
+  try {
+    await writeStatus(
+      jobId,
+      {
+        status: "queued",
+
+        progress: 0,
+
+        message:
+          "Render job queued.",
+
+        duration,
+
+        aspectRatio,
+
+        dimensions:
+          `${width}x${height}`,
+
+        sceneCount:
+          scenes.length,
+      }
+    );
+  } catch (statusError) {
+    console.error(
+      "VIRALTAP INITIAL STATUS WRITE ERROR:",
+      statusError
+    );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        "Could not create render job status.",
+    });
+  }
+
+  /*
+   * --------------------------------------------------
+   * START GITHUB ACTIONS
+   * --------------------------------------------------
+   */
+
+  const workflowUrl =
+    `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`;
+
+  try {
     const githubResponse =
       await fetch(
-        `https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`,
+        workflowUrl,
         {
           method: "POST",
 
-          headers: {
-            Authorization:
-              `Bearer ${githubToken}`,
-
-            Accept:
-              "application/vnd.github+json",
-
-            "Content-Type":
-              "application/json",
-
-            "X-GitHub-Api-Version":
-              "2022-11-28",
-
-            "User-Agent":
-              "ViralTap-Studio",
-          },
+          headers:
+            getGithubHeaders(
+              githubToken
+            ),
 
           body: JSON.stringify({
-            ref: "main",
+            ref: BRANCH,
 
             inputs: {
               jobId,
-              duration: String(duration),
+
+              duration:
+                String(duration),
+
               propsBase64,
             },
           }),
         }
       );
 
-    if (!githubResponse.ok) {
+    /*
+     * GitHub normally returns 204
+     * for workflow dispatch.
+     */
+
+    if (
+      !githubResponse.ok
+    ) {
       const detail =
         await githubResponse.text();
 
-      try {
-        await writeStatus(jobId, {
-          status: "failed",
+      console.error(
+        "VIRALTAP GITHUB DISPATCH ERROR:",
+        {
+          status:
+            githubResponse.status,
 
-          error:
-            "GitHub workflow dispatch failed: " +
-            detail.slice(0, 500),
-        });
-      } catch (statusError) {
+          detail:
+            detail.slice(
+              0,
+              1000
+            ),
+        }
+      );
+
+      try {
+        await writeStatus(
+          jobId,
+          {
+            status:
+              "failed",
+
+            progress: 0,
+
+            error:
+              "GitHub workflow dispatch failed: " +
+              detail.slice(
+                0,
+                500
+              ),
+          }
+        );
+      } catch (
+        statusError
+      ) {
         console.error(
           "VIRALTAP FAILED STATUS WRITE ERROR:",
           statusError
@@ -208,6 +483,8 @@ export default async function handler(req, res) {
       return res.status(502).json({
         success: false,
 
+        jobId,
+
         error:
           "Could not start the GitHub render worker.",
 
@@ -215,22 +492,41 @@ export default async function handler(req, res) {
           `GitHub returned HTTP ${githubResponse.status}.`,
 
         githubError:
-          detail.slice(0, 1000),
+          detail.slice(
+            0,
+            1000
+          ),
       });
     }
+
+    /*
+     * ------------------------------------------------
+     * SUCCESS
+     * ------------------------------------------------
+     */
 
     return res.status(200).json({
       success: true,
 
       jobId,
 
-      status: "queued",
+      status:
+        "queued",
+
+      progress: 0,
 
       message:
         "Video render job queued.",
 
       dimensions:
         `${width}x${height}`,
+
+      sceneCount:
+        scenes.length,
+
+      duration,
+
+      aspectRatio,
     });
   } catch (error) {
     console.error(
@@ -239,14 +535,22 @@ export default async function handler(req, res) {
     );
 
     try {
-      await writeStatus(jobId, {
-        status: "failed",
+      await writeStatus(
+        jobId,
+        {
+          status:
+            "failed",
 
-        error:
-          error?.message ||
-          "Failed to dispatch render.",
-      });
-    } catch (statusError) {
+          progress: 0,
+
+          error:
+            error?.message ||
+            "Failed to dispatch render.",
+        }
+      );
+    } catch (
+      statusError
+    ) {
       console.error(
         "VIRALTAP ERROR STATUS WRITE FAILED:",
         statusError
@@ -255,6 +559,8 @@ export default async function handler(req, res) {
 
     return res.status(500).json({
       success: false,
+
+      jobId,
 
       error:
         error?.message ||
