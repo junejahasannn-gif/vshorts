@@ -1,0 +1,84 @@
+name: ViralTap Music Mixer
+
+on:
+  workflow_dispatch:
+    inputs:
+      jobId:
+        description: "Unique music remix job ID"
+        required: true
+        type: string
+
+      sourceJobId:
+        description: "Original video render job ID"
+        required: true
+        type: string
+
+      sourceVideoUrl:
+        description: "Signed source MP4 URL"
+        required: true
+        type: string
+
+      musicUrl:
+        description: "Signed music MP3 URL"
+        required: true
+        type: string
+
+      musicStyle:
+        description: "Selected music style"
+        required: true
+        type: string
+
+      duration:
+        description: "Video duration"
+        required: true
+        type: choice
+        options:
+          - "30"
+          - "60"
+          - "180"
+
+run-name: Music Remix ${{ inputs.jobId }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  remix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends ffmpeg
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Remix video with selected music
+        env:
+          JOB_ID: ${{ inputs.jobId }}
+          SOURCE_JOB_ID: ${{ inputs.sourceJobId }}
+          SOURCE_VIDEO_URL: ${{ inputs.sourceVideoUrl }}
+          MUSIC_URL: ${{ inputs.musicUrl }}
+          MUSIC_STYLE: ${{ inputs.musicStyle }}
+          VIDEO_DURATION: ${{ inputs.duration }}
+          VIRALTAP_WORKER_URL: https://vshorts-app.vercel.app/api/render-worker
+        run: |
+          node scripts/apply-music-runner.mjs
