@@ -369,21 +369,10 @@
 
 <body>
 
-<!-- =====================================================
-     HOME
-====================================================== -->
+<section id="homePage" class="page">
 
-<section
-  id="homePage"
-  class="page"
->
-
-  <header
-    class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
-  >
-    <div
-      class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between"
-    >
+  <header class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl">
+    <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
 
       <button
         onclick="goHome()"
@@ -394,9 +383,7 @@
           ViralTap
         </div>
 
-        <div
-          class="text-[11px] text-gray-500 font-semibold tracking-wide"
-        >
+        <div class="text-[11px] text-gray-500 font-semibold tracking-wide">
           AI VIDEO STUDIO
         </div>
       </button>
@@ -411,51 +398,28 @@
     </div>
   </header>
 
+  <main class="relative overflow-hidden hero-grid">
 
-  <main
-    class="relative overflow-hidden hero-grid"
-  >
+    <div class="hero-glow" style="top:-100px;left:-100px;"></div>
+    <div class="hero-glow" style="right:-160px;top:260px;"></div>
 
-    <div
-      class="hero-glow"
-      style="top:-100px;left:-100px;"
-    ></div>
+    <div class="relative max-w-6xl mx-auto px-5 pt-16 md:pt-24 pb-12">
 
-    <div
-      class="hero-glow"
-      style="right:-160px;top:260px;"
-    ></div>
+      <div class="text-center max-w-4xl mx-auto">
 
-
-    <div
-      class="relative max-w-6xl mx-auto px-5 pt-16 md:pt-24 pb-12"
-    >
-
-      <div
-        class="text-center max-w-4xl mx-auto"
-      >
-
-        <div
-          class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-bold"
-        >
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-bold">
           <span>⚡</span>
           <span>AI Reel & Short Video Maker</span>
         </div>
 
-
-        <h1
-          class="hero-title text-6xl md:text-8xl font-black tracking-tight leading-none mt-7"
-        >
+        <h1 class="hero-title text-6xl md:text-8xl font-black tracking-tight leading-none mt-7">
           Turn Ideas Into
           <span class="gradient-text">
             Viral Videos.
           </span>
         </h1>
 
-
-        <p
-          class="text-gray-600 text-base md:text-xl leading-relaxed mt-7 max-w-2xl mx-auto"
-        >
+        <p class="text-gray-600 text-base md:text-xl leading-relaxed mt-7 max-w-2xl mx-auto">
           Write your idea, choose your style,
           and let ViralTap build your video
           scene by scene.
@@ -463,31 +427,19 @@
 
       </div>
 
+      <div class="max-w-3xl mx-auto mt-12 glass rounded-[28px] p-4 md:p-6">
 
-      <div
-        class="max-w-3xl mx-auto mt-12 glass rounded-[28px] p-4 md:p-6"
-      >
+        <div class="flex items-center justify-between gap-3">
 
-        <div
-          class="flex items-center justify-between gap-3"
-        >
-
-          <label
-            for="homeStory"
-            class="font-black text-lg"
-          >
+          <label for="homeStory" class="font-black text-lg">
             Your story / idea
           </label>
 
-          <span
-            id="homeCounter"
-            class="text-xs text-gray-400 font-semibold"
-          >
+          <span id="homeCounter" class="text-xs text-gray-400 font-semibold">
             0 characters
           </span>
 
         </div>
-
 
         <textarea
           id="homeStory"
@@ -498,16 +450,9 @@
           oninput="updateCharacterCount('homeStory','homeCounter')"
         ></textarea>
 
+        <div id="homeValidation" class="hidden text-sm text-red-600 font-semibold mt-3"></div>
 
-        <div
-          id="homeValidation"
-          class="hidden text-sm text-red-600 font-semibold mt-3"
-        ></div>
-
-
-        <div
-          class="grid md:grid-cols-2 gap-3 mt-4"
-        >
+        <div class="grid md:grid-cols-2 gap-3 mt-4">
 
           <button
             onclick="openNormalStudio()"
@@ -527,14 +472,9 @@
 
       </div>
 
+      <div class="grid md:grid-cols-3 gap-4 mt-10">
 
-      <div
-        class="grid md:grid-cols-3 gap-4 mt-10"
-      >
-
-        <div
-          class="bg-white border border-gray-200 rounded-2xl p-6"
-        >
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
           <div class="text-3xl">✍️</div>
 
           <h3 class="font-black text-lg mt-4">
@@ -547,10 +487,7 @@
           </p>
         </div>
 
-
-        <div
-          class="bg-white border border-gray-200 rounded-2xl p-6"
-        >
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
           <div class="text-3xl">🎬</div>
 
           <h3 class="font-black text-lg mt-4">
@@ -563,10 +500,7 @@
           </p>
         </div>
 
-
-        <div
-          class="bg-white border border-gray-200 rounded-2xl p-6"
-        >
+        <div class="bg-white border border-gray-200 rounded-2xl p-6">
           <div class="text-3xl">⚡</div>
 
           <h3 class="font-black text-lg mt-4">
@@ -581,64 +515,29 @@
 
       </div>
 
+      <div class="max-w-3xl mx-auto mt-12 bg-white border border-gray-200 rounded-2xl p-5">
 
-      <div
-        class="max-w-3xl mx-auto mt-12 bg-white border border-gray-200 rounded-2xl p-5"
-      >
-
-        <div
-          class="text-xs font-black text-gray-400 uppercase tracking-wider"
-        >
+        <div class="text-xs font-black text-gray-400 uppercase tracking-wider">
           Create different types of videos
         </div>
 
-        <div
-          class="flex flex-wrap gap-2 mt-3"
-        >
+        <div class="flex flex-wrap gap-2 mt-3">
 
-          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-            😂 Comedy
-          </span>
-
-          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-            👻 Horror
-          </span>
-
-          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-            ❤️ Romance
-          </span>
-
-          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-            🔥 Action
-          </span>
-
-          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-            💪 Motivation
-          </span>
-
-          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-            📚 Education
-          </span>
-
-          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-            🎭 Drama
-          </span>
-
-          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">
-            🕵️ Suspense
-          </span>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">😂 Comedy</span>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">👻 Horror</span>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">❤️ Romance</span>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">🔥 Action</span>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">💪 Motivation</span>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">📚 Education</span>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">🎭 Drama</span>
+          <span class="px-3 py-1.5 rounded-full bg-gray-100 text-sm font-semibold">🕵️ Suspense</span>
 
         </div>
 
       </div>
 
-
-      <footer
-        class="text-center mt-14 pb-10 text-sm text-gray-500"
-      >
-        Support: WhatsApp +91 63530 68575
-        ·
-        junejahass@gmail.com
+      <footer class="text-center mt-14 pb-10 text-sm text-gray-500">
+        Support: WhatsApp +91 63530 68575 · junejahass@gmail.com
       </footer>
 
     </div>
@@ -648,27 +547,13 @@
 </section>
 
 
-<!-- =====================================================
-     STUDIO
-====================================================== -->
+<section id="studioPage" class="page hidden">
 
-<section
-  id="studioPage"
-  class="page hidden"
->
+  <header class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl">
 
-  <header
-    class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
-  >
+    <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
 
-    <div
-      class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between"
-    >
-
-      <button
-        onclick="goHome()"
-        class="text-gray-600 font-bold"
-      >
+      <button onclick="goHome()" class="text-gray-600 font-bold">
         ← Back
       </button>
 
@@ -682,24 +567,15 @@
 
   </header>
 
-
-  <main
-    class="max-w-5xl mx-auto px-5 py-10"
-  >
+  <main class="max-w-5xl mx-auto px-5 py-10">
 
     <div class="mb-8">
 
-      <div
-        id="studioBadge"
-        class="inline-flex px-3 py-1.5 rounded-full bg-gray-100 text-sm font-bold"
-      >
+      <div id="studioBadge" class="inline-flex px-3 py-1.5 rounded-full bg-gray-100 text-sm font-bold">
         ✨ AI Video
       </div>
 
-      <h2
-        id="studioTitle"
-        class="text-4xl md:text-5xl font-black mt-4 tracking-tight"
-      >
+      <h2 id="studioTitle" class="text-4xl md:text-5xl font-black mt-4 tracking-tight">
         Create Your Video
       </h2>
 
@@ -709,35 +585,21 @@
 
     </div>
 
+    <div class="grid lg:grid-cols-3 gap-6">
 
-    <div
-      class="grid lg:grid-cols-3 gap-6"
-    >
+      <div class="lg:col-span-2 bg-white border border-gray-200 rounded-[28px] p-5 md:p-6">
 
-      <div
-        class="lg:col-span-2 bg-white border border-gray-200 rounded-[28px] p-5 md:p-6"
-      >
+        <div class="flex items-center justify-between gap-3">
 
-        <div
-          class="flex items-center justify-between gap-3"
-        >
-
-          <label
-            for="studioStory"
-            class="font-black"
-          >
+          <label for="studioStory" class="font-black">
             Story / Idea
           </label>
 
-          <span
-            id="studioCounter"
-            class="text-xs text-gray-400 font-semibold"
-          >
+          <span id="studioCounter" class="text-xs text-gray-400 font-semibold">
             0 characters
           </span>
 
         </div>
-
 
         <textarea
           id="studioStory"
@@ -748,161 +610,76 @@
           oninput="updateCharacterCount('studioStory','studioCounter')"
         ></textarea>
 
+        <div id="studioValidation" class="hidden text-sm text-red-600 font-semibold mt-3"></div>
 
-        <div
-          id="studioValidation"
-          class="hidden text-sm text-red-600 font-semibold mt-3"
-        ></div>
-
-
-        <div
-          class="grid md:grid-cols-2 gap-4 mt-6"
-        >
+        <div class="grid md:grid-cols-2 gap-4 mt-6">
 
           <div>
-            <label
-              for="language"
-              class="text-sm font-bold"
-            >
+            <label for="language" class="text-sm font-bold">
               Language
             </label>
 
-            <select
-              id="language"
-              class="studio-input mt-2"
-            >
-              <option value="Hindi">
-                Hindi
-              </option>
-
-              <option value="Hinglish">
-                Hinglish
-              </option>
-
-              <option value="English">
-                English
-              </option>
-
-              <option value="Gujarati">
-                Gujarati
-              </option>
+            <select id="language" class="studio-input mt-2">
+              <option value="Hindi">Hindi</option>
+              <option value="Hinglish">Hinglish</option>
+              <option value="English">English</option>
+              <option value="Gujarati">Gujarati</option>
             </select>
           </div>
 
-
           <div>
-            <label
-              for="aspectRatio"
-              class="text-sm font-bold"
-            >
+            <label for="aspectRatio" class="text-sm font-bold">
               Aspect Ratio
             </label>
 
-            <select
-              id="aspectRatio"
-              class="studio-input mt-2"
-            >
-              <option value="9:16">
-                9:16 — Reel / Short
-              </option>
-
-              <option value="16:9">
-                16:9 — YouTube
-              </option>
-
-              <option value="1:1">
-                1:1 — Square
-              </option>
+            <select id="aspectRatio" class="studio-input mt-2">
+              <option value="9:16">9:16 — Reel / Short</option>
+              <option value="16:9">16:9 — YouTube</option>
+              <option value="1:1">1:1 — Square</option>
             </select>
           </div>
 
-
           <div>
-            <label
-              for="duration"
-              class="text-sm font-bold"
-            >
+            <label for="duration" class="text-sm font-bold">
               Duration
             </label>
 
-            <select
-              id="duration"
-              class="studio-input mt-2"
-            >
-              <option value="30">
-                30 seconds
-              </option>
-
-              <option value="60">
-                60 seconds
-              </option>
-
-              <option value="180">
-                3 minutes
-              </option>
+            <select id="duration" class="studio-input mt-2">
+              <option value="30">30 seconds</option>
+              <option value="60">60 seconds</option>
+              <option value="180">3 minutes</option>
             </select>
           </div>
 
-
           <div>
-            <label
-              for="voice"
-              class="text-sm font-bold"
-            >
+            <label for="voice" class="text-sm font-bold">
               Voice
             </label>
 
-            <select
-              id="voice"
-              class="studio-input mt-2"
-            >
-              <option value="Natural Male">
-                Natural Male
-              </option>
-
-              <option value="Natural Female">
-                Natural Female
-              </option>
+            <select id="voice" class="studio-input mt-2">
+              <option value="Natural Male">Natural Male</option>
+              <option value="Natural Female">Natural Female</option>
             </select>
           </div>
 
-
           <div>
-            <label
-              for="branding"
-              class="text-sm font-bold"
-            >
+            <label for="branding" class="text-sm font-bold">
               Branding
             </label>
 
-            <select
-              id="branding"
-              class="studio-input mt-2"
-            >
-              <option value="ViralTap">
-                ViralTap
-              </option>
-
-              <option value="None">
-                No Branding
-              </option>
+            <select id="branding" class="studio-input mt-2">
+              <option value="ViralTap">ViralTap</option>
+              <option value="None">No Branding</option>
             </select>
           </div>
 
         </div>
 
+        <div class="mt-6 bg-gray-50 border border-gray-200 rounded-2xl p-4">
 
-        <div
-          class="mt-6 bg-gray-50 border border-gray-200 rounded-2xl p-4"
-        >
+          <div class="flex items-start gap-3">
 
-          <div
-            class="flex items-start gap-3"
-          >
-
-            <div
-              class="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shrink-0"
-            >
+            <div class="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shrink-0">
               🎵
             </div>
 
@@ -912,13 +689,11 @@
                 AI Music comes after your video
               </div>
 
-              <div
-                class="text-sm text-gray-500 leading-relaxed mt-1"
-              >
+              <div class="text-sm text-gray-500 leading-relaxed mt-1">
                 ViralTap pehle tumhara video generate karega.
-                Uske baad video/story ke mood ke according
-                AI music recommend hoga, jise tum preview
-                karke apply kar sakoge.
+                Uske baad video aur story ke mood ke according
+                AI music recommend hoga. Tum preview karke
+                apna favourite music final MP4 par apply kar sakoge.
               </div>
 
             </div>
@@ -927,45 +702,28 @@
 
         </div>
 
-
         <button
           id="generateButton"
           onclick="generateCurrentVideo()"
           class="primary-btn w-full mt-7 bg-black text-white rounded-2xl py-4 font-black text-lg flex items-center justify-center gap-3"
         >
-
-          <span id="generateButtonIcon">
-            🚀
-          </span>
-
-          <span id="generateButtonText">
-            Generate Video
-          </span>
-
+          <span id="generateButtonIcon">🚀</span>
+          <span id="generateButtonText">Generate Video</span>
         </button>
 
       </div>
 
-
-      <div
-        class="bg-[#090a0d] text-white rounded-[28px] p-6 h-fit"
-      >
+      <div class="bg-[#090a0d] text-white rounded-[28px] p-6 h-fit">
 
         <div class="text-sm text-gray-500">
           Current mode
         </div>
 
-        <div
-          id="sideMode"
-          class="text-2xl font-black mt-2"
-        >
+        <div id="sideMode" class="text-2xl font-black mt-2">
           AI Video
         </div>
 
-
-        <div
-          class="mt-8 space-y-4 text-sm text-gray-300"
-        >
+        <div class="mt-8 space-y-4 text-sm text-gray-300">
 
           <div class="flex items-center gap-3">
             <span class="text-green-400">✓</span>
@@ -1008,58 +766,35 @@
 </section>
 
 
-<!-- =====================================================
-     GENERATING
-====================================================== -->
+<section id="generatingPage" class="page hidden">
 
-<section
-  id="generatingPage"
-  class="page hidden"
->
+  <main class="min-h-screen flex items-center justify-center px-5">
 
-  <main
-    class="min-h-screen flex items-center justify-center px-5"
-  >
-
-    <div
-      class="w-full max-w-2xl bg-white border border-gray-200 rounded-[32px] p-7 md:p-10 shadow-sm"
-    >
+    <div class="w-full max-w-2xl bg-white border border-gray-200 rounded-[32px] p-7 md:p-10 shadow-sm">
 
       <div class="flex justify-center">
         <div class="loader"></div>
       </div>
 
-      <div
-        class="text-center mt-7"
-      >
+      <div class="text-center mt-7">
 
-        <div
-          class="text-xs uppercase tracking-[0.2em] font-black text-gray-400"
-        >
+        <div class="text-xs uppercase tracking-[0.2em] font-black text-gray-400">
           ViralTap Studio
         </div>
 
-        <h2
-          class="text-3xl md:text-4xl font-black mt-3"
-        >
+        <h2 class="text-3xl md:text-4xl font-black mt-3">
           Creating your video
         </h2>
 
-        <p
-          id="generationMessage"
-          class="text-gray-500 mt-3 leading-relaxed"
-        >
+        <p id="generationMessage" class="text-gray-500 mt-3 leading-relaxed">
           AI is understanding your idea...
         </p>
 
       </div>
 
-
       <div class="mt-9">
 
-        <div
-          class="flex items-center justify-between text-xs font-bold text-gray-500 mb-2"
-        >
+        <div class="flex items-center justify-between text-xs font-bold text-gray-500 mb-2">
 
           <span id="generationStatus">
             Starting
@@ -1071,9 +806,7 @@
 
         </div>
 
-        <div
-          class="h-3 rounded-full bg-gray-100 overflow-hidden"
-        >
+        <div class="h-3 rounded-full bg-gray-100 overflow-hidden">
 
           <div
             id="progressBar"
@@ -1085,68 +818,28 @@
 
       </div>
 
+      <div class="mt-8 grid grid-cols-3 gap-3">
 
-      <div
-        class="mt-8 grid grid-cols-3 gap-3"
-      >
-
-        <div
-          class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center"
-        >
-          <div class="text-xl">
-            🧠
-          </div>
-
-          <div
-            class="text-xs font-bold text-gray-500 mt-2"
-          >
-            Script
-          </div>
+        <div class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center">
+          <div class="text-xl">🧠</div>
+          <div class="text-xs font-bold text-gray-500 mt-2">Script</div>
         </div>
 
-
-        <div
-          class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center"
-        >
-          <div class="text-xl">
-            🎬
-          </div>
-
-          <div
-            class="text-xs font-bold text-gray-500 mt-2"
-          >
-            Visuals
-          </div>
+        <div class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center">
+          <div class="text-xl">🎬</div>
+          <div class="text-xs font-bold text-gray-500 mt-2">Visuals</div>
         </div>
 
-
-        <div
-          class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center"
-        >
-          <div class="text-xl">
-            🎙️
-          </div>
-
-          <div
-            class="text-xs font-bold text-gray-500 mt-2"
-          >
-            Voice
-          </div>
+        <div class="rounded-2xl bg-gray-50 border border-gray-200 p-4 text-center">
+          <div class="text-xl">🎙️</div>
+          <div class="text-xs font-bold text-gray-500 mt-2">Voice</div>
         </div>
 
       </div>
 
-
-      <div
-        class="mt-7 text-center text-xs text-gray-400"
-      >
+      <div class="mt-7 text-center text-xs text-gray-400">
         Job ID:
-        <span
-          id="generationJobId"
-          class="font-mono"
-        >
-          —
-        </span>
+        <span id="generationJobId" class="font-mono">—</span>
       </div>
 
     </div>
@@ -1156,27 +849,13 @@
 </section>
 
 
-<!-- =====================================================
-     RESULT
-====================================================== -->
+<section id="resultPage" class="page hidden">
 
-<section
-  id="resultPage"
-  class="page hidden"
->
+  <header class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl">
 
-  <header
-    class="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
-  >
+    <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
 
-    <div
-      class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between"
-    >
-
-      <button
-        onclick="goHome()"
-        class="text-gray-600 font-bold"
-      >
+      <button onclick="goHome()" class="text-gray-600 font-bold">
         ← Home
       </button>
 
@@ -1195,55 +874,34 @@
 
   </header>
 
+  <main class="max-w-6xl mx-auto px-5 py-8 safe-bottom">
 
-  <main
-    class="max-w-6xl mx-auto px-5 py-8 safe-bottom"
-  >
+    <div class="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start">
 
-    <div
-      class="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-6 items-start"
-    >
+      <div class="bg-[#090a0d] rounded-[28px] p-4 md:p-6">
 
-      <!-- VIDEO -->
-
-      <div
-        class="bg-[#090a0d] rounded-[28px] p-4 md:p-6"
-      >
-
-        <div
-          class="flex items-center justify-between gap-3 text-white mb-4"
-        >
+        <div class="flex items-center justify-between gap-3 text-white mb-4">
 
           <div>
 
-            <div
-              class="text-xs uppercase tracking-[0.16em] text-gray-500 font-black"
-            >
+            <div class="text-xs uppercase tracking-[0.16em] text-gray-500 font-black">
               Final MP4
             </div>
 
-            <h1
-              id="resultTitle"
-              class="text-2xl md:text-3xl font-black mt-1"
-            >
+            <h1 id="resultTitle" class="text-2xl md:text-3xl font-black mt-1">
               Your Viral Video
             </h1>
 
           </div>
 
-          <div
-            class="flex items-center gap-2 text-xs text-gray-400"
-          >
+          <div class="flex items-center gap-2 text-xs text-gray-400">
             <span class="status-dot"></span>
-            Ready
+            <span id="resultReadyLabel">Ready</span>
           </div>
 
         </div>
 
-
-        <div
-          class="video-frame rounded-2xl overflow-hidden relative"
-        >
+        <div class="video-frame rounded-2xl overflow-hidden relative">
 
           <video
             id="videoPlayer"
@@ -1253,7 +911,6 @@
             preload="metadata"
           ></video>
 
-
           <div
             id="noVideoMessage"
             class="hidden min-h-[420px] flex items-center justify-center text-center text-white p-8"
@@ -1261,9 +918,7 @@
 
             <div>
 
-              <div class="text-4xl">
-                🎬
-              </div>
+              <div class="text-4xl">🎬</div>
 
               <div class="font-black text-xl mt-3">
                 Video is not available yet
@@ -1279,10 +934,7 @@
 
         </div>
 
-
-        <div
-          class="grid grid-cols-2 gap-3 mt-4"
-        >
+        <div class="grid grid-cols-2 gap-3 mt-4">
 
           <button
             onclick="playPreview()"
@@ -1303,70 +955,44 @@
       </div>
 
 
-      <!-- RIGHT SIDE -->
-
       <div class="space-y-5">
 
-        <!-- DESCRIPTION -->
+        <div class="bg-white border border-gray-200 rounded-[28px] p-6">
 
-        <div
-          class="bg-white border border-gray-200 rounded-[28px] p-6"
-        >
-
-          <div
-            class="text-xs uppercase tracking-wider text-gray-400 font-black"
-          >
+          <div class="text-xs uppercase tracking-wider text-gray-400 font-black">
             Video
           </div>
 
-          <div
-            id="resultDescription"
-            class="text-sm text-gray-600 leading-relaxed mt-3"
-          >
+          <div id="resultDescription" class="text-sm text-gray-600 leading-relaxed mt-3">
             AI generated video script.
           </div>
 
         </div>
 
 
-        <!-- META -->
-
-        <div
-          id="resultMeta"
-          class="grid grid-cols-2 gap-3"
-        ></div>
+        <div id="resultMeta" class="grid grid-cols-2 gap-3"></div>
 
 
-        <!-- AI MUSIC -->
+        <!-- MUSIC -->
 
-        <div
-          class="bg-white border border-gray-200 rounded-[28px] p-6"
-        >
+        <div class="bg-white border border-gray-200 rounded-[28px] p-6">
 
-          <div
-            class="flex items-start justify-between gap-4"
-          >
+          <div class="flex items-start justify-between gap-4">
 
             <div>
 
-              <div
-                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-black"
-              >
+              <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-xs font-black">
                 <span>✨</span>
                 AI Recommended
               </div>
 
-              <h2
-                class="text-2xl font-black mt-3"
-              >
+              <h2 class="text-2xl font-black mt-3">
                 Music for your video
               </h2>
 
-              <p
-                class="text-sm text-gray-500 leading-relaxed mt-2"
-              >
-                Video ke mood ke according music choose karo,
-                preview karo aur pasand aaye to apply kar do.
+              <p class="text-sm text-gray-500 leading-relaxed mt-2">
+                AI tumhare video ke mood ko samajhkar music suggest karega.
+                Preview karo, style change karo aur pasand aaye to final MP4 par apply karo.
               </p>
 
             </div>
@@ -1374,12 +1000,7 @@
           </div>
 
 
-          <!-- MUSIC LOADING -->
-
-          <div
-            id="musicLoading"
-            class="mt-5 rounded-2xl bg-gray-50 border border-gray-200 p-5"
-          >
+          <div id="musicLoading" class="mt-5 rounded-2xl bg-gray-50 border border-gray-200 p-5">
 
             <div class="flex items-center gap-3">
 
@@ -1402,12 +1023,7 @@
           </div>
 
 
-          <!-- MUSIC ERROR -->
-
-          <div
-            id="musicError"
-            class="hidden mt-5 rounded-2xl bg-red-50 border border-red-200 p-4"
-          >
+          <div id="musicError" class="hidden mt-5 rounded-2xl bg-red-50 border border-red-200 p-4">
 
             <div
               class="text-sm font-bold text-red-700"
@@ -1426,28 +1042,16 @@
           </div>
 
 
-          <!-- MUSIC CONTENT -->
-
-          <div
-            id="musicContent"
-            class="hidden mt-5"
-          >
-
-            <!-- RECOMMENDED -->
+          <div id="musicContent" class="hidden mt-5">
 
             <div
               id="recommendedMusicCard"
               class="music-card selected border border-gray-200 rounded-2xl p-4"
             ></div>
 
-
-            <!-- RELATED -->
-
             <div class="mt-6">
 
-              <div
-                class="text-xs uppercase tracking-wider font-black text-gray-400"
-              >
+              <div class="text-xs uppercase tracking-wider font-black text-gray-400">
                 Related styles
               </div>
 
@@ -1461,35 +1065,19 @@
           </div>
 
 
-          <!-- APPLY STATUS -->
+          <div id="musicApplyStatus" class="hidden mt-5 rounded-2xl bg-gray-50 border border-gray-200 p-4">
 
-          <div
-            id="musicApplyStatus"
-            class="hidden mt-5 rounded-2xl bg-gray-50 border border-gray-200 p-4"
-          >
+            <div class="flex items-center gap-3">
 
-            <div
-              class="flex items-center gap-3"
-            >
-
-              <span
-                id="musicApplyLoader"
-                class="dark-loader"
-              ></span>
+              <span id="musicApplyLoader" class="dark-loader"></span>
 
               <div>
 
-                <div
-                  id="musicApplyTitle"
-                  class="font-black text-sm"
-                >
+                <div id="musicApplyTitle" class="font-black text-sm">
                   Applying music...
                 </div>
 
-                <div
-                  id="musicApplyMessage"
-                  class="text-xs text-gray-500 mt-1"
-                >
+                <div id="musicApplyMessage" class="text-xs text-gray-500 mt-1">
                   Creating your updated MP4.
                 </div>
 
@@ -1502,15 +1090,9 @@
         </div>
 
 
-        <!-- TABS -->
+        <div class="bg-white border border-gray-200 rounded-[28px] p-6">
 
-        <div
-          class="bg-white border border-gray-200 rounded-[28px] p-6"
-        >
-
-          <div
-            class="flex gap-2"
-          >
+          <div class="flex gap-2">
 
             <button
               id="scenesTab"
@@ -1530,21 +1112,11 @@
 
           </div>
 
+          <div id="sceneList" class="mt-5"></div>
 
-          <div
-            id="sceneList"
-            class="mt-5"
-          ></div>
+          <div id="previewInfo" class="hidden mt-5">
 
-
-          <div
-            id="previewInfo"
-            class="hidden mt-5"
-          >
-
-            <div
-              class="text-sm text-gray-600 leading-relaxed"
-            >
+            <div class="text-sm text-gray-600 leading-relaxed">
               ViralTap generated this video using
               AI script generation, AI visuals,
               AI voice and an optional AI music layer.
@@ -1565,40 +1137,16 @@
 
 <script>
 
-/* =====================================================
-   GLOBAL STATE
-===================================================== */
-
-let currentVideoType =
-  "normal";
-
-let generatedVideoData =
-  null;
-
-let renderJobData =
-  null;
-
-let generationInProgress =
-  false;
-
-let musicGenerationInProgress =
-  false;
-
-let musicApplyInProgress =
-  false;
-
+let currentVideoType = "normal";
+let generatedVideoData = null;
+let renderJobData = null;
+let generationInProgress = false;
+let musicGenerationInProgress = false;
+let musicApplyInProgress = false;
 let musicOptions = [];
+let selectedMusic = null;
+let musicPreviewAudio = null;
 
-let selectedMusic =
-  null;
-
-let musicPreviewAudio =
-  null;
-
-
-/* =====================================================
-   PAGE HELPERS
-===================================================== */
 
 function hideAllPages() {
 
@@ -1607,18 +1155,16 @@ function hideAllPages() {
     "studioPage",
     "generatingPage",
     "resultPage"
-  ].forEach(
-    (id) => {
-      const el =
-        document.getElementById(id);
+  ].forEach((id) => {
 
-      if (el) {
-        el.classList.add(
-          "hidden"
-        );
-      }
+    const el =
+      document.getElementById(id);
+
+    if (el) {
+      el.classList.add("hidden");
     }
-  );
+
+  });
 }
 
 
@@ -1627,9 +1173,7 @@ function goHome() {
   hideAllPages();
 
   document
-    .getElementById(
-      "homePage"
-    )
+    .getElementById("homePage")
     .classList
     .remove("hidden");
 
@@ -1640,14 +1184,9 @@ function goHome() {
 }
 
 
-/* =====================================================
-   STUDIO
-===================================================== */
-
 function openNormalStudio() {
 
-  currentVideoType =
-    "normal";
+  currentVideoType = "normal";
 
   openStudio();
 }
@@ -1655,8 +1194,7 @@ function openNormalStudio() {
 
 function openFunnyStudio() {
 
-  currentVideoType =
-    "funny";
+  currentVideoType = "funny";
 
   openStudio();
 }
@@ -1666,23 +1204,19 @@ function openStudio() {
 
   const homeStory =
     document
-      .getElementById(
-        "homeStory"
-      )
+      .getElementById("homeStory")
       .value
       .trim();
 
   const studioStory =
-    document
-      .getElementById(
-        "studioStory"
-      );
+    document.getElementById("studioStory");
 
 
   if (
     homeStory &&
     !studioStory.value.trim()
   ) {
+
     studioStory.value =
       homeStory;
 
@@ -1696,32 +1230,23 @@ function openStudio() {
   hideAllPages();
 
   document
-    .getElementById(
-      "studioPage"
-    )
+    .getElementById("studioPage")
     .classList
     .remove("hidden");
 
 
   const badge =
-    document.getElementById(
-      "studioBadge"
-    );
+    document.getElementById("studioBadge");
 
   const title =
-    document.getElementById(
-      "studioTitle"
-    );
+    document.getElementById("studioTitle");
 
   const sideMode =
-    document.getElementById(
-      "sideMode"
-    );
+    document.getElementById("sideMode");
 
 
   if (
-    currentVideoType ===
-    "funny"
+    currentVideoType === "funny"
   ) {
 
     badge.textContent =
@@ -1753,92 +1278,58 @@ function openStudio() {
 }
 
 
-/* =====================================================
-   CHARACTER COUNT
-===================================================== */
-
 function updateCharacterCount(
   inputId,
   counterId
 ) {
 
   const input =
-    document.getElementById(
-      inputId
-    );
+    document.getElementById(inputId);
 
   const counter =
-    document.getElementById(
-      counterId
-    );
+    document.getElementById(counterId);
 
-  if (
-    !input ||
-    !counter
-  ) {
+  if (!input || !counter) {
     return;
   }
 
-  const count =
-    input.value.length;
-
   counter.textContent =
-    `${count} characters`;
+    `${input.value.length} characters`;
 }
 
-
-/* =====================================================
-   GENERATE CURRENT VIDEO
-===================================================== */
 
 async function generateCurrentVideo() {
 
   const story =
     document
-      .getElementById(
-        "studioStory"
-      )
+      .getElementById("studioStory")
       .value
       .trim();
 
-
   const validation =
-    document.getElementById(
-      "studioValidation"
-    );
+    document.getElementById("studioValidation");
 
 
-  validation.classList.add(
-    "hidden"
-  );
+  validation.classList.add("hidden");
 
 
-  if (
-    !story
-  ) {
+  if (!story) {
 
     validation.textContent =
       "Pehle apni story ya idea likho.";
 
-    validation.classList.remove(
-      "hidden"
-    );
+    validation.classList.remove("hidden");
 
     return;
   }
 
 
-  if (
-    story.length <
-    10
-  ) {
+  if (story.length < 10) {
 
     validation.textContent =
       "Thoda detailed idea likho, taaki AI better video bana sake.";
 
-    validation.classList.remove(
-      "hidden"
-    );
+    validation.classList.remove("hidden");
 
     return;
   }
@@ -1852,73 +1343,41 @@ async function generateCurrentVideo() {
       currentVideoType,
 
     language:
-      document
-        .getElementById(
-          "language"
-        )
-        .value,
+      document.getElementById("language").value,
 
     aspectRatio:
-      document
-        .getElementById(
-          "aspectRatio"
-        )
-        .value,
+      document.getElementById("aspectRatio").value,
 
     duration:
       Number(
-        document
-          .getElementById(
-            "duration"
-          )
-          .value
+        document.getElementById("duration").value
       ),
 
     voice:
-      document
-        .getElementById(
-          "voice"
-        )
-        .value,
+      document.getElementById("voice").value,
 
     branding:
-      document
-        .getElementById(
-          "branding"
-        )
-        .value
+      document.getElementById("branding").value
 
   };
 
 
-  await startGeneration(
-    options
-  );
+  await startGeneration(options);
 }
 
-
-/* =====================================================
-   GENERATE BUTTON STATE
-===================================================== */
 
 function setGenerateButtonLoading(
   loading
 ) {
 
   const button =
-    document.getElementById(
-      "generateButton"
-    );
+    document.getElementById("generateButton");
 
   const icon =
-    document.getElementById(
-      "generateButtonIcon"
-    );
+    document.getElementById("generateButtonIcon");
 
   const text =
-    document.getElementById(
-      "generateButtonText"
-    );
+    document.getElementById("generateButtonText");
 
 
   if (!button) {
@@ -1949,36 +1408,23 @@ function setGenerateButtonLoading(
 }
 
 
-/* =====================================================
-   START GENERATION
-===================================================== */
-
 async function startGeneration(
   options
 ) {
 
-  if (
-    generationInProgress
-  ) {
+  if (generationInProgress) {
     return;
   }
 
 
-  generationInProgress =
-    true;
+  generationInProgress = true;
 
-
-  setGenerateButtonLoading(
-    true
-  );
-
+  setGenerateButtonLoading(true);
 
   hideAllPages();
 
   document
-    .getElementById(
-      "generatingPage"
-    )
+    .getElementById("generatingPage")
     .classList
     .remove("hidden");
 
@@ -1992,10 +1438,6 @@ async function startGeneration(
 
   try {
 
-    /* -----------------------------------------------
-       STEP 1 — SCRIPT
-    ------------------------------------------------ */
-
     const scriptResponse =
       await fetch(
         "/api/generate-script",
@@ -2008,9 +1450,7 @@ async function startGeneration(
           },
 
           body:
-            JSON.stringify(
-              options
-            )
+            JSON.stringify(options)
         }
       );
 
@@ -2027,6 +1467,7 @@ async function startGeneration(
     ) {
 
       const detailedError = [
+
         scriptData.error,
 
         scriptData.geminiError
@@ -2080,12 +1521,6 @@ async function startGeneration(
     );
 
 
-    /* -----------------------------------------------
-       STEP 2 — RENDER
-       IMPORTANT:
-       No music is requested here.
-    ------------------------------------------------ */
-
     const renderResponse =
       await fetch(
         "/api/render-video",
@@ -2101,8 +1536,7 @@ async function startGeneration(
             JSON.stringify({
 
               scenes:
-                scriptData.scenes ||
-                [],
+                scriptData.scenes || [],
 
               videoType:
                 options.videoType,
@@ -2146,9 +1580,7 @@ async function startGeneration(
     }
 
 
-    if (
-      !renderData.jobId
-    ) {
+    if (!renderData.jobId) {
 
       throw new Error(
         "Render job ID was not returned by the server."
@@ -2157,13 +1589,21 @@ async function startGeneration(
 
 
     renderJobData =
-      renderData;
+      {
+        ...renderData,
+        videoType:
+          options.videoType,
+        language:
+          options.language,
+        duration:
+          options.duration,
+        aspectRatio:
+          options.aspectRatio
+      };
 
 
     document
-      .getElementById(
-        "generationJobId"
-      )
+      .getElementById("generationJobId")
       .textContent =
       renderData.jobId;
 
@@ -2175,28 +1615,21 @@ async function startGeneration(
     );
 
 
-    /* -----------------------------------------------
-       STEP 3 — WAIT FOR RENDER
-    ------------------------------------------------ */
-
     const completedData =
       await waitForRenderCompletion(
         renderData.jobId
       );
 
 
-    renderJobData = {
-
-      ...renderData,
-
-      ...completedData
-
-    };
+    renderJobData =
+      {
+        ...renderJobData,
+        ...completedData
+      };
 
 
     if (
-      completedData.status !==
-        "completed" ||
+      completedData.status !== "completed" ||
       !completedData.videoUrl
     ) {
 
@@ -2217,10 +1650,6 @@ async function startGeneration(
     await wait(500);
 
 
-    /* -----------------------------------------------
-       STEP 4 — RESULT
-    ------------------------------------------------ */
-
     prepareResult(
       scriptData,
       completedData,
@@ -2231,17 +1660,10 @@ async function startGeneration(
     hideAllPages();
 
     document
-      .getElementById(
-        "resultPage"
-      )
+      .getElementById("resultPage")
       .classList
       .remove("hidden");
 
-
-    /*
-     * Music recommendation starts AFTER
-     * the actual video is ready.
-     */
 
     void generateRecommendedMusic();
 
@@ -2253,40 +1675,25 @@ async function startGeneration(
       error
     );
 
-
-    showGenerationError(
-      error
-    );
-
+    showGenerationError(error);
 
   } finally {
 
-    generationInProgress =
-      false;
+    generationInProgress = false;
 
-    setGenerateButtonLoading(
-      false
-    );
+    setGenerateButtonLoading(false);
   }
 }
 
-
-/* =====================================================
-   RENDER STATUS
-===================================================== */
 
 async function waitForRenderCompletion(
   jobId
 ) {
 
-  const maxAttempts =
-    180;
+  const maxAttempts = 180;
+  const pollInterval = 3000;
 
-  const pollInterval =
-    3000;
-
-  let lastFrontendProgress =
-    60;
+  let lastFrontendProgress = 60;
 
 
   for (
@@ -2298,9 +1705,7 @@ async function waitForRenderCompletion(
     const response =
       await fetch(
         "/api/check-status?jobId=" +
-        encodeURIComponent(
-          jobId
-        ),
+        encodeURIComponent(jobId),
         {
           method: "GET",
           cache: "no-store"
@@ -2309,9 +1714,7 @@ async function waitForRenderCompletion(
 
 
     const data =
-      await readJsonResponse(
-        response
-      );
+      await readJsonResponse(response);
 
 
     if (
@@ -2326,10 +1729,7 @@ async function waitForRenderCompletion(
     }
 
 
-    if (
-      data.status ===
-      "failed"
-    ) {
+    if (data.status === "failed") {
 
       throw new Error(
         data.error ||
@@ -2339,8 +1739,7 @@ async function waitForRenderCompletion(
 
 
     if (
-      data.status ===
-        "completed" &&
+      data.status === "completed" &&
       data.videoUrl
     ) {
 
@@ -2355,9 +1754,7 @@ async function waitForRenderCompletion(
 
 
     const backendProgress =
-      Number(
-        data.progress
-      );
+      Number(data.progress);
 
 
     if (
@@ -2379,9 +1776,7 @@ async function waitForRenderCompletion(
       const frontendProgress =
         Math.min(
           99,
-          60 +
-            normalized *
-              0.39
+          60 + normalized * 0.39
         );
 
 
@@ -2398,21 +1793,12 @@ async function waitForRenderCompletion(
         "Rendering";
 
 
-      if (
-        data.status ===
-        "queued"
-      ) {
-
-        statusText =
-          "Queued";
-
-      } else if (
-        data.status ===
-        "uploading"
-      ) {
-
-        statusText =
-          "Uploading";
+      if (data.status === "queued") {
+        statusText = "Queued";
+      } else if (data.status === "uploading") {
+        statusText = "Uploading";
+      } else if (data.status === "processing") {
+        statusText = "Processing";
       }
 
 
@@ -2434,9 +1820,7 @@ async function waitForRenderCompletion(
     }
 
 
-    await wait(
-      pollInterval
-    );
+    await wait(pollInterval);
   }
 
 
@@ -2445,10 +1829,6 @@ async function waitForRenderCompletion(
   );
 }
 
-
-/* =====================================================
-   RESULT
-===================================================== */
 
 function prepareResult(
   data,
@@ -2460,49 +1840,35 @@ function prepareResult(
     data.title ||
     "Your Viral Video";
 
-
   const description =
     data.description ||
     "AI generated video script.";
 
 
   document
-    .getElementById(
-      "resultTitle"
-    )
+    .getElementById("resultTitle")
     .textContent =
     title;
 
 
   document
-    .getElementById(
-      "resultDescription"
-    )
+    .getElementById("resultDescription")
     .textContent =
     description;
 
 
   createScenes(
-    Array.isArray(
-      data.scenes
-    )
+    Array.isArray(data.scenes)
       ? data.scenes
       : []
   );
 
 
   const video =
-    document
-      .getElementById(
-        "videoPlayer"
-      );
-
+    document.getElementById("videoPlayer");
 
   const noVideo =
-    document
-      .getElementById(
-        "noVideoMessage"
-      );
+    document.getElementById("noVideoMessage");
 
 
   const videoUrl =
@@ -2511,30 +1877,22 @@ function prepareResult(
     "";
 
 
-  if (
-    videoUrl
-  ) {
+  if (videoUrl) {
 
     video.src =
       videoUrl;
 
-    video.classList
-      .remove("hidden");
+    video.classList.remove("hidden");
 
-    noVideo.classList
-      .add("hidden");
+    noVideo.classList.add("hidden");
 
   } else {
 
-    video.removeAttribute(
-      "src"
-    );
+    video.removeAttribute("src");
 
-    video.classList
-      .add("hidden");
+    video.classList.add("hidden");
 
-    noVideo.classList
-      .remove("hidden");
+    noVideo.classList.remove("hidden");
   }
 
 
@@ -2543,16 +1901,11 @@ function prepareResult(
     options
   );
 
-
   showScenes();
 
   resetMusicUI();
 }
 
-
-/* =====================================================
-   RESULT META
-===================================================== */
 
 function createResultMeta(
   completedData,
@@ -2560,9 +1913,7 @@ function createResultMeta(
 ) {
 
   const box =
-    document.getElementById(
-      "resultMeta"
-    );
+    document.getElementById("resultMeta");
 
 
   if (!box) {
@@ -2610,17 +1961,11 @@ function createResultMeta(
         item => `
           <div class="bg-white border border-gray-200 rounded-2xl p-4">
             <div class="text-[11px] uppercase tracking-wide font-black text-gray-400">
-              ${escapeHtml(
-                item.label
-              )}
+              ${escapeHtml(item.label)}
             </div>
 
             <div class="font-black mt-1">
-              ${escapeHtml(
-                String(
-                  item.value
-                )
-              )}
+              ${escapeHtml(String(item.value))}
             </div>
           </div>
         `
@@ -2629,31 +1974,20 @@ function createResultMeta(
 }
 
 
-/* =====================================================
-   SCENES
-===================================================== */
-
 function createScenes(
   scenes
 ) {
 
   const list =
-    document
-      .getElementById(
-        "sceneList"
-      );
+    document.getElementById("sceneList");
 
 
-  if (
-    !list
-  ) {
+  if (!list) {
     return;
   }
 
 
-  if (
-    !scenes.length
-  ) {
+  if (!scenes.length) {
 
     list.innerHTML =
       `
@@ -2669,10 +2003,7 @@ function createScenes(
   list.innerHTML =
     scenes
       .map(
-        (
-          scene,
-          index
-        ) => {
+        (scene, index) => {
 
           const caption =
             scene.caption ||
@@ -2689,14 +2020,11 @@ function createScenes(
 
 
           const lines =
-            Array.isArray(
-              scene.lines
-            )
+            Array.isArray(scene.lines)
               ? scene.lines
                   .map(
                     line =>
-                      typeof line ===
-                      "string"
+                      typeof line === "string"
                         ? line
                         : line?.text
                   )
@@ -2710,22 +2038,12 @@ function createScenes(
                 <div class="mt-3 space-y-2">
                   ${lines
                     .map(
-                      (
-                        line,
-                        lineIndex
-                      ) => `
+                      (line, lineIndex) => `
                         <div class="scene-line pl-3 text-xs text-gray-500">
                           <span class="font-bold text-gray-400 mr-1">
-                            ${
-                              lineIndex +
-                              1
-                            }.
+                            ${lineIndex + 1}.
                           </span>
-                          ${escapeHtml(
-                            String(
-                              line
-                            )
-                          )}
+                          ${escapeHtml(String(line))}
                         </div>
                       `
                     )
@@ -2741,21 +2059,14 @@ function createScenes(
               <div class="flex items-center justify-between gap-3">
 
                 <div class="font-black text-sm">
-                  Scene ${
-                    index +
-                    1
-                  }
+                  Scene ${index + 1}
                 </div>
 
                 ${
                   duration
                     ? `
                       <div class="text-xs text-gray-400 font-semibold">
-                        ${escapeHtml(
-                          String(
-                            duration
-                          )
-                        )}s
+                        ${escapeHtml(String(duration))}s
                       </div>
                     `
                     : ""
@@ -2764,16 +2075,10 @@ function createScenes(
               </div>
 
               <div class="text-sm text-gray-600 mt-2 leading-relaxed">
-                ${escapeHtml(
-                  String(
-                    caption
-                  )
-                )}
+                ${escapeHtml(String(caption))}
               </div>
 
-              ${
-                linesHtml
-              }
+              ${linesHtml}
 
             </div>
           `;
@@ -2784,86 +2089,63 @@ function createScenes(
 }
 
 
-/* =====================================================
-   MUSIC UI RESET
-===================================================== */
-
 function resetMusicUI() {
 
-  musicOptions =
-    [];
-
-  selectedMusic =
-    null;
-
-  musicGenerationInProgress =
-    false;
-
-  musicApplyInProgress =
-    false;
-
+  musicOptions = [];
+  selectedMusic = null;
+  musicGenerationInProgress = false;
+  musicApplyInProgress = false;
 
   stopMusicPreview();
 
 
   const loading =
-    document.getElementById(
-      "musicLoading"
-    );
+    document.getElementById("musicLoading");
 
   const error =
-    document.getElementById(
-      "musicError"
-    );
+    document.getElementById("musicError");
 
   const content =
-    document.getElementById(
-      "musicContent"
-    );
+    document.getElementById("musicContent");
 
   const apply =
-    document.getElementById(
-      "musicApplyStatus"
-    );
+    document.getElementById("musicApplyStatus");
 
 
   if (loading) {
-    loading.classList.remove(
-      "hidden"
-    );
+    loading.classList.remove("hidden");
   }
 
   if (error) {
-    error.classList.add(
-      "hidden"
-    );
+    error.classList.add("hidden");
   }
 
   if (content) {
-    content.classList.add(
-      "hidden"
-    );
+    content.classList.add("hidden");
   }
 
   if (apply) {
-    apply.classList.add(
-      "hidden"
+    apply.classList.add("hidden");
+  }
+
+
+  const readyLabel =
+    document.getElementById(
+      "resultReadyLabel"
     );
+
+  if (readyLabel) {
+    readyLabel.textContent =
+      "Ready";
   }
 }
 
-
-/* =====================================================
-   MUSIC RECOMMENDATION
-===================================================== */
 
 async function generateRecommendedMusic(
   style = ""
 ) {
 
-  if (
-    musicGenerationInProgress
-  ) {
+  if (musicGenerationInProgress) {
     return;
   }
 
@@ -2872,9 +2154,7 @@ async function generateRecommendedMusic(
     renderJobData?.jobId;
 
 
-  if (
-    !jobId
-  ) {
+  if (!jobId) {
 
     showMusicError(
       "Render job ID is missing."
@@ -2884,37 +2164,22 @@ async function generateRecommendedMusic(
   }
 
 
-  musicGenerationInProgress =
-    true;
+  musicGenerationInProgress = true;
 
 
   const loading =
-    document.getElementById(
-      "musicLoading"
-    );
+    document.getElementById("musicLoading");
 
   const error =
-    document.getElementById(
-      "musicError"
-    );
+    document.getElementById("musicError");
 
   const content =
-    document.getElementById(
-      "musicContent"
-    );
+    document.getElementById("musicContent");
 
 
-  loading.classList.remove(
-    "hidden"
-  );
-
-  error.classList.add(
-    "hidden"
-  );
-
-  content.classList.add(
-    "hidden"
-  );
+  loading.classList.remove("hidden");
+  error.classList.add("hidden");
+  content.classList.add("hidden");
 
 
   try {
@@ -2942,6 +2207,19 @@ async function generateRecommendedMusic(
               language:
                 renderJobData?.language ||
                 "Hindi",
+
+              videoType:
+                renderJobData?.videoType ||
+                currentVideoType,
+
+              duration:
+                Number(
+                  renderJobData?.duration ||
+                  document
+                    .getElementById("duration")
+                    ?.value ||
+                  30
+                ),
 
               musicStyle:
                 style || ""
@@ -2973,18 +2251,20 @@ async function generateRecommendedMusic(
     const musicItem = {
 
       id:
-        `${data.musicStyle}-${Date.now()}`,
+        `${data.musicStyle || "cinematic"}-${Date.now()}`,
 
       style:
         data.musicStyle ||
         "cinematic",
 
       label:
+        data.recommended?.label ||
         getMusicLabel(
           data.musicStyle
         ),
 
       description:
+        data.recommended?.description ||
         getMusicDescription(
           data.musicStyle
         ),
@@ -2997,7 +2277,7 @@ async function generateRecommendedMusic(
         "lyria-3-clip-preview",
 
       recommended:
-        true
+        !style
 
     };
 
@@ -3020,7 +2300,6 @@ async function generateRecommendedMusic(
 
     renderMusicOptions();
 
-
   } catch (error) {
 
     console.error(
@@ -3035,61 +2314,35 @@ async function generateRecommendedMusic(
 
   } finally {
 
-    musicGenerationInProgress =
-      false;
+    musicGenerationInProgress = false;
   }
 }
 
 
-/* =====================================================
-   MUSIC LABELS
-===================================================== */
-
-function getMusicLabel(
-  style
-) {
+function getMusicLabel(style) {
 
   const labels = {
 
-    cinematic:
-      "Cinematic",
-
-    action:
-      "Epic Action",
-
-    suspense:
-      "Dark Suspense",
-
-    emotional:
-      "Emotional",
-
-    romantic:
-      "Soft Romantic",
-
-    funny:
-      "Playful Comedy",
-
-    energetic:
-      "Energetic",
-
-    calm:
-      "Calm Ambient"
+    cinematic: "Cinematic",
+    action: "Epic Action",
+    suspense: "Dark Suspense",
+    emotional: "Emotional",
+    romantic: "Soft Romantic",
+    funny: "Playful Comedy",
+    energetic: "Energetic",
+    calm: "Calm Ambient"
 
   };
 
 
   return (
-    labels[
-      style
-    ] ||
+    labels[style] ||
     "AI Recommended"
   );
 }
 
 
-function getMusicDescription(
-  style
-) {
+function getMusicDescription(style) {
 
   const descriptions = {
 
@@ -3121,39 +2374,25 @@ function getMusicDescription(
 
 
   return (
-    descriptions[
-      style
-    ] ||
+    descriptions[style] ||
     "AI-generated instrumental music matched to your video."
   );
 }
 
 
-/* =====================================================
-   MUSIC OPTIONS UI
-===================================================== */
-
 function renderMusicOptions() {
 
   const loading =
-    document.getElementById(
-      "musicLoading"
-    );
+    document.getElementById("musicLoading");
 
   const content =
-    document.getElementById(
-      "musicContent"
-    );
+    document.getElementById("musicContent");
 
   const recommended =
-    document.getElementById(
-      "recommendedMusicCard"
-    );
+    document.getElementById("recommendedMusicCard");
 
   const related =
-    document.getElementById(
-      "relatedMusicList"
-    );
+    document.getElementById("relatedMusicList");
 
 
   if (
@@ -3164,13 +2403,8 @@ function renderMusicOptions() {
   }
 
 
-  loading.classList.add(
-    "hidden"
-  );
-
-  content.classList.remove(
-    "hidden"
-  );
+  loading.classList.add("hidden");
+  content.classList.remove("hidden");
 
 
   recommended.innerHTML =
@@ -3188,82 +2422,64 @@ function renderMusicOptions() {
 
   related.innerHTML =
     relatedStyles
-      .map(
-        style => {
+      .map(style => {
 
-          const existing =
-            musicOptions.find(
-              item =>
-                item.style ===
-                style
-            );
+        const existing =
+          musicOptions.find(
+            item =>
+              item.style === style
+          );
 
 
-          if (
-            existing
-          ) {
-            return buildMusicCardHtml(
-              existing,
-              false
-            );
-          }
+        if (existing) {
+
+          return buildMusicCardHtml(
+            existing,
+            false
+          );
+        }
 
 
-          return `
-            <div
-              class="border border-gray-200 rounded-2xl p-4"
-            >
+        return `
+          <div class="border border-gray-200 rounded-2xl p-4">
 
-              <div class="flex items-start gap-3">
+            <div class="flex items-start gap-3">
 
-                <div
-                  class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center"
+              <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                🎵
+              </div>
+
+              <div class="flex-1 min-w-0">
+
+                <div class="font-black">
+                  ${escapeHtml(
+                    getMusicLabel(style)
+                  )}
+                </div>
+
+                <div class="text-xs text-gray-500 mt-1 leading-relaxed">
+                  ${escapeHtml(
+                    getMusicDescription(style)
+                  )}
+                </div>
+
+                <button
+                  onclick="generateRelatedMusic('${escapeHtml(style)}')"
+                  class="mt-3 text-sm font-black underline"
                 >
-                  🎵
-                </div>
-
-                <div class="flex-1 min-w-0">
-
-                  <div class="font-black">
-                    ${escapeHtml(
-                      getMusicLabel(
-                        style
-                      )
-                    )}
-                  </div>
-
-                  <div
-                    class="text-xs text-gray-500 mt-1 leading-relaxed"
-                  >
-                    ${escapeHtml(
-                      getMusicDescription(
-                        style
-                      )
-                    )}
-                  </div>
-
-                  <button
-                    onclick="generateRelatedMusic('${escapeHtml(style)}')"
-                    class="mt-3 text-sm font-black underline"
-                  >
-                    Generate this style
-                  </button>
-
-                </div>
+                  Generate this style
+                </button>
 
               </div>
 
             </div>
-          `;
-        }
-      )
+
+          </div>
+        `;
+      })
       .join("");
 }
 
-
-/* =====================================================
-   RELATED STYLES
-===================================================== */
 
 function getRelatedStyles(
   currentStyle
@@ -3331,9 +2547,7 @@ function getRelatedStyles(
 
 
   return (
-    map[
-      currentStyle
-    ] ||
+    map[currentStyle] ||
     [
       "cinematic",
       "emotional",
@@ -3342,10 +2556,6 @@ function getRelatedStyles(
   );
 }
 
-
-/* =====================================================
-   GENERATE RELATED MUSIC
-===================================================== */
 
 async function generateRelatedMusic(
   style
@@ -3359,15 +2569,9 @@ async function generateRelatedMusic(
   }
 
 
-  await generateRecommendedMusic(
-    style
-  );
+  await generateRecommendedMusic(style);
 }
 
-
-/* =====================================================
-   MUSIC CARD HTML
-===================================================== */
 
 function buildMusicCardHtml(
   item,
@@ -3384,35 +2588,22 @@ function buildMusicCardHtml(
 
       <div class="flex items-start gap-3">
 
-        <div
-          class="w-11 h-11 rounded-xl bg-black text-white flex items-center justify-center shrink-0"
-        >
-          ${
-            recommended
-              ? "✨"
-              : "🎵"
-          }
+        <div class="w-11 h-11 rounded-xl bg-black text-white flex items-center justify-center shrink-0">
+          ${recommended ? "✨" : "🎵"}
         </div>
-
 
         <div class="flex-1 min-w-0">
 
-          <div
-            class="flex items-center gap-2 flex-wrap"
-          >
+          <div class="flex items-center gap-2 flex-wrap">
 
             <div class="font-black">
-              ${escapeHtml(
-                item.label
-              )}
+              ${escapeHtml(item.label)}
             </div>
 
             ${
               recommended
                 ? `
-                  <span
-                    class="px-2 py-1 rounded-full bg-gray-100 text-[10px] font-black"
-                  >
+                  <span class="px-2 py-1 rounded-full bg-gray-100 text-[10px] font-black">
                     RECOMMENDED
                   </span>
                 `
@@ -3421,15 +2612,9 @@ function buildMusicCardHtml(
 
           </div>
 
-
-          <div
-            class="text-xs text-gray-500 mt-1 leading-relaxed"
-          >
-            ${escapeHtml(
-              item.description
-            )}
+          <div class="text-xs text-gray-500 mt-1 leading-relaxed">
+            ${escapeHtml(item.description)}
           </div>
-
 
           <div
             class="music-wave mt-3"
@@ -3445,10 +2630,7 @@ function buildMusicCardHtml(
             <span></span>
           </div>
 
-
-          <div
-            class="grid grid-cols-2 gap-2 mt-3"
-          >
+          <div class="grid grid-cols-2 gap-2 mt-3">
 
             <button
               onclick="previewMusic('${escapeHtml(item.id)}')"
@@ -3461,15 +2643,10 @@ function buildMusicCardHtml(
               onclick="selectMusic('${escapeHtml(item.id)}')"
               class="bg-black text-white rounded-xl py-2.5 text-sm font-black"
             >
-              ${
-                isSelected
-                  ? "✓ Selected"
-                  : "Select"
-              }
+              ${isSelected ? "✓ Selected" : "Select"}
             </button>
 
           </div>
-
 
           ${
             isSelected
@@ -3493,10 +2670,6 @@ function buildMusicCardHtml(
 }
 
 
-/* =====================================================
-   SELECT MUSIC
-===================================================== */
-
 function selectMusic(
   musicId
 ) {
@@ -3504,14 +2677,11 @@ function selectMusic(
   const item =
     musicOptions.find(
       option =>
-        option.id ===
-        musicId
+        option.id === musicId
     );
 
 
-  if (
-    !item
-  ) {
+  if (!item) {
     return;
   }
 
@@ -3524,10 +2694,6 @@ function selectMusic(
 }
 
 
-/* =====================================================
-   PREVIEW MUSIC
-===================================================== */
-
 function previewMusic(
   musicId
 ) {
@@ -3535,8 +2701,7 @@ function previewMusic(
   const item =
     musicOptions.find(
       option =>
-        option.id ===
-        musicId
+        option.id === musicId
     );
 
 
@@ -3552,12 +2717,9 @@ function previewMusic(
 
 
   musicPreviewAudio =
-    new Audio(
-      item.url
-    );
+    new Audio(item.url);
 
-  musicPreviewAudio.loop =
-    true;
+  musicPreviewAudio.loop = true;
 
 
   const wave =
@@ -3566,43 +2728,33 @@ function previewMusic(
     );
 
 
-  if (
-    wave
-  ) {
-    wave.classList.add(
-      "playing"
-    );
+  if (wave) {
+    wave.classList.add("playing");
   }
 
 
   musicPreviewAudio
     .play()
-    .catch(
-      error =>
-        console.warn(
-          "Music preview blocked:",
-          error
-        )
-    );
+    .catch(error => {
+
+      console.warn(
+        "Music preview blocked:",
+        error
+      );
+
+    });
 }
 
 
-/* =====================================================
-   STOP MUSIC PREVIEW
-===================================================== */
-
 function stopMusicPreview() {
 
-  if (
-    musicPreviewAudio
-  ) {
+  if (musicPreviewAudio) {
 
     try {
       musicPreviewAudio.pause();
     } catch {}
 
-    musicPreviewAudio =
-      null;
+    musicPreviewAudio = null;
   }
 
 
@@ -3619,10 +2771,6 @@ function stopMusicPreview() {
 }
 
 
-/* =====================================================
-   APPLY MUSIC
-===================================================== */
-
 async function applySelectedMusic() {
 
   if (
@@ -3638,12 +2786,16 @@ async function applySelectedMusic() {
   }
 
 
-  if (
-    musicApplyInProgress
-  ) {
+  if (musicApplyInProgress) {
     return;
   }
 
+
+  /*
+   * IMPORTANT:
+   * renderJobData.jobId = original video job
+   * api/apply-music.js expects "jobId"
+   */
 
   const originalJobId =
     renderJobData?.jobId;
@@ -3665,9 +2817,17 @@ async function applySelectedMusic() {
   }
 
 
-  musicApplyInProgress =
-    true;
+  const duration =
+    Number(
+      renderJobData?.duration ||
+      document
+        .getElementById("duration")
+        ?.value ||
+      30
+    );
 
+
+  musicApplyInProgress = true;
 
   stopMusicPreview();
 
@@ -3687,17 +2847,22 @@ async function applySelectedMusic() {
       "musicApplyMessage"
     );
 
+  const loader =
+    document.getElementById(
+      "musicApplyLoader"
+    );
 
-  status.classList.remove(
-    "hidden"
-  );
+
+  status.classList.remove("hidden");
+
+  loader.classList.remove("hidden");
 
 
   title.textContent =
     "Applying music...";
 
   message.textContent =
-    "New MP4 ban raha hai. Original video aur voice same rahenge.";
+    "Original video same rahega. Sirf selected music mix karke new MP4 ban raha hai.";
 
 
   try {
@@ -3716,7 +2881,14 @@ async function applySelectedMusic() {
           body:
             JSON.stringify({
 
-              originalJobId,
+              /*
+               * FIXED:
+               * Backend expects jobId,
+               * not originalJobId.
+               */
+
+              jobId:
+                originalJobId,
 
               videoUrl,
 
@@ -3726,15 +2898,7 @@ async function applySelectedMusic() {
               musicStyle:
                 selectedMusic.style,
 
-              duration:
-                Number(
-                  document
-                    .getElementById(
-                      "duration"
-                    )?.value ||
-                  renderJobData?.duration ||
-                  30
-                )
+              duration
 
             })
         }
@@ -3764,7 +2928,7 @@ async function applySelectedMusic() {
       "Creating updated MP4...";
 
     message.textContent =
-      "Music mix ho raha hai. Please wait.";
+      "Music mix ho raha hai. Please wait...";
 
 
     const completed =
@@ -3774,8 +2938,7 @@ async function applySelectedMusic() {
 
 
     if (
-      completed.status !==
-        "completed" ||
+      completed.status !== "completed" ||
       !completed.videoUrl
     ) {
 
@@ -3786,11 +2949,21 @@ async function applySelectedMusic() {
     }
 
 
+    /*
+     * Save original job information separately
+     * before replacing the active video job.
+     */
+
+    const appliedMusic =
+      selectedMusic;
+
+
     renderJobData = {
 
       ...renderJobData,
 
-      ...completed,
+      remixJobId:
+        data.jobId,
 
       jobId:
         data.jobId,
@@ -3799,10 +2972,16 @@ async function applySelectedMusic() {
         completed.videoUrl,
 
       musicStyle:
-        selectedMusic.style,
+        appliedMusic.style,
 
       musicUrl:
-        selectedMusic.url
+        appliedMusic.url,
+
+      musicApplied:
+        true,
+
+      duration:
+        duration
 
     };
 
@@ -3813,21 +2992,39 @@ async function applySelectedMusic() {
       );
 
 
+    video.pause();
+
     video.src =
       completed.videoUrl;
 
     video.load();
 
 
+    const readyLabel =
+      document.getElementById(
+        "resultReadyLabel"
+      );
+
+
+    if (readyLabel) {
+      readyLabel.textContent =
+        "Music Applied";
+    }
+
+
     title.textContent =
-      "Music applied successfully";
+      "Music applied successfully ✓";
 
     message.textContent =
-      "Updated MP4 ready hai. Neeche preview ya download kar sakte ho.";
+      "Updated MP4 ready hai. Ab preview ya download kar sakte ho.";
 
 
-    await wait(800);
+    loader.classList.add(
+      "hidden"
+    );
 
+
+    await wait(1200);
 
     status.classList.add(
       "hidden"
@@ -3842,13 +3039,17 @@ async function applySelectedMusic() {
     );
 
 
+    loader.classList.add(
+      "hidden"
+    );
+
+
     title.textContent =
       "Music apply nahi hua";
 
     message.textContent =
       error?.message ||
       "Could not create updated MP4.";
-
 
   } finally {
 
@@ -3858,48 +3059,32 @@ async function applySelectedMusic() {
 }
 
 
-/* =====================================================
-   MUSIC ERROR
-===================================================== */
-
 function showMusicError(
   message
 ) {
 
   document
-    .getElementById(
-      "musicLoading"
-    )
+    .getElementById("musicLoading")
     .classList
     .add("hidden");
 
   document
-    .getElementById(
-      "musicContent"
-    )
+    .getElementById("musicContent")
     .classList
     .add("hidden");
 
   document
-    .getElementById(
-      "musicError"
-    )
+    .getElementById("musicError")
     .classList
     .remove("hidden");
 
   document
-    .getElementById(
-      "musicErrorText"
-    )
+    .getElementById("musicErrorText")
     .textContent =
     message ||
     "Music recommendation failed.";
 }
 
-
-/* =====================================================
-   PREVIEW VIDEO
-===================================================== */
 
 function playPreview() {
 
@@ -3909,14 +3094,14 @@ function playPreview() {
   ) {
 
     const video =
-      document
-        .getElementById(
-          "videoPlayer"
-        );
+      document.getElementById(
+        "videoPlayer"
+      );
 
 
-    video.classList
-      .remove("hidden");
+    video.classList.remove(
+      "hidden"
+    );
 
 
     document
@@ -3929,9 +3114,7 @@ function playPreview() {
 
     video
       .play()
-      .catch(
-        () => {}
-      );
+      .catch(() => {});
 
 
     return;
@@ -3944,10 +3127,6 @@ function playPreview() {
 }
 
 
-/* =====================================================
-   DOWNLOAD
-===================================================== */
-
 function downloadVideo() {
 
   if (
@@ -3956,9 +3135,7 @@ function downloadVideo() {
   ) {
 
     const a =
-      document.createElement(
-        "a"
-      );
+      document.createElement("a");
 
 
     a.href =
@@ -3996,40 +3173,28 @@ function downloadVideo() {
 }
 
 
-/* =====================================================
-   TABS
-===================================================== */
-
 function showScenes() {
 
   document
-    .getElementById(
-      "sceneList"
-    )
+    .getElementById("sceneList")
     .classList
     .remove("hidden");
 
 
   document
-    .getElementById(
-      "previewInfo"
-    )
+    .getElementById("previewInfo")
     .classList
     .add("hidden");
 
 
   document
-    .getElementById(
-      "scenesTab"
-    )
+    .getElementById("scenesTab")
     .className =
       "px-4 py-2 bg-black text-white rounded-xl font-bold text-sm";
 
 
   document
-    .getElementById(
-      "previewTab"
-    )
+    .getElementById("previewTab")
     .className =
       "px-4 py-2 bg-gray-100 rounded-xl font-bold text-sm";
 }
@@ -4038,41 +3203,29 @@ function showScenes() {
 function showPreviewInfo() {
 
   document
-    .getElementById(
-      "sceneList"
-    )
+    .getElementById("sceneList")
     .classList
     .add("hidden");
 
 
   document
-    .getElementById(
-      "previewInfo"
-    )
+    .getElementById("previewInfo")
     .classList
     .remove("hidden");
 
 
   document
-    .getElementById(
-      "previewTab"
-    )
+    .getElementById("previewTab")
     .className =
       "px-4 py-2 bg-black text-white rounded-xl font-bold text-sm";
 
 
   document
-    .getElementById(
-      "scenesTab"
-    )
+    .getElementById("scenesTab")
     .className =
       "px-4 py-2 bg-gray-100 rounded-xl font-bold text-sm";
 }
 
-
-/* =====================================================
-   PROGRESS
-===================================================== */
 
 function setProgress(
   percent,
@@ -4081,31 +3234,24 @@ function setProgress(
 ) {
 
   const bar =
-    document
-      .getElementById(
-        "progressBar"
-      );
-
+    document.getElementById(
+      "progressBar"
+    );
 
   const text =
-    document
-      .getElementById(
-        "progressText"
-      );
-
+    document.getElementById(
+      "progressText"
+    );
 
   const msg =
-    document
-      .getElementById(
-        "generationMessage"
-      );
-
+    document.getElementById(
+      "generationMessage"
+    );
 
   const statusEl =
-    document
-      .getElementById(
-        "generationStatus"
-      );
+    document.getElementById(
+      "generationStatus"
+    );
 
 
   const safePercent =
@@ -4113,23 +3259,19 @@ function setProgress(
       0,
       Math.min(
         100,
-        Number(
-          percent
-        ) || 0
+        Number(percent) || 0
       )
     );
 
 
   bar.style.width =
-    safePercent +
-    "%";
+    safePercent + "%";
 
 
   text.textContent =
     Math.round(
       safePercent
-    ) +
-    "%";
+    ) + "%";
 
 
   msg.textContent =
@@ -4142,10 +3284,6 @@ function setProgress(
     "Working";
 }
 
-
-/* =====================================================
-   ERROR UI
-===================================================== */
 
 function showGenerationError(
   error
@@ -4193,10 +3331,6 @@ function showGenerationError(
 }
 
 
-/* =====================================================
-   SERVER RESPONSE
-===================================================== */
-
 async function readJsonResponse(
   response
 ) {
@@ -4227,13 +3361,7 @@ async function readJsonResponse(
 }
 
 
-/* =====================================================
-   WAIT
-===================================================== */
-
-function wait(
-  ms
-) {
+function wait(ms) {
 
   return new Promise(
     resolve =>
@@ -4245,43 +3373,18 @@ function wait(
 }
 
 
-/* =====================================================
-   HTML ESCAPE
-===================================================== */
-
 function escapeHtml(
   value
 ) {
 
-  return String(
-    value
-  )
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-
-/* =====================================================
-   INITIALIZE
-===================================================== */
 
 updateCharacterCount(
   "homeStory",
