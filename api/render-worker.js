@@ -16,11 +16,23 @@ const EXPECTED_REPOSITORY =
 const EXPECTED_WORKFLOW =
   "ViralTap Video Renderer";
 
+const EXPECTED_BRANCH =
+  "refs/heads/main";
+
+const EXPECTED_EVENT =
+  "workflow_dispatch";
+
 const OIDC_ISSUER =
   "https://token.actions.githubusercontent.com";
 
 const OIDC_AUDIENCE =
   "https://vshorts-app.vercel.app";
+
+const MAX_STATUS_SIZE =
+  256 * 1024;
+
+const MAX_VIDEO_SIZE =
+  5 * 1024 * 1024 * 1024;
 
 const githubJwks =
   createRemoteJWKSet(
@@ -30,21 +42,41 @@ const githubJwks =
   );
 
 function validJobId(jobId) {
-  return /^job_[A-Za-z0-9_-]+$/.test(jobId);
+  return /^job_[A-Za-z0-9_-]+$/.test(
+    jobId
+  );
 }
 
-async function verifyGitHubOidc(req) {
+function getAuthorizationToken(req) {
   const auth =
     req.headers.authorization || "";
 
-  if (!auth.startsWith("Bearer ")) {
+  if (
+    typeof auth !== "string" ||
+    !auth.startsWith("Bearer ")
+  ) {
     throw new Error(
       "Missing GitHub OIDC authorization."
     );
   }
 
   const token =
-    auth.slice("Bearer ".length).trim();
+    auth
+      .slice("Bearer ".length)
+      .trim();
+
+  if (!token) {
+    throw new Error(
+      "GitHub OIDC token is empty."
+    );
+  }
+
+  return token;
+}
+
+async function verifyGitHubOidc(req) {
+  const token =
+    getAuthorizationToken(req);
 
   const { payload } =
     await jwtVerify(
@@ -76,7 +108,7 @@ async function verifyGitHubOidc(req) {
 
   if (
     payload.ref !==
-    "refs/heads/main"
+    EXPECTED_BRANCH
   ) {
     throw new Error(
       "Only the main branch is authorized."
@@ -85,149 +117,174 @@ async function verifyGitHubOidc(req) {
 
   if (
     payload.event_name !==
-    "workflow_dispatch"
+    EXPECTED_EVENT
   ) {
     throw new Error(
       "Only workflow_dispatch is authorized."
     );
   }
+
+  return payload;
 }
 
-export default async function handler(req, res) {
+function getJobId(body) {
+  return String(
+    body?.jobId || ""
+  ).trim();
+}
+
+function getAction(body) {
+  return String(
+    body?.action || ""
+  ).trim();
+}
+
+async function createStatusUploadUrl(
+  jobId
+) {
+  const pathname =
+    `status/${jobId}.json`;
+
+  const validUntil =
+    Date.now() +
+    10 * 60 * 1000;
+
+  const token =
+    await issueSignedToken({
+      pathname,
+      operations: ["put"],
+      validUntil,
+
+      allowedContentTypes: [
+        "application/json",
+      ],
+
+      maximumSizeInBytes:
+        MAX_STATUS_SIZE,
+    });
+
+  const {
+    presignedUrl,
+  } = await presignUrl(
+    token,
+    {
+      pathname,
+      operation: "put",
+      access: "private",
+      validUntil,
+
+      allowedContentTypes: [
+        "application/json",
+      ],
+
+      maximumSizeInBytes:
+        MAX_STATUS_SIZE,
+
+      allowOverwrite: true,
+    }
+  );
+
+  return {
+    url: presignedUrl,
+  };
+}
+
+async function createVideoUploadUrl(
+  jobId,
+  sizeBytes
+) {
+  if (
+    !Number.isFinite(
+      sizeBytes
+    ) ||
+    sizeBytes <= 0 ||
+    sizeBytes >
+      MAX_VIDEO_SIZE
+  ) {
+    throw new Error(
+      "Invalid video size."
+    );
+  }
+
+  const pathname =
+    `videos/${jobId}.mp4`;
+
+  const validUntil =
+    Date.now() +
+    45 * 60 * 1000;
+
+  const token =
+    await issueSignedToken({
+      pathname,
+      operations: ["put"],
+      validUntil,
+
+      allowedContentTypes: [
+        "video/mp4",
+      ],
+
+      maximumSizeInBytes:
+        sizeBytes,
+    });
+
+  const {
+    presignedUrl,
+  } = await presignUrl(
+    token,
+    {
+      pathname,
+      operation: "put",
+      access: "private",
+      validUntil,
+
+      allowedContentTypes: [
+        "video/mp4",
+      ],
+
+      maximumSizeInBytes:
+        sizeBytes,
+
+      allowOverwrite: false,
+    }
+  );
+
+  return {
+    url: presignedUrl,
+    pathname,
+  };
+}
+
+export default async function handler(
+  req,
+  res
+) {
+  /*
+   * --------------------------------------------------
+   * METHOD CHECK
+   * --------------------------------------------------
+   */
+
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
-      error: "Only POST requests are allowed.",
+      error:
+        "Only POST requests are allowed.",
     });
   }
 
+  /*
+   * --------------------------------------------------
+   * GITHUB OIDC AUTHENTICATION
+   * --------------------------------------------------
+   */
+
   try {
-    await verifyGitHubOidc(req);
-
-    const body = req.body || {};
-
-    const jobId =
-      String(body.jobId || "").trim();
-
-    const action =
-      String(body.action || "").trim();
-
-    if (!validJobId(jobId)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid jobId.",
-      });
-    }
-
-    /*
-     * GitHub worker asks for a temporary
-     * private Blob PUT URL for status JSON.
-     */
-    if (action === "status-url") {
-      const pathname =
-        `status/${jobId}.json`;
-
-      const validUntil =
-        Date.now() + 10 * 60 * 1000;
-
-      const token =
-        await issueSignedToken({
-          pathname,
-          operations: ["put"],
-          validUntil,
-          allowedContentTypes: [
-            "application/json",
-          ],
-          maximumSizeInBytes:
-            256 * 1024,
-        });
-
-      const { presignedUrl } =
-        await presignUrl(token, {
-          pathname,
-          operation: "put",
-          access: "private",
-          validUntil,
-          allowedContentTypes: [
-            "application/json",
-          ],
-          maximumSizeInBytes:
-            256 * 1024,
-          allowOverwrite: true,
-        });
-
-      return res.status(200).json({
-        success: true,
-        url: presignedUrl,
-      });
-    }
-
-    /*
-     * GitHub worker asks for a temporary
-     * private Blob PUT URL for the MP4.
-     */
-    if (action === "video-url") {
-      const sizeBytes =
-        Number(body.sizeBytes);
-
-      if (
-        !Number.isFinite(sizeBytes) ||
-        sizeBytes <= 0 ||
-        sizeBytes >
-          5 * 1024 * 1024 * 1024
-      ) {
-        return res.status(400).json({
-          success: false,
-          error: "Invalid video size.",
-        });
-      }
-
-      const pathname =
-        `videos/${jobId}.mp4`;
-
-      const validUntil =
-        Date.now() + 45 * 60 * 1000;
-
-      const token =
-        await issueSignedToken({
-          pathname,
-          operations: ["put"],
-          validUntil,
-          allowedContentTypes: [
-            "video/mp4",
-          ],
-          maximumSizeInBytes:
-            sizeBytes,
-        });
-
-      const { presignedUrl } =
-        await presignUrl(token, {
-          pathname,
-          operation: "put",
-          access: "private",
-          validUntil,
-          allowedContentTypes: [
-            "video/mp4",
-          ],
-          maximumSizeInBytes:
-            sizeBytes,
-          allowOverwrite: false,
-        });
-
-      return res.status(200).json({
-        success: true,
-        url: presignedUrl,
-        pathname,
-      });
-    }
-
-    return res.status(400).json({
-      success: false,
-      error: "Unknown worker action.",
-    });
+    await verifyGitHubOidc(
+      req
+    );
   } catch (error) {
     console.error(
-      "VIRALTAP WORKER AUTH ERROR:",
+      "VIRALTAP WORKER OIDC VERIFICATION ERROR:",
       error
     );
 
@@ -238,4 +295,137 @@ export default async function handler(req, res) {
         "Worker authorization failed.",
     });
   }
+
+  /*
+   * --------------------------------------------------
+   * REQUEST DATA
+   * --------------------------------------------------
+   */
+
+  const body =
+    req.body || {};
+
+  const jobId =
+    getJobId(body);
+
+  const action =
+    getAction(body);
+
+  if (!validJobId(jobId)) {
+    return res.status(400).json({
+      success: false,
+      error:
+        "Invalid jobId.",
+    });
+  }
+
+  /*
+   * --------------------------------------------------
+   * STATUS JSON UPLOAD URL
+   * --------------------------------------------------
+   */
+
+  if (
+    action ===
+    "status-url"
+  ) {
+    try {
+      const result =
+        await createStatusUploadUrl(
+          jobId
+        );
+
+      return res.status(200).json({
+        success: true,
+
+        url:
+          result.url,
+      });
+    } catch (error) {
+      console.error(
+        "VIRALTAP STATUS URL ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error?.message ||
+          "Could not create status upload URL.",
+      });
+    }
+  }
+
+  /*
+   * --------------------------------------------------
+   * VIDEO MP4 UPLOAD URL
+   * --------------------------------------------------
+   */
+
+  if (
+    action ===
+    "video-url"
+  ) {
+    const sizeBytes =
+      Number(
+        body.sizeBytes
+      );
+
+    if (
+      !Number.isFinite(
+        sizeBytes
+      ) ||
+      sizeBytes <= 0 ||
+      sizeBytes >
+        MAX_VIDEO_SIZE
+    ) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Invalid video size.",
+      });
+    }
+
+    try {
+      const result =
+        await createVideoUploadUrl(
+          jobId,
+          sizeBytes
+        );
+
+      return res.status(200).json({
+        success: true,
+
+        url:
+          result.url,
+
+        pathname:
+          result.pathname,
+      });
+    } catch (error) {
+      console.error(
+        "VIRALTAP VIDEO URL ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          error?.message ||
+          "Could not create video upload URL.",
+      });
+    }
+  }
+
+  /*
+   * --------------------------------------------------
+   * UNKNOWN ACTION
+   * --------------------------------------------------
+   */
+
+  return res.status(400).json({
+    success: false,
+    error:
+      "Unknown worker action.",
+  });
 }
