@@ -1805,6 +1805,15 @@ async function startGeneration(
               videoType:
                 options.videoType,
 
+              /*
+                IMPORTANT:
+                Keep the selected language in the
+                render request so the backend and
+                visual-generation pipeline receive it.
+              */
+              language:
+                options.language,
+
               aspectRatio:
                 options.aspectRatio,
 
@@ -2045,12 +2054,6 @@ async function waitForRenderCompletion(
 
     /* -----------------------------------------------
        REAL BACKEND PROGRESS
-
-       Backend progress:
-       0 → 100
-
-       Frontend generation stage:
-       60 → 99
     ------------------------------------------------ */
 
     const backendProgress =
@@ -2072,15 +2075,6 @@ async function waitForRenderCompletion(
           )
         );
 
-
-      /*
-        Keep generation screen at 60%
-        when render starts.
-
-        Backend 0%   => frontend 60%
-        Backend 50%  => frontend 79.5%
-        Backend 100% => frontend 99%
-      */
 
       const frontendProgress =
         Math.min(
