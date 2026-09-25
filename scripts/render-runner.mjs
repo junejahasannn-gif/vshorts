@@ -1,30 +1,49 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
+
 const jobId = process.env.JOB_ID;
-const duration = Number(process.env.VIDEO_DURATION);
-const propsBase64 = process.env.PROPS_BASE64;
+
+const duration = Number(
+  process.env.VIDEO_DURATION
+);
+
+const propsBase64 =
+  process.env.PROPS_BASE64;
+
 const workerUrl =
   process.env.VIRALTAP_WORKER_URL ||
   "https://vshorts-app.vercel.app/api/render-worker";
+
 const githubOidcRequestUrl =
   process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+
 const githubOidcRequestToken =
   process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+
 const OIDC_AUDIENCE =
   "https://vshorts-app.vercel.app";
+
 const FPS = 30;
+
 if (!jobId) {
-  throw new Error("JOB_ID is missing.");
+  throw new Error(
+    "JOB_ID is missing."
+  );
 }
+
 if (![30, 60, 180].includes(duration)) {
   throw new Error(
     "VIDEO_DURATION must be 30, 60, or 180."
   );
 }
+
 if (!propsBase64) {
-  throw new Error("PROPS_BASE64 is missing.");
+  throw new Error(
+    "PROPS_BASE64 is missing."
+  );
 }
+
 if (
   !githubOidcRequestUrl ||
   !githubOidcRequestToken
@@ -33,26 +52,39 @@ if (
     "GitHub Actions OIDC is unavailable. The workflow must grant id-token: write."
   );
 }
+
+
+/* --------------------------------
+   GITHUB OIDC
+-------------------------------- */
+
 async function getGitHubOidcToken() {
   const separator =
     githubOidcRequestUrl.includes("?")
       ? "&"
       : "?";
-  const response = await fetch(
-    githubOidcRequestUrl +
-      separator +
-      "audience=" +
-      encodeURIComponent(OIDC_AUDIENCE),
-    {
-      headers: {
-        Authorization:
-          "bearer " +
-          githubOidcRequestToken,
-      },
-    }
-  );
+
+  const response =
+    await fetch(
+      githubOidcRequestUrl +
+        separator +
+        "audience=" +
+        encodeURIComponent(
+          OIDC_AUDIENCE
+        ),
+      {
+        headers: {
+          Authorization:
+            "bearer " +
+            githubOidcRequestToken,
+        },
+      }
+    );
+
   if (!response.ok) {
-    const detail = await response.text();
+    const detail =
+      await response.text();
+
     throw new Error(
       "Could not obtain GitHub OIDC token: HTTP " +
         response.status +
@@ -60,44 +92,66 @@ async function getGitHubOidcToken() {
         detail.slice(0, 300)
     );
   }
-  const data = await response.json();
+
+  const data =
+    await response.json();
+
   if (!data?.value) {
     throw new Error(
       "GitHub OIDC response did not contain a token."
     );
   }
+
   return data.value;
 }
-async function workerRequest(body) {
+
+
+/* --------------------------------
+   WORKER REQUEST
+-------------------------------- */
+
+async function workerRequest(
+  body
+) {
   const oidcToken =
     await getGitHubOidcToken();
-  const response = await fetch(
-    workerUrl,
-    {
-      method: "POST",
-      headers: {
-        Authorization:
-          "Bearer " + oidcToken,
-        "Content-Type":
-          "application/json",
-      },
-      body: JSON.stringify({
-        jobId,
-        ...body,
-      }),
-    }
-  );
+
+  const response =
+    await fetch(
+      workerUrl,
+      {
+        method: "POST",
+
+        headers: {
+          Authorization:
+            "Bearer " + oidcToken,
+
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify({
+          jobId,
+          ...body,
+        }),
+      }
+    );
+
   const text =
     await response.text();
+
   let data;
+
   try {
-    data = JSON.parse(text);
+    data =
+      JSON.parse(text);
   } catch {
     throw new Error(
       "ViralTap worker API returned invalid JSON: " +
         text.slice(0, 300)
     );
   }
+
   if (
     !response.ok ||
     !data?.success
@@ -107,37 +161,55 @@ async function workerRequest(body) {
         "ViralTap worker API request failed."
     );
   }
+
   return data;
 }
-async function updateStatus(payload) {
+
+
+/* --------------------------------
+   STATUS
+-------------------------------- */
+
+async function updateStatus(
+  payload
+) {
   const signed =
     await workerRequest({
       action: "status-url",
     });
+
   if (!signed?.url) {
     throw new Error(
       "Worker did not return a status upload URL."
     );
   }
-  const response = await fetch(
-    signed.url,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type":
-          "application/json",
-      },
-      body: JSON.stringify({
-        jobId,
-        updatedAt:
-          new Date().toISOString(),
-        ...payload,
-      }),
-    }
-  );
+
+  const response =
+    await fetch(
+      signed.url,
+      {
+        method: "PUT",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify({
+          jobId,
+
+          updatedAt:
+            new Date().toISOString(),
+
+          ...payload,
+        }),
+      }
+    );
+
   if (!response.ok) {
     const detail =
       await response.text();
+
     throw new Error(
       "Status upload failed with HTTP " +
         response.status +
@@ -146,6 +218,12 @@ async function updateStatus(payload) {
     );
   }
 }
+
+
+/* --------------------------------
+   VIDEO UPLOAD
+-------------------------------- */
+
 async function uploadVideo(
   outputPath,
   sizeBytes
@@ -155,31 +233,43 @@ async function uploadVideo(
       action: "video-url",
       sizeBytes,
     });
+
   if (!signed?.url) {
     throw new Error(
       "Worker did not return a video upload URL."
     );
   }
+
   const stream =
-    fs.createReadStream(outputPath);
-  try {
-    const response = await fetch(
-      signed.url,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type":
-            "video/mp4",
-          "Content-Length":
-            String(sizeBytes),
-        },
-        body: stream,
-        duplex: "half",
-      }
+    fs.createReadStream(
+      outputPath
     );
+
+  try {
+    const response =
+      await fetch(
+        signed.url,
+        {
+          method: "PUT",
+
+          headers: {
+            "Content-Type":
+              "video/mp4",
+
+            "Content-Length":
+              String(sizeBytes),
+          },
+
+          body: stream,
+
+          duplex: "half",
+        }
+      );
+
     if (!response.ok) {
       const detail =
         await response.text();
+
       throw new Error(
         "Video upload failed with HTTP " +
           response.status +
@@ -190,57 +280,373 @@ async function uploadVideo(
   } finally {
     stream.destroy();
   }
-  /*
-   * Private Vercel Blob me public video URL nahi hota.
-   *
-   * New worker deployment pathname return karta hai:
-   * videos/job_xxxxx.mp4
-   *
-   * Fallback is important because agar GitHub render
-   * job kisi older Vercel worker deployment ke saath
-   * temporarily run ho, to completed status me
-   * undefined save nahi hona chahiye.
-   */
+
   const pathname =
     signed.pathname ||
     `videos/${jobId}.mp4`;
+
   console.log(
     "VIDEO BLOB PATH:",
     pathname
   );
+
   return pathname;
 }
-function run(command, args) {
-  console.log(
-    "$",
-    command,
-    ...args
+
+
+/* --------------------------------
+   COMMAND RUNNER
+-------------------------------- */
+
+function runCommand(
+  command,
+  args
+) {
+  return new Promise(
+    (resolve, reject) => {
+      console.log(
+        "$",
+        command,
+        ...args
+      );
+
+      const child =
+        spawn(
+          command,
+          args,
+          {
+            stdio: [
+              "ignore",
+              "pipe",
+              "pipe",
+            ],
+
+            shell: false,
+          }
+        );
+
+      let stdoutBuffer = "";
+      let stderrBuffer = "";
+
+      child.stdout.on(
+        "data",
+        (chunk) => {
+          const text =
+            chunk.toString();
+
+          stdoutBuffer += text;
+
+          process.stdout.write(
+            text
+          );
+        }
+      );
+
+      child.stderr.on(
+        "data",
+        (chunk) => {
+          const text =
+            chunk.toString();
+
+          stderrBuffer += text;
+
+          process.stderr.write(
+            text
+          );
+        }
+      );
+
+      child.on(
+        "error",
+        reject
+      );
+
+      child.on(
+        "close",
+        (code) => {
+          if (code !== 0) {
+            reject(
+              new Error(
+                `${command} failed with exit code ${code}\n${stderrBuffer.slice(-2000)}`
+              )
+            );
+
+            return;
+          }
+
+          resolve({
+            stdout:
+              stdoutBuffer,
+
+            stderr:
+              stderrBuffer,
+          });
+        }
+      );
+    }
   );
-  const result =
-    spawnSync(
-      command,
-      args,
-      {
-        stdio: "inherit",
-        shell: false,
-      }
-    );
-  if (result.error) {
-    throw result.error;
-  }
-  if (result.status !== 0) {
-    throw new Error(
-      `${command} failed with exit code ${result.status}`
-    );
-  }
 }
+
+
+/* --------------------------------
+   REMOTION RENDER
+-------------------------------- */
+
+async function renderVideo(
+  outputPath,
+  totalFrames
+) {
+  let lastProgress = -1;
+
+  let lastStatusUpdate =
+    Promise.resolve();
+
+  let pendingProgress = null;
+
+  let updateInProgress =
+    false;
+
+
+  async function sendProgress(
+    percent,
+    message
+  ) {
+    if (
+      percent <= lastProgress
+    ) {
+      return;
+    }
+
+    lastProgress =
+      percent;
+
+    pendingProgress = {
+      percent,
+      message,
+    };
+
+    if (updateInProgress) {
+      return;
+    }
+
+    updateInProgress =
+      true;
+
+    try {
+      while (
+        pendingProgress
+      ) {
+        const current =
+          pendingProgress;
+
+        pendingProgress =
+          null;
+
+        await lastStatusUpdate;
+
+        lastStatusUpdate =
+          updateStatus({
+            status:
+              "rendering",
+
+            progress:
+              current.percent,
+
+            message:
+              current.message,
+          });
+
+        await lastStatusUpdate;
+      }
+    } finally {
+      updateInProgress =
+        false;
+    }
+  }
+
+
+  console.log(
+    "Starting Remotion render..."
+  );
+
+  const args = [
+    "remotion",
+    "render",
+    "src/index.jsx",
+    "ViralTapVideo",
+    outputPath,
+    `--frames=0-${totalFrames - 1}`,
+    "--codec=h264",
+    "--props=props.json",
+    "--concurrency=2",
+
+    "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
+  ];
+
+
+  await new Promise(
+    (resolve, reject) => {
+      const child =
+        spawn(
+          "npx",
+          args,
+          {
+            stdio: [
+              "ignore",
+              "pipe",
+              "pipe",
+            ],
+
+            shell: false,
+          }
+        );
+
+      let buffer = "";
+
+      let errorBuffer =
+        "";
+
+
+      function processOutput(
+        chunk
+      ) {
+        const text =
+          chunk.toString();
+
+        process.stdout.write(
+          text
+        );
+
+        buffer += text;
+
+        const lines =
+          buffer.split(/\r?\n/);
+
+        buffer =
+          lines.pop() || "";
+
+        for (
+          const line of lines
+        ) {
+          const match =
+            line.match(
+              /Rendered\s+(\d+)\/(\d+)/
+            );
+
+          if (!match) {
+            continue;
+          }
+
+          const rendered =
+            Number(match[1]);
+
+          const total =
+            Number(match[2]) ||
+            totalFrames;
+
+          const percent =
+            Math.min(
+              99,
+              Math.max(
+                0,
+                Math.round(
+                  (rendered /
+                    total) *
+                    100
+                )
+              )
+            );
+
+          void sendProgress(
+            percent,
+            `Rendering MP4 — ${rendered}/${total} frames`
+          );
+        }
+      }
+
+
+      child.stdout.on(
+        "data",
+        processOutput
+      );
+
+
+      child.stderr.on(
+        "data",
+        (chunk) => {
+          const text =
+            chunk.toString();
+
+          errorBuffer += text;
+
+          process.stderr.write(
+            text
+          );
+        }
+      );
+
+
+      child.on(
+        "error",
+        reject
+      );
+
+
+      child.on(
+        "close",
+        async (code) => {
+          try {
+            if (code !== 0) {
+              reject(
+                new Error(
+                  "Remotion render failed with exit code " +
+                    code +
+                    "\n" +
+                    errorBuffer.slice(
+                      -3000
+                    )
+                )
+              );
+
+              return;
+            }
+
+            await sendProgress(
+              99,
+              "MP4 render complete. Uploading..."
+            );
+
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }
+      );
+    }
+  );
+}
+
+
+/* --------------------------------
+   MAIN
+-------------------------------- */
+
 async function main() {
+
   await updateStatus({
-    status: "rendering",
+    status:
+      "rendering",
+
+    progress:
+      1,
+
     message:
-      "Remotion is rendering your video...",
+      "Preparing Remotion render...",
   });
+
+
   let props;
+
   try {
     props =
       JSON.parse(
@@ -254,46 +660,64 @@ async function main() {
       "PROPS_BASE64 does not contain valid JSON."
     );
   }
+
+
   if (
     !props ||
-    typeof props !== "object"
+    typeof props !==
+      "object"
   ) {
     throw new Error(
       "Render props are invalid."
     );
   }
+
+
   if (
-    !Array.isArray(props.scenes) ||
+    !Array.isArray(
+      props.scenes
+    ) ||
     !props.scenes.length
   ) {
     throw new Error(
       "Render props contain no scenes."
     );
   }
+
+
   console.log(
     "Render props:",
     JSON.stringify(
       {
         sceneCount:
           props.scenes.length,
+
         duration,
+
         aspectRatio:
           props.aspectRatio,
+
         width:
           props.width,
+
         height:
           props.height,
       },
+
       null,
       2
     )
   );
+
+
   fs.mkdirSync(
     "render-output",
     {
       recursive: true,
     }
   );
+
+
   fs.writeFileSync(
     "props.json",
     JSON.stringify(
@@ -303,25 +727,42 @@ async function main() {
     ),
     "utf8"
   );
+
+
   const totalFrames =
     duration * FPS;
+
+
   const outputPath =
     path.resolve(
       "render-output",
       `${jobId}.mp4`
     );
+
+
   console.log(
     "Output MP4:",
     outputPath
   );
+
+
   console.log(
     "Total frames:",
     totalFrames
   );
+
+
+  /*
+   * Browser is cached by GitHub Actions.
+   * If it already exists, this is almost instant.
+   */
+
   console.log(
-    "Starting Remotion browser setup..."
+    "Checking Remotion browser..."
   );
-  run(
+
+
+  await runCommand(
     "npx",
     [
       "remotion",
@@ -329,111 +770,146 @@ async function main() {
       "ensure",
     ]
   );
-  console.log(
-    "Starting Remotion render..."
+
+
+  /*
+   * Actual frame-by-frame rendering.
+   */
+
+  await renderVideo(
+    outputPath,
+    totalFrames
   );
-  run(
-    "npx",
-    [
-      "remotion",
-      "render",
-      "src/index.jsx",
-      "ViralTapVideo",
-      outputPath,
-      `--frames=0-${totalFrames - 1}`,
-      "--codec=h264",
-      "--props=props.json",
-      "--concurrency=2",
-      "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
-    ]
-  );
-  if (!fs.existsSync(outputPath)) {
+
+
+  if (
+    !fs.existsSync(
+      outputPath
+    )
+  ) {
     throw new Error(
       "Rendered MP4 was not created."
     );
   }
+
+
   const stat =
-    fs.statSync(outputPath);
+    fs.statSync(
+      outputPath
+    );
+
+
   if (!stat.size) {
     throw new Error(
       "Rendered MP4 is empty."
     );
   }
+
+
   console.log(
     "MP4 CREATED:",
     outputPath
   );
+
+
   console.log(
     "MP4 SIZE:",
     stat.size,
     "bytes"
   );
+
+
   await updateStatus({
-    status: "uploading",
+    status:
+      "uploading",
+
+    progress:
+      99,
+
     message:
-      "Uploading your finished video...",
+      "Uploading your finished MP4...",
+
     sizeBytes:
       stat.size,
   });
+
+
   const videoPath =
     await uploadVideo(
       outputPath,
       stat.size
     );
+
+
   if (!videoPath) {
     throw new Error(
       "Video upload completed but no Blob pathname was available."
     );
   }
-  console.log(
-    "Final video pathname:",
-    videoPath
-  );
+
+
   await updateStatus({
-    status: "completed",
+    status:
+      "completed",
+
+    progress:
+      100,
+
     message:
       "Your video is ready.",
-    /*
-     * IMPORTANT:
-     * Private Blob pathname, NOT public URL.
-     *
-     * /api/check-status.js will convert this
-     * pathname into a temporary signed GET URL.
-     */
+
     videoUrl:
       videoPath,
+
     sizeBytes:
       stat.size,
+
     duration,
+
     fps:
       FPS,
+
     dimensions:
       `${props.width || 1080}x${props.height || 1920}`,
   });
+
+
   console.log(
     "VIRALTAP RENDER COMPLETE:",
     videoPath
   );
 }
+
+
 try {
   await main();
 } catch (error) {
+
   console.error(
     "VIRALTAP RENDER WORKER FAILED:",
     error
   );
+
   try {
     await updateStatus({
-      status: "failed",
+      status:
+        "failed",
+
+      progress:
+        0,
+
       error:
         error?.message ||
         "Video rendering failed.",
     });
-  } catch (statusError) {
+  } catch (
+    statusError
+  ) {
     console.error(
       "Could not write failed status:",
       statusError
     );
   }
+
   process.exit(1);
 }
