@@ -8,23 +8,13 @@ on:
         required: true
         type: string
 
-      sourceJobId:
-        description: "Original video render job ID"
-        required: true
-        type: string
-
       sourceVideoUrl:
-        description: "Signed source MP4 URL"
+        description: "Signed URL of the original rendered MP4"
         required: true
         type: string
 
       musicUrl:
-        description: "Signed music MP3 URL"
-        required: true
-        type: string
-
-      musicStyle:
-        description: "Selected music style"
+        description: "Signed URL of the selected music"
         required: true
         type: string
 
@@ -37,7 +27,12 @@ on:
           - "60"
           - "180"
 
-run-name: Music Remix ${{ inputs.jobId }}
+      musicStyle:
+        description: "Selected music style"
+        required: true
+        type: string
+
+run-name: Music remix ${{ inputs.jobId }}
 
 permissions:
   contents: read
@@ -71,14 +66,15 @@ jobs:
             npm install --no-audit --no-fund
           fi
 
-      - name: Remix video with selected music
+      - name: Run music mixer
         env:
           JOB_ID: ${{ inputs.jobId }}
-          SOURCE_JOB_ID: ${{ inputs.sourceJobId }}
           SOURCE_VIDEO_URL: ${{ inputs.sourceVideoUrl }}
           MUSIC_URL: ${{ inputs.musicUrl }}
-          MUSIC_STYLE: ${{ inputs.musicStyle }}
           VIDEO_DURATION: ${{ inputs.duration }}
+          MUSIC_STYLE: ${{ inputs.musicStyle }}
+
           VIRALTAP_WORKER_URL: https://vshorts-app.vercel.app/api/render-worker
+
         run: |
           node scripts/apply-music-runner.mjs
