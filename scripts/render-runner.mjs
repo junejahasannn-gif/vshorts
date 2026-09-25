@@ -21,6 +21,10 @@ const workerUrl =
   process.env.VIRALTAP_WORKER_URL ||
   "https://vshorts-app.vercel.app/api/render-worker";
 
+const visualsUrl =
+  process.env.VIRALTAP_VISUALS_URL ||
+  "https://vshorts-app.vercel.app/api/generate-visuals";
+
 const githubOidcRequestUrl =
   process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
 
@@ -160,12 +164,6 @@ async function getGitHubOidcToken() {
   cachedOidcToken =
     data.value;
 
-  /*
-   * GitHub's OIDC token normally contains
-   * an expiration claim, but the response
-   * itself is enough for our short-lived
-   * worker job. Cache conservatively.
-   */
   cachedOidcTokenExpiresAt =
     now +
     5 * 60 * 1000;
@@ -416,6 +414,169 @@ async function uploadVideo(
 
 
 /* ==================================================
+   AI VISUAL GENERATION
+================================================== */
+
+async function generateSceneVisual(
+  scene,
+  sceneIndex,
+  totalScenes,
+  props
+) {
+  console.log(
+    `Generating AI visual ${sceneIndex + 1}/${totalScenes}...`
+  );
+
+  const response =
+    await fetch(
+      visualsUrl,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify({
+          jobId,
+
+          scene,
+
+          sceneIndex,
+
+          language:
+            props.language ||
+            "English",
+
+          aspectRatio:
+            props.aspectRatio ||
+            "9:16",
+
+          visualPrompt:
+            scene?.visualPrompt ||
+            scene?.caption ||
+            scene?.narration ||
+            "",
+        }),
+      }
+    );
+
+  const text =
+    await response.text();
+
+  let data;
+
+  try {
+    data =
+      JSON.parse(text);
+  } catch {
+    throw new Error(
+      "Visual generation API returned invalid JSON: " +
+        text.slice(
+          0,
+          500
+        )
+    );
+  }
+
+  if (
+    !response.ok ||
+    !data?.success ||
+    !data?.asset?.url
+  ) {
+    throw new Error(
+      data?.error ||
+        `AI visual generation failed for scene ${
+          sceneIndex + 1
+        }.`
+    );
+  }
+
+  console.log(
+    `AI visual ${sceneIndex + 1}/${totalScenes} ready.`
+  );
+
+  return data.asset;
+}
+
+
+async function generateAllVisuals(
+  props
+) {
+  const scenes =
+    Array.isArray(
+      props.scenes
+    )
+      ? props.scenes
+      : [];
+
+  if (!scenes.length) {
+    throw new Error(
+      "Cannot generate visuals without scenes."
+    );
+  }
+
+  const totalScenes =
+    scenes.length;
+
+  const assets = [];
+
+  await updateStatus({
+    status:
+      "rendering",
+
+    progress:
+      2,
+
+    message:
+      `Generating AI visuals — 0/${totalScenes} scenes`,
+  });
+
+  for (
+    let index = 0;
+    index < totalScenes;
+    index++
+  ) {
+    const asset =
+      await generateSceneVisual(
+        scenes[index],
+        index,
+        totalScenes,
+        props
+      );
+
+    assets.push(asset);
+
+    const visualProgress =
+      Math.min(
+        20,
+        Math.round(
+          ((index + 1) /
+            totalScenes) *
+            20
+        )
+      );
+
+    await updateStatus({
+      status:
+        "rendering",
+
+      progress:
+        visualProgress,
+
+      message:
+        `Generating AI visuals — ${
+          index + 1
+        }/${totalScenes} scenes`,
+    });
+  }
+
+  return assets;
+}
+
+
+/* ==================================================
    COMMAND RUNNER
 ================================================== */
 
@@ -541,7 +702,6 @@ async function renderVideo(
   let updateInProgress =
     false;
 
-
   async function sendProgress(
     percent,
     message
@@ -602,7 +762,6 @@ async function renderVideo(
     }
   }
 
-
   console.log(
     "Starting Remotion render..."
   );
@@ -614,34 +773,16 @@ async function renderVideo(
 
   const args = [
     "remotion",
-
     "render",
-
     "src/index.jsx",
-
     "ViralTapVideo",
-
     outputPath,
-
-    `--frames=0-${
-      totalFrames - 1
-    }`,
-
+    `--frames=0-${totalFrames - 1}`,
     "--codec=h264",
-
     "--props=props.json",
-
-    /*
-     * Keep concurrency at 2
-     * until benchmark testing proves
-     * that a higher value is faster
-     * and stable on GitHub Actions.
-     */
     "--concurrency=2",
-
     "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
   ];
-
 
   await new Promise(
     (
@@ -668,7 +809,6 @@ async function renderVideo(
 
       let errorBuffer =
         "";
-
 
       function processOutput(
         chunk
@@ -720,15 +860,16 @@ async function renderVideo(
               99,
 
               Math.max(
-                0,
+                20,
 
-                Math.round(
-                  (
-                    rendered /
-                    total
-                  ) *
-                    100
-                )
+                20 +
+                  Math.round(
+                    (
+                      rendered /
+                      total
+                    ) *
+                      79
+                  )
               )
             );
 
@@ -740,12 +881,10 @@ async function renderVideo(
         }
       }
 
-
       child.stdout.on(
         "data",
         processOutput
       );
-
 
       child.stderr.on(
         "data",
@@ -762,12 +901,10 @@ async function renderVideo(
         }
       );
 
-
       child.on(
         "error",
         reject
       );
-
 
       child.on(
         "close",
@@ -790,14 +927,8 @@ async function renderVideo(
               return;
             }
 
-            /*
-             * Make sure any final progress
-             * update is written before moving
-             * to upload.
-             */
             await sendProgress(
               99,
-
               "MP4 render complete. Uploading..."
             );
 
@@ -861,7 +992,7 @@ async function main() {
       1,
 
     message:
-      "Preparing Remotion render...",
+      "Preparing AI video assets...",
   });
 
 
@@ -959,11 +1090,6 @@ async function main() {
   );
 
 
-  /*
-   * Log line information without
-   * dumping the entire Gemini payload.
-   */
-
   const totalLines =
     props.scenes.reduce(
       (
@@ -988,6 +1114,54 @@ async function main() {
     "Total caption lines:",
     totalLines
   );
+
+
+  /*
+   * ------------------------------------------------
+   * GENERATE AI VISUALS
+   * ------------------------------------------------
+   */
+
+  console.log(
+    "Starting AI visual generation..."
+  );
+
+  const visualAssets =
+    await generateAllVisuals(
+      props
+    );
+
+  if (
+    visualAssets.length !==
+    props.scenes.length
+  ) {
+    throw new Error(
+      "AI visual generation returned an incomplete asset list."
+    );
+  }
+
+
+  /*
+   * Attach generated assets
+   * to their corresponding scenes.
+   */
+
+  props.scenes =
+    props.scenes.map(
+      (
+        scene,
+        index
+      ) => ({
+        ...scene,
+
+        visualAsset:
+          visualAssets[index],
+
+        visualUrl:
+          visualAssets[index]?.url ||
+          "",
+      })
+    );
 
 
   /*
@@ -1031,7 +1205,6 @@ async function main() {
   const outputPath =
     path.resolve(
       "render-output",
-
       `${jobId}.mp4`
     );
 
@@ -1056,7 +1229,6 @@ async function main() {
   console.log(
     "Checking Remotion browser..."
   );
-
 
   await runCommand(
     "npx",
@@ -1084,7 +1256,7 @@ async function main() {
    * ------------------------------------------------
    * VERIFY MP4
    * ------------------------------------------------
-   */
+ */
 
   if (
     !fs.existsSync(
