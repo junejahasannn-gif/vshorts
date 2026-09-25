@@ -1,7 +1,6 @@
 import React from "react";
 import {
   AbsoluteFill,
-  useCurrentFrame,
   interpolate,
 } from "remotion";
 import LineCaption from "./LineCaption.jsx";
@@ -25,8 +24,17 @@ export default function SceneRenderer({
   sceneIndex = 0,
   totalScenes = 1,
   sceneFrames = 1,
+  localFrame = 0,
 }) {
-  const frame = useCurrentFrame();
+  const frame = Math.max(
+    0,
+    Math.floor(Number(localFrame) || 0)
+  );
+
+  const safeSceneFrames = Math.max(
+    1,
+    Number(sceneFrames) || 1
+  );
 
   const opacity = interpolate(
     frame,
@@ -40,7 +48,7 @@ export default function SceneRenderer({
 
   const scale = interpolate(
     frame,
-    [0, Math.min(30, sceneFrames)],
+    [0, Math.min(30, safeSceneFrames)],
     [1.04, 1],
     {
       extrapolateLeft: "clamp",
@@ -117,7 +125,7 @@ export default function SceneRenderer({
         </div>
       </div>
 
-      {/* Scene title / visual prompt placeholder */}
+      {/* Caption fallback */}
       {scene?.caption && !activeLine && (
         <div
           style={{
@@ -135,7 +143,7 @@ export default function SceneRenderer({
         </div>
       )}
 
-      {/* Current line */}
+      {/* Current timed line */}
       {activeLine && (
         <LineCaption
           line={activeLine}
@@ -152,7 +160,8 @@ export default function SceneRenderer({
           bottom: 65,
           height: 5,
           borderRadius: 999,
-          background: "rgba(255,255,255,.25)",
+          background:
+            "rgba(255,255,255,.25)",
           overflow: "hidden",
           zIndex: 30,
         }}
@@ -163,16 +172,14 @@ export default function SceneRenderer({
             height: "100%",
             background: "#fff",
             transformOrigin: "left",
-            transform: `scaleX(${
-              Math.min(
-                1,
-                frame /
-                  Math.max(
-                    1,
-                    Number(sceneFrames) || 1
-                  )
-              )
-            })`,
+            transform: `scaleX(${Math.min(
+              1,
+              frame /
+                Math.max(
+                  1,
+                  safeSceneFrames - 1
+                )
+            )})`,
           }}
         />
       </div>
