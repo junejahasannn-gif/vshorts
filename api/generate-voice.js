@@ -54,7 +54,26 @@ function getVoiceName(voice) {
   return "Puck";
 }
 
-function buildTranscript({ scene, language }) {
+function getSpeechStyle(language) {
+  switch (language) {
+    case "Hindi":
+      return "Natural, clear Hindi narration with an engaging storytelling tone.";
+
+    case "Gujarati":
+      return "Natural, clear Gujarati narration with an engaging storytelling tone.";
+
+    case "Hinglish":
+      return "Natural Indian Hinglish narration with a smooth conversational storytelling tone.";
+
+    case "English":
+      return "Natural, clear English narration with an engaging storytelling tone.";
+
+    default:
+      return "Natural, clear narration with an engaging storytelling tone.";
+  }
+}
+
+function buildTranscript({ scene }) {
   const lines = Array.isArray(scene?.lines)
     ? scene.lines
         .map((line) => {
@@ -71,32 +90,23 @@ function buildTranscript({ scene, language }) {
   const dialogue = clean(scene?.dialogue);
   const caption = clean(scene?.caption);
 
-  const transcript = lines.length
-    ? lines.join(" ")
-    : narration || dialogue || caption;
-
-  if (!transcript) {
-    return "";
+  if (lines.length) {
+    return lines.join(" ");
   }
 
-  const languageInstruction =
-    language === "Hindi"
-      ? "Speak naturally in Hindi."
-      : language === "Gujarati"
-        ? "Speak naturally in Gujarati."
-        : language === "Hinglish"
-          ? "Speak naturally in Hinglish, using a natural Indian conversational delivery."
-          : "Speak naturally in English.";
+  if (narration) {
+    return narration;
+  }
 
-  return [
-    languageInstruction,
-    "Read the following text exactly as written.",
-    "Do not add extra words.",
-    "Do not summarize.",
-    "Do not explain anything.",
-    "",
-    transcript,
-  ].join("\n");
+  if (dialogue) {
+    return dialogue;
+  }
+
+  if (caption) {
+    return caption;
+  }
+
+  return "";
 }
 
 async function readGeminiError(response) {
@@ -108,22 +118,27 @@ async function readGeminiError(response) {
       JSON.stringify(data)
     );
   } catch {
-    return `Gemini TTS request failed with HTTP ${response.status}.`;
+    return (
+      `Gemini TTS request failed with HTTP ${response.status}.`
+    );
   }
 }
 
 function extractAudio(data) {
-  const candidates = data?.candidates || [];
+  const candidates =
+    Array.isArray(data?.candidates)
+      ? data.candidates
+      : [];
 
   for (const candidate of candidates) {
-    const parts = candidate?.content?.parts;
-
-    if (!Array.isArray(parts)) {
-      continue;
-    }
+    const parts =
+      Array.isArray(candidate?.content?.parts)
+        ? candidate.content.parts
+        : [];
 
     for (const part of parts) {
-      const inlineData = part?.inlineData;
+      const inlineData =
+        part?.inlineData;
 
       if (
         inlineData?.data &&
@@ -148,55 +163,65 @@ function extractAudio(data) {
 async function generateSpeech({
   transcript,
   voiceName,
+  language,
 }) {
   const apiKey = getApiKey();
 
-  const response = await fetch(
-    GEMINI_ENDPOINT,
-    {
-      method: "POST",
+  const response =
+    await fetch(
+      GEMINI_ENDPOINT,
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
+        headers: {
+          "Content-Type":
+            "application/json",
 
-        "x-goog-api-key":
-          apiKey,
-      },
+          "x-goog-api-key":
+            apiKey,
+        },
 
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
 
-            parts: [
-              {
-                text: transcript,
-              },
-            ],
-          },
-        ],
+              parts: [
+                {
+                  text: transcript,
 
-        generationConfig: {
-          responseModalities: [
-            "AUDIO",
+                  speechMetadata: {
+                    style:
+                      getSpeechStyle(
+                        language
+                      ),
+                  },
+                },
+              ],
+            },
           ],
 
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: voiceName,
+          generationConfig: {
+            responseModalities: [
+              "AUDIO",
+            ],
+
+            speechConfig: {
+              voiceConfig: {
+                voice:
+                  voiceName,
               },
             },
           },
-        },
-      }),
-    }
-  );
+        }),
+      }
+    );
 
   if (!response.ok) {
     const message =
-      await readGeminiError(response);
+      await readGeminiError(
+        response
+      );
 
     throw new Error(
       `Gemini TTS generation failed (${response.status}): ${message}`
@@ -210,17 +235,34 @@ async function generateSpeech({
     extractAudio(data);
 
   if (!audio) {
+    console.error(
+      "GEMINI TTS RESPONSE:",
+      JSON.stringify(data).slice(
+        0,
+        5000
+      )
+    );
+
     throw new Error(
-      "Gemini TTS did not return audio."
+      "Gemini TTS did not return audio data."
     );
   }
 
   return audio;
 }
 
-function extensionFromMime(mimeType) {
+function extensionFromMime(
+  mimeType
+) {
   const mime =
     clean(mimeType).toLowerCase();
+
+  if (
+    mime === "audio/wav" ||
+    mime === "audio/x-wav"
+  ) {
+    return "wav";
+  }
 
   if (
     mime === "audio/mpeg" ||
@@ -231,6 +273,10 @@ function extensionFromMime(mimeType) {
 
   if (mime === "audio/ogg") {
     return "ogg";
+  }
+
+  if (mime === "audio/l16") {
+    return "pcm";
   }
 
   return "wav";
@@ -260,15 +306,16 @@ async function uploadAudio({
       audio.mimeType
     );
 
+  const sceneNumber =
+    Math.max(
+      0,
+      Number(sceneIndex) || 0
+    ) + 1;
+
   const pathname =
     `audio/${safePart(
       jobId
-    )}/voice-${
-      Math.max(
-        0,
-        Number(sceneIndex) || 0
-      ) + 1
-    }.${extension}`;
+    )}/voice-${sceneNumber}.${extension}`;
 
   const buffer =
     base64ToBuffer(
@@ -301,7 +348,9 @@ async function uploadAudio({
   };
 }
 
-async function createReadUrl(pathname) {
+async function createReadUrl(
+  pathname
+) {
   const validUntil =
     Date.now() +
     60 * 60 * 1000;
@@ -319,20 +368,21 @@ async function createReadUrl(pathname) {
 
   const {
     presignedUrl,
-  } = await presignUrl(
-    token,
-    {
-      pathname,
+  } =
+    await presignUrl(
+      token,
+      {
+        pathname,
 
-      operation: "get",
+        operation: "get",
 
-      access: "private",
+        access: "private",
 
-      validUntil,
+        validUntil,
 
-      useCache: false,
-    }
-  );
+        useCache: false,
+      }
+    );
 
   return presignedUrl;
 }
@@ -394,8 +444,6 @@ export default async function handler(
     const transcript =
       buildTranscript({
         scene,
-
-        language,
       });
 
     if (!transcript) {
@@ -412,6 +460,8 @@ export default async function handler(
         transcript,
 
         voiceName,
+
+        language,
       });
 
     const uploaded =
@@ -456,6 +506,10 @@ export default async function handler(
         sizeBytes:
           uploaded.sizeBytes,
       },
+
+      url,
+
+      voiceUrl: url,
 
       model:
         GEMINI_MODEL,
