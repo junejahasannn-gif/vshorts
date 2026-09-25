@@ -29,28 +29,43 @@ permissions:
 
 jobs:
   render:
+    name: Render ViralTap Video
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
+
+      # 1. Download repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Setup Node.js
+      # Lockfile nahi hai, isliye npm cache completely disabled
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           package-manager-cache: false
 
+      # 3. Check Node and npm
+      - name: Check Node.js
+        run: |
+          node --version
+          npm --version
+
+      # 4. Install FFmpeg
       - name: Install FFmpeg
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq --no-install-recommends ffmpeg
 
+      # 5. Install project dependencies
+      # package-lock.json required nahi hai
       - name: Install dependencies
         run: |
-          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund --no-package-lock
 
+      # 6. Render video
       - name: Render video
         env:
           JOB_ID: ${{ inputs.jobId }}
