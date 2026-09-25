@@ -15,9 +15,18 @@ function getSceneCount(duration) {
   return 5;
 }
 
+/**
+ * Gemini structured-output schema.
+ *
+ * IMPORTANT:
+ * Do NOT use additionalProperties here.
+ * Gemini's responseSchema endpoint currently rejects it
+ * in this REST configuration.
+ */
 function buildResponseSchema(sceneCount) {
   return {
     type: "object",
+
     properties: {
       title: {
         type: "string",
@@ -29,6 +38,7 @@ function buildResponseSchema(sceneCount) {
 
       scenes: {
         type: "array",
+
         minItems: sceneCount,
         maxItems: sceneCount,
 
@@ -65,8 +75,6 @@ function buildResponseSchema(sceneCount) {
             "caption",
             "duration",
           ],
-
-          additionalProperties: false,
         },
       },
     },
@@ -76,11 +84,22 @@ function buildResponseSchema(sceneCount) {
       "description",
       "scenes",
     ],
-
-    additionalProperties: false,
   };
 }
 
+/**
+ * Normalize and validate Gemini scenes.
+ *
+ * Gemini decides the content.
+ * Server decides the final duration.
+ *
+ * This guarantees:
+ * - exact scene count
+ * - exact total duration
+ * - no invalid empty visual prompts
+ * - no invalid empty narration
+ * - no invalid empty captions
+ */
 function normalizeScenes(
   scenes,
   requiredCount,
@@ -116,13 +135,21 @@ function normalizeScenes(
         scene?.caption || ""
       ).trim();
 
-      if (
-        !visualPrompt ||
-        !narration ||
-        !caption
-      ) {
+      if (!visualPrompt) {
         throw new Error(
-          `Scene ${index + 1} is missing visualPrompt, narration, or caption.`
+          `Scene ${index + 1} is missing visualPrompt.`
+        );
+      }
+
+      if (!narration) {
+        throw new Error(
+          `Scene ${index + 1} is missing narration.`
+        );
+      }
+
+      if (!caption) {
+        throw new Error(
+          `Scene ${index + 1} is missing caption.`
         );
       }
 
@@ -136,9 +163,14 @@ function normalizeScenes(
     }
   );
 
-  // Duration is controlled by the server.
-  // This guarantees that the total is EXACTLY
-  // the requested video duration.
+  /*
+   * Server controls final duration.
+   *
+   * Example:
+   * 30 sec / 5 scenes = 6 sec each
+   * 60 sec / 7 scenes = distributed exactly
+   * 180 sec / 10 scenes = distributed exactly
+   */
 
   const baseDuration = Math.floor(
     totalDuration / requiredCount
@@ -171,6 +203,9 @@ function normalizeScenes(
   return normalized;
 }
 
+/**
+ * Extract readable Gemini API error.
+ */
 function getGeminiErrorMessage(
   data,
   fallback
@@ -182,6 +217,9 @@ function getGeminiErrorMessage(
   );
 }
 
+/**
+ * Gemini API caller with retry support.
+ */
 async function callGemini(
   requestBody,
   apiKey
@@ -278,6 +316,9 @@ async function callGemini(
           ),
       };
 
+      /*
+       * Retry only temporary/server-side errors.
+       */
       const retryable =
         status === 429 ||
         status === 500 ||
@@ -317,7 +358,9 @@ async function callGemini(
 
       return {
         ok: false,
+
         error: lastError,
+
         attempts: attempt,
       };
     } catch (error) {
@@ -370,6 +413,9 @@ export default async function handler(
   req,
   res
 ) {
+  /*
+   * Only POST is supported.
+   */
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
@@ -383,6 +429,10 @@ export default async function handler(
     const body =
       req.body || {};
 
+    /*
+     * Accept story / idea / joke
+     * so the existing frontend remains compatible.
+     */
     const story = String(
       body.story ||
         body.idea ||
@@ -399,6 +449,10 @@ export default async function handler(
       });
     }
 
+    /*
+     * Gemini API key must exist
+     * only on the server.
+     */
     const apiKey =
       process.env.GEMINI_API_KEY;
 
@@ -411,6 +465,9 @@ export default async function handler(
       });
     }
 
+    /*
+     * Supported durations.
+     */
     const duration =
       Number(body.duration) || 30;
 
@@ -427,6 +484,9 @@ export default async function handler(
       });
     }
 
+    /*
+     * Scene count is controlled by server.
+     */
     const sceneCount =
       getSceneCount(duration);
 
@@ -460,14 +520,18 @@ export default async function handler(
       body.branding || ""
     ).trim();
 
+    /*
+     * System instruction for Gemini.
+     */
     const systemInstruction = `
 You are the lead AI director and professional short-form video scriptwriter for ViralTap Studio.
 
 Your job is to transform the user's idea into a complete, engaging short-form video plan.
 
-Return only the requested structured JSON object.
+Return ONLY the requested JSON object.
 
 Rules:
+
 - Follow the requested language.
 - Make every scene visually specific and cinematic.
 - Create a clear beginning, engaging middle, and satisfying ending.
@@ -475,10 +539,21 @@ Rules:
 - Dialogue may be empty when the scene does not need spoken dialogue.
 - Captions should be short and useful for on-screen text.
 - visualPrompt must describe what should actually appear on screen.
-- Do not include markdown fences.
-- Do not include explanations outside the JSON structure.
+- Do not use markdown.
+- Do not use code fences.
+- Do not add explanations outside the JSON.
+- Generate exactly the requested number of scenes.
+- Every scene must contain:
+  visualPrompt
+  narration
+  dialogue
+  caption
+  duration
 `;
 
+    /*
+     * User prompt.
+     */
     const prompt = `
 USER STORY / IDEA:
 ${story}
@@ -497,9 +572,29 @@ Generate exactly ${sceneCount} scenes.
 
 The total requested video duration is exactly ${duration} seconds.
 
-The server will assign the final scene durations, so focus on producing the correct number and quality of scenes.
+The server will assign the final scene durations.
+
+Focus on:
+1. Strong visual storytelling.
+2. Natural narration.
+3. Clear scene progression.
+4. Engaging opening.
+5. Satisfying ending.
+6. Useful captions.
+7. Detailed visual prompts.
+
+Return only valid JSON matching the requested schema.
 `;
 
+    /*
+     * Gemini request.
+     *
+     * IMPORTANT:
+     * responseMimeType + responseSchema are being used here.
+     *
+     * additionalProperties is intentionally NOT included
+     * because this REST responseSchema configuration rejects it.
+     */
     const requestBody = {
       systemInstruction: {
         parts: [
@@ -522,10 +617,6 @@ The server will assign the final scene durations, so focus on producing the corr
         },
       ],
 
-      // FIX:
-      // Use responseMimeType + responseSchema
-      // instead of responseFormat.text.mimeType.
-
       generationConfig: {
         responseMimeType:
           "application/json",
@@ -541,12 +632,18 @@ The server will assign the final scene durations, so focus on producing the corr
       },
     };
 
+    /*
+     * Call Gemini.
+     */
     const geminiResult =
       await callGemini(
         requestBody,
         apiKey
       );
 
+    /*
+     * Gemini request failed.
+     */
     if (!geminiResult.ok) {
       const error =
         geminiResult.error;
@@ -574,6 +671,9 @@ The server will assign the final scene durations, so focus on producing the corr
     const data =
       geminiResult.data;
 
+    /*
+     * Get first Gemini candidate.
+     */
     const candidate =
       data?.candidates?.[0];
 
@@ -592,6 +692,9 @@ The server will assign the final scene durations, so focus on producing the corr
       });
     }
 
+    /*
+     * Check Gemini finish reason.
+     */
     if (
       candidate.finishReason &&
       candidate.finishReason !==
@@ -611,6 +714,9 @@ The server will assign the final scene durations, so focus on producing the corr
       });
     }
 
+    /*
+     * Extract generated JSON text.
+     */
     const generatedText =
       candidate?.content?.parts
         ?.map(
@@ -636,6 +742,9 @@ The server will assign the final scene durations, so focus on producing the corr
       });
     }
 
+    /*
+     * Parse Gemini JSON.
+     */
     let parsed;
 
     try {
@@ -665,6 +774,9 @@ The server will assign the final scene durations, so focus on producing the corr
       });
     }
 
+    /*
+     * Validate and normalize scenes.
+     */
     let scenes;
 
     try {
@@ -692,6 +804,9 @@ The server will assign the final scene durations, so focus on producing the corr
       });
     }
 
+    /*
+     * Successful response to frontend.
+     */
     return res.status(200).json({
       success: true,
 
