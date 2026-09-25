@@ -2,11 +2,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
-const jobId = process.env.JOB_ID;
+/* ==================================================
+   ENVIRONMENT
+================================================== */
 
-const duration = Number(
-  process.env.VIDEO_DURATION
-);
+const jobId =
+  process.env.JOB_ID;
+
+const duration =
+  Number(
+    process.env.VIDEO_DURATION
+  );
 
 const propsBase64 =
   process.env.PROPS_BASE64;
@@ -26,13 +32,28 @@ const OIDC_AUDIENCE =
 
 const FPS = 30;
 
+const STATUS_URL_CACHE_MS =
+  8 * 60 * 1000;
+
+const OIDC_TOKEN_SAFETY_MS =
+  60 * 1000;
+
+
+/* ==================================================
+   VALIDATION
+================================================== */
+
 if (!jobId) {
   throw new Error(
     "JOB_ID is missing."
   );
 }
 
-if (![30, 60, 180].includes(duration)) {
+if (
+  ![30, 60, 180].includes(
+    duration
+  )
+) {
   throw new Error(
     "VIDEO_DURATION must be 30, 60, or 180."
   );
@@ -54,13 +75,44 @@ if (
 }
 
 
-/* --------------------------------
-   GITHUB OIDC
--------------------------------- */
+/* ==================================================
+   CACHED AUTH / URL STATE
+================================================== */
+
+let cachedOidcToken =
+  null;
+
+let cachedOidcTokenExpiresAt =
+  0;
+
+let cachedStatusUploadUrl =
+  null;
+
+let cachedStatusUploadExpiresAt =
+  0;
+
+
+/* ==================================================
+   GITHUB OIDC TOKEN
+================================================== */
 
 async function getGitHubOidcToken() {
+  const now =
+    Date.now();
+
+  if (
+    cachedOidcToken &&
+    now <
+      cachedOidcTokenExpiresAt -
+        OIDC_TOKEN_SAFETY_MS
+  ) {
+    return cachedOidcToken;
+  }
+
   const separator =
-    githubOidcRequestUrl.includes("?")
+    githubOidcRequestUrl.includes(
+      "?"
+    )
       ? "&"
       : "?";
 
@@ -89,7 +141,10 @@ async function getGitHubOidcToken() {
       "Could not obtain GitHub OIDC token: HTTP " +
         response.status +
         " " +
-        detail.slice(0, 300)
+        detail.slice(
+          0,
+          300
+        )
     );
   }
 
@@ -102,13 +157,26 @@ async function getGitHubOidcToken() {
     );
   }
 
-  return data.value;
+  cachedOidcToken =
+    data.value;
+
+  /*
+   * GitHub's OIDC token normally contains
+   * an expiration claim, but the response
+   * itself is enough for our short-lived
+   * worker job. Cache conservatively.
+   */
+  cachedOidcTokenExpiresAt =
+    now +
+    5 * 60 * 1000;
+
+  return cachedOidcToken;
 }
 
 
-/* --------------------------------
+/* ==================================================
    WORKER REQUEST
--------------------------------- */
+================================================== */
 
 async function workerRequest(
   body
@@ -124,7 +192,8 @@ async function workerRequest(
 
         headers: {
           Authorization:
-            "Bearer " + oidcToken,
+            "Bearer " +
+            oidcToken,
 
           "Content-Type":
             "application/json",
@@ -148,7 +217,10 @@ async function workerRequest(
   } catch {
     throw new Error(
       "ViralTap worker API returned invalid JSON: " +
-        text.slice(0, 300)
+        text.slice(
+          0,
+          300
+        )
     );
   }
 
@@ -166,16 +238,26 @@ async function workerRequest(
 }
 
 
-/* --------------------------------
-   STATUS
--------------------------------- */
+/* ==================================================
+   STATUS UPLOAD URL
+================================================== */
 
-async function updateStatus(
-  payload
-) {
+async function getStatusUploadUrl() {
+  const now =
+    Date.now();
+
+  if (
+    cachedStatusUploadUrl &&
+    now <
+      cachedStatusUploadExpiresAt
+  ) {
+    return cachedStatusUploadUrl;
+  }
+
   const signed =
     await workerRequest({
-      action: "status-url",
+      action:
+        "status-url",
     });
 
   if (!signed?.url) {
@@ -184,9 +266,30 @@ async function updateStatus(
     );
   }
 
+  cachedStatusUploadUrl =
+    signed.url;
+
+  cachedStatusUploadExpiresAt =
+    now +
+    STATUS_URL_CACHE_MS;
+
+  return cachedStatusUploadUrl;
+}
+
+
+/* ==================================================
+   STATUS UPDATE
+================================================== */
+
+async function updateStatus(
+  payload
+) {
+  const signedUrl =
+    await getStatusUploadUrl();
+
   const response =
     await fetch(
-      signed.url,
+      signedUrl,
       {
         method: "PUT",
 
@@ -214,15 +317,18 @@ async function updateStatus(
       "Status upload failed with HTTP " +
         response.status +
         ": " +
-        detail.slice(0, 300)
+        detail.slice(
+          0,
+          300
+        )
     );
   }
 }
 
 
-/* --------------------------------
+/* ==================================================
    VIDEO UPLOAD
--------------------------------- */
+================================================== */
 
 async function uploadVideo(
   outputPath,
@@ -230,7 +336,9 @@ async function uploadVideo(
 ) {
   const signed =
     await workerRequest({
-      action: "video-url",
+      action:
+        "video-url",
+
       sizeBytes,
     });
 
@@ -239,6 +347,16 @@ async function uploadVideo(
       "Worker did not return a video upload URL."
     );
   }
+
+  console.log(
+    "Uploading MP4..."
+  );
+
+  console.log(
+    "Upload size:",
+    sizeBytes,
+    "bytes"
+  );
 
   const stream =
     fs.createReadStream(
@@ -274,7 +392,10 @@ async function uploadVideo(
         "Video upload failed with HTTP " +
           response.status +
           ": " +
-          detail.slice(0, 300)
+          detail.slice(
+            0,
+            300
+          )
       );
     }
   } finally {
@@ -294,16 +415,19 @@ async function uploadVideo(
 }
 
 
-/* --------------------------------
+/* ==================================================
    COMMAND RUNNER
--------------------------------- */
+================================================== */
 
 function runCommand(
   command,
   args
 ) {
   return new Promise(
-    (resolve, reject) => {
+    (
+      resolve,
+      reject
+    ) => {
       console.log(
         "$",
         command,
@@ -325,8 +449,11 @@ function runCommand(
           }
         );
 
-      let stdoutBuffer = "";
-      let stderrBuffer = "";
+      let stdoutBuffer =
+        "";
+
+      let stderrBuffer =
+        "";
 
       child.stdout.on(
         "data",
@@ -334,7 +461,8 @@ function runCommand(
           const text =
             chunk.toString();
 
-          stdoutBuffer += text;
+          stdoutBuffer +=
+            text;
 
           process.stdout.write(
             text
@@ -348,7 +476,8 @@ function runCommand(
           const text =
             chunk.toString();
 
-          stderrBuffer += text;
+          stderrBuffer +=
+            text;
 
           process.stderr.write(
             text
@@ -364,10 +493,14 @@ function runCommand(
       child.on(
         "close",
         (code) => {
-          if (code !== 0) {
+          if (
+            code !== 0
+          ) {
             reject(
               new Error(
-                `${command} failed with exit code ${code}\n${stderrBuffer.slice(-2000)}`
+                `${command} failed with exit code ${code}\n${stderrBuffer.slice(
+                  -2000
+                )}`
               )
             );
 
@@ -388,20 +521,22 @@ function runCommand(
 }
 
 
-/* --------------------------------
+/* ==================================================
    REMOTION RENDER
--------------------------------- */
+================================================== */
 
 async function renderVideo(
   outputPath,
   totalFrames
 ) {
-  let lastProgress = -1;
+  let lastProgress =
+    -1;
 
   let lastStatusUpdate =
     Promise.resolve();
 
-  let pendingProgress = null;
+  let pendingProgress =
+    null;
 
   let updateInProgress =
     false;
@@ -412,7 +547,8 @@ async function renderVideo(
     message
   ) {
     if (
-      percent <= lastProgress
+      percent <=
+      lastProgress
     ) {
       return;
     }
@@ -425,7 +561,9 @@ async function renderVideo(
       message,
     };
 
-    if (updateInProgress) {
+    if (
+      updateInProgress
+    ) {
       return;
     }
 
@@ -469,15 +607,36 @@ async function renderVideo(
     "Starting Remotion render..."
   );
 
+  console.log(
+    "Total frames:",
+    totalFrames
+  );
+
   const args = [
     "remotion",
+
     "render",
+
     "src/index.jsx",
+
     "ViralTapVideo",
+
     outputPath,
-    `--frames=0-${totalFrames - 1}`,
+
+    `--frames=0-${
+      totalFrames - 1
+    }`,
+
     "--codec=h264",
+
     "--props=props.json",
+
+    /*
+     * Keep concurrency at 2
+     * until benchmark testing proves
+     * that a higher value is faster
+     * and stable on GitHub Actions.
+     */
     "--concurrency=2",
 
     "--chromium-options=--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu",
@@ -485,7 +644,10 @@ async function renderVideo(
 
 
   await new Promise(
-    (resolve, reject) => {
+    (
+      resolve,
+      reject
+    ) => {
       const child =
         spawn(
           "npx",
@@ -501,7 +663,8 @@ async function renderVideo(
           }
         );
 
-      let buffer = "";
+      let buffer =
+        "";
 
       let errorBuffer =
         "";
@@ -517,13 +680,17 @@ async function renderVideo(
           text
         );
 
-        buffer += text;
+        buffer +=
+          text;
 
         const lines =
-          buffer.split(/\r?\n/);
+          buffer.split(
+            /\r?\n/
+          );
 
         buffer =
-          lines.pop() || "";
+          lines.pop() ||
+          "";
 
         for (
           const line of lines
@@ -538,20 +705,28 @@ async function renderVideo(
           }
 
           const rendered =
-            Number(match[1]);
+            Number(
+              match[1]
+            );
 
           const total =
-            Number(match[2]) ||
+            Number(
+              match[2]
+            ) ||
             totalFrames;
 
           const percent =
             Math.min(
               99,
+
               Math.max(
                 0,
+
                 Math.round(
-                  (rendered /
-                    total) *
+                  (
+                    rendered /
+                    total
+                  ) *
                     100
                 )
               )
@@ -559,6 +734,7 @@ async function renderVideo(
 
           void sendProgress(
             percent,
+
             `Rendering MP4 — ${rendered}/${total} frames`
           );
         }
@@ -577,7 +753,8 @@ async function renderVideo(
           const text =
             chunk.toString();
 
-          errorBuffer += text;
+          errorBuffer +=
+            text;
 
           process.stderr.write(
             text
@@ -596,7 +773,9 @@ async function renderVideo(
         "close",
         async (code) => {
           try {
-            if (code !== 0) {
+            if (
+              code !== 0
+            ) {
               reject(
                 new Error(
                   "Remotion render failed with exit code " +
@@ -611,14 +790,26 @@ async function renderVideo(
               return;
             }
 
+            /*
+             * Make sure any final progress
+             * update is written before moving
+             * to upload.
+             */
             await sendProgress(
               99,
+
               "MP4 render complete. Uploading..."
             );
 
+            await lastStatusUpdate;
+
             resolve();
-          } catch (error) {
-            reject(error);
+          } catch (
+            error
+          ) {
+            reject(
+              error
+            );
           }
         }
       );
@@ -627,11 +818,40 @@ async function renderVideo(
 }
 
 
-/* --------------------------------
+/* ==================================================
    MAIN
--------------------------------- */
+================================================== */
 
 async function main() {
+  console.log(
+    "========================================"
+  );
+
+  console.log(
+    "VIRALTAP RENDER RUNNER"
+  );
+
+  console.log(
+    "Job:",
+    jobId
+  );
+
+  console.log(
+    "Duration:",
+    duration,
+    "seconds"
+  );
+
+  console.log(
+    "========================================"
+  );
+
+
+  /*
+   * ------------------------------------------------
+   * INITIAL STATUS
+   * ------------------------------------------------
+   */
 
   await updateStatus({
     status:
@@ -645,6 +865,12 @@ async function main() {
   });
 
 
+  /*
+   * ------------------------------------------------
+   * DECODE PROPS
+   * ------------------------------------------------
+   */
+
   let props;
 
   try {
@@ -653,7 +879,9 @@ async function main() {
         Buffer.from(
           propsBase64,
           "base64"
-        ).toString("utf8")
+        ).toString(
+          "utf8"
+        )
       );
   } catch {
     throw new Error(
@@ -685,8 +913,17 @@ async function main() {
   }
 
 
+  /*
+   * ------------------------------------------------
+   * LOG RENDER DATA
+   * ------------------------------------------------
+   */
+
   console.log(
-    "Render props:",
+    "Render props:"
+  );
+
+  console.log(
     JSON.stringify(
       {
         sceneCount:
@@ -702,6 +939,18 @@ async function main() {
 
         height:
           props.height,
+
+        videoType:
+          props.videoType,
+
+        voice:
+          props.voice,
+
+        music:
+          props.music,
+
+        branding:
+          props.branding,
       },
 
       null,
@@ -709,6 +958,43 @@ async function main() {
     )
   );
 
+
+  /*
+   * Log line information without
+   * dumping the entire Gemini payload.
+   */
+
+  const totalLines =
+    props.scenes.reduce(
+      (
+        count,
+        scene
+      ) => {
+        return (
+          count +
+          (
+            Array.isArray(
+              scene?.lines
+            )
+              ? scene.lines.length
+              : 0
+          )
+        );
+      },
+      0
+    );
+
+  console.log(
+    "Total caption lines:",
+    totalLines
+  );
+
+
+  /*
+   * ------------------------------------------------
+   * PREPARE FILES
+   * ------------------------------------------------
+   */
 
   fs.mkdirSync(
     "render-output",
@@ -720,22 +1006,32 @@ async function main() {
 
   fs.writeFileSync(
     "props.json",
+
     JSON.stringify(
       props,
       null,
       2
     ),
+
     "utf8"
   );
 
 
+  /*
+   * ------------------------------------------------
+   * FRAME COUNT
+   * ------------------------------------------------
+   */
+
   const totalFrames =
-    duration * FPS;
+    duration *
+    FPS;
 
 
   const outputPath =
     path.resolve(
       "render-output",
+
       `${jobId}.mp4`
     );
 
@@ -745,7 +1041,6 @@ async function main() {
     outputPath
   );
 
-
   console.log(
     "Total frames:",
     totalFrames
@@ -753,8 +1048,9 @@ async function main() {
 
 
   /*
-   * Browser is cached by GitHub Actions.
-   * If it already exists, this is almost instant.
+   * ------------------------------------------------
+   * REMOTION BROWSER
+   * ------------------------------------------------
    */
 
   console.log(
@@ -773,7 +1069,9 @@ async function main() {
 
 
   /*
-   * Actual frame-by-frame rendering.
+   * ------------------------------------------------
+   * RENDER MP4
+   * ------------------------------------------------
    */
 
   await renderVideo(
@@ -781,6 +1079,12 @@ async function main() {
     totalFrames
   );
 
+
+  /*
+   * ------------------------------------------------
+   * VERIFY MP4
+   * ------------------------------------------------
+   */
 
   if (
     !fs.existsSync(
@@ -799,7 +1103,9 @@ async function main() {
     );
 
 
-  if (!stat.size) {
+  if (
+    !stat.size
+  ) {
     throw new Error(
       "Rendered MP4 is empty."
     );
@@ -811,13 +1117,18 @@ async function main() {
     outputPath
   );
 
-
   console.log(
     "MP4 SIZE:",
     stat.size,
     "bytes"
   );
 
+
+  /*
+   * ------------------------------------------------
+   * UPLOAD STATUS
+   * ------------------------------------------------
+   */
 
   await updateStatus({
     status:
@@ -834,6 +1145,12 @@ async function main() {
   });
 
 
+  /*
+   * ------------------------------------------------
+   * UPLOAD MP4
+   * ------------------------------------------------
+   */
+
   const videoPath =
     await uploadVideo(
       outputPath,
@@ -847,6 +1164,12 @@ async function main() {
     );
   }
 
+
+  /*
+   * ------------------------------------------------
+   * COMPLETED
+   * ------------------------------------------------
+   */
 
   await updateStatus({
     status:
@@ -870,21 +1193,44 @@ async function main() {
       FPS,
 
     dimensions:
-      `${props.width || 1080}x${props.height || 1920}`,
+      `${
+        props.width ||
+        1080
+      }x${
+        props.height ||
+        1920
+      }`,
   });
 
 
   console.log(
-    "VIRALTAP RENDER COMPLETE:",
+    "========================================"
+  );
+
+  console.log(
+    "VIRALTAP RENDER COMPLETE"
+  );
+
+  console.log(
+    "Video:",
     videoPath
+  );
+
+  console.log(
+    "========================================"
   );
 }
 
 
+/* ==================================================
+   ERROR HANDLING
+================================================== */
+
 try {
   await main();
-} catch (error) {
-
+} catch (
+  error
+) {
   console.error(
     "VIRALTAP RENDER WORKER FAILED:",
     error
