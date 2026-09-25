@@ -801,9 +801,41 @@ async function startGeneration(options) {
       !scriptData.success
     ) {
 
+      /*
+       * IMPORTANT:
+       * Gemini backend ab jo detailed
+       * error bhejega, wo user ko dikhega.
+       */
+
+      const detailedError = [
+        scriptData.error,
+        scriptData.geminiError
+          ? `Gemini: ${scriptData.geminiError}`
+          : "",
+        scriptData.geminiHttpStatus
+          ? `HTTP: ${scriptData.geminiHttpStatus}`
+          : "",
+        scriptData.geminiStatusText
+          ? `Status: ${scriptData.geminiStatusText}`
+          : "",
+        scriptData.finishReason
+          ? `Finish: ${scriptData.finishReason}`
+          : "",
+        scriptData.parseError
+          ? `Parse: ${scriptData.parseError}`
+          : "",
+        scriptData.attempts
+          ? `Attempts: ${scriptData.attempts}`
+          : "",
+        scriptData.details
+          ? `Details: ${scriptData.details}`
+          : ""
+      ]
+        .filter(Boolean)
+        .join("\n");
+
       throw new Error(
-        scriptData.error ||
-        scriptData.details ||
+        detailedError ||
         "AI script generation failed."
       );
     }
