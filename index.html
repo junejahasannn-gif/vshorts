@@ -801,12 +801,6 @@ async function startGeneration(options) {
       !scriptData.success
     ) {
 
-      /*
-       * IMPORTANT:
-       * Gemini backend ab jo detailed
-       * error bhejega, wo user ko dikhega.
-       */
-
       const detailedError = [
         scriptData.error,
         scriptData.geminiError
@@ -1021,14 +1015,10 @@ async function waitForRenderCompletion(
   jobId
 ) {
 
-  /*
-   * 3 seconds × 180 attempts
-   * = maximum 9 minutes.
-   */
-
   const maxAttempts = 180;
-
   const pollInterval = 3000;
+
+  let lastProgress = 60;
 
 
   for (
@@ -1090,58 +1080,91 @@ async function waitForRenderCompletion(
       data.videoUrl
     ) {
 
+      setProgress(
+        100,
+        "Video ready! 🎉"
+      );
+
       return data;
     }
 
 
     /* ------------------------------
-       PROGRESS
+       REAL PROGRESS
     ------------------------------ */
 
-    const progress =
-      Math.min(
-        98,
-        60 +
-        Math.round(
-          (
-            attempt /
-            maxAttempts
-          ) * 38
-        )
+    if (
+      Number.isFinite(
+        Number(data.progress)
+      )
+    ) {
+
+      const backendProgress =
+        Number(data.progress);
+
+      const actualProgress =
+        Math.min(
+          99,
+          Math.max(
+            60,
+            backendProgress
+          )
+        );
+
+      lastProgress =
+        actualProgress;
+
+
+      let message =
+        data.message ||
+        "Rendering your video...";
+
+
+      if (
+        data.status === "queued"
+      ) {
+
+        message =
+          data.message ||
+          "Render job is queued...";
+
+      } else if (
+        data.status === "rendering"
+      ) {
+
+        message =
+          data.message ||
+          "Remotion is rendering your MP4...";
+
+      } else if (
+        data.status === "uploading"
+      ) {
+
+        message =
+          data.message ||
+          "Uploading your finished MP4...";
+      }
+
+
+      setProgress(
+        actualProgress,
+        message
       );
 
+    } else {
 
-    let message =
-      "Rendering your video...";
+      /*
+       * Agar backend ne abhi progress
+       * nahi bheji hai, progress ko fake
+       * tarike se aage nahi badhayenge.
+       */
 
-
-    if (
-      data.status === "queued"
-    ) {
-
-      message =
-        "Render job is queued...";
-
-    } else if (
-      data.status === "rendering"
-    ) {
-
-      message =
-        "Remotion is rendering your MP4...";
-
-    } else if (
-      data.status === "uploading"
-    ) {
-
-      message =
-        "Uploading your finished MP4...";
+      setProgress(
+        lastProgress,
+        data.message ||
+        "Rendering your video..."
+      );
     }
-
-
-    setProgress(
-      progress,
-      message
-    );
 
 
     await wait(
