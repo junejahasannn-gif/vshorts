@@ -8,6 +8,11 @@ on:
         required: true
         type: string
 
+      sourceJobId:
+        description: "Original render job ID"
+        required: true
+        type: string
+
       sourceVideoUrl:
         description: "Signed URL of the original rendered MP4"
         required: true
@@ -70,6 +75,7 @@ jobs:
       - name: Apply selected music
         env:
           JOB_ID: ${{ inputs.jobId }}
+          SOURCE_JOB_ID: ${{ inputs.sourceJobId }}
           SOURCE_VIDEO_URL: ${{ inputs.sourceVideoUrl }}
           MUSIC_URL: ${{ inputs.musicUrl }}
           VIDEO_DURATION: ${{ inputs.duration }}
