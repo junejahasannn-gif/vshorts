@@ -25,6 +25,10 @@ const visualsUrl =
   process.env.VIRALTAP_VISUALS_URL ||
   "https://vshorts-app.vercel.app/api/generate-visuals";
 
+const voiceUrl =
+  process.env.VIRALTAP_VOICE_URL ||
+  "https://vshorts-app.vercel.app/api/generate-voice";
+
 const githubOidcRequestUrl =
   process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
 
@@ -577,6 +581,161 @@ async function generateAllVisuals(
 
 
 /* ==================================================
+   AI VOICE GENERATION
+================================================== */
+
+async function generateSceneVoice(
+  scene,
+  sceneIndex,
+  totalScenes,
+  props
+) {
+  console.log(
+    `Generating AI voice ${sceneIndex + 1}/${totalScenes}...`
+  );
+
+  const response =
+    await fetch(
+      voiceUrl,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify({
+          jobId,
+
+          scene,
+
+          sceneIndex,
+
+          language:
+            props.language ||
+            "Hindi",
+
+          voice:
+            props.voice ||
+            "Natural Male",
+        }),
+      }
+    );
+
+  const text =
+    await response.text();
+
+  let data;
+
+  try {
+    data =
+      JSON.parse(text);
+  } catch {
+    throw new Error(
+      "Voice generation API returned invalid JSON: " +
+        text.slice(
+          0,
+          500
+        )
+    );
+  }
+
+  if (
+    !response.ok ||
+    !data?.success ||
+    !data?.asset?.url
+  ) {
+    throw new Error(
+      data?.error ||
+        `AI voice generation failed for scene ${
+          sceneIndex + 1
+        }.`
+    );
+  }
+
+  console.log(
+    `AI voice ${sceneIndex + 1}/${totalScenes} ready.`
+  );
+
+  return data.asset;
+}
+
+
+async function generateAllVoices(
+  props
+) {
+  const scenes =
+    Array.isArray(
+      props.scenes
+    )
+      ? props.scenes
+      : [];
+
+  if (!scenes.length) {
+    throw new Error(
+      "Cannot generate voice without scenes."
+    );
+  }
+
+  const totalScenes =
+    scenes.length;
+
+  const assets = [];
+
+  await updateStatus({
+    status:
+      "rendering",
+
+    progress:
+      20,
+
+    message:
+      `Generating AI voice — 0/${totalScenes} scenes`,
+  });
+
+  for (
+    let index = 0;
+    index < totalScenes;
+    index++
+  ) {
+    const asset =
+      await generateSceneVoice(
+        scenes[index],
+        index,
+        totalScenes,
+        props
+      );
+
+    assets.push(asset);
+
+    const voiceProgress =
+      20 +
+      Math.round(
+        ((index + 1) /
+          totalScenes) *
+          15
+      );
+
+    await updateStatus({
+      status:
+        "rendering",
+
+      progress:
+        voiceProgress,
+
+      message:
+        `Generating AI voice — ${
+          index + 1
+        }/${totalScenes} scenes`,
+    });
+  }
+
+  return assets;
+}
+
+
+/* ==================================================
    COMMAND RUNNER
 ================================================== */
 
@@ -860,15 +1019,15 @@ async function renderVideo(
               99,
 
               Math.max(
-                20,
+                35,
 
-                20 +
+                35 +
                   Math.round(
                     (
                       rendered /
                       total
                     ) *
-                      79
+                      64
                   )
               )
             );
@@ -1000,7 +1159,7 @@ async function main() {
    * ------------------------------------------------
    * DECODE PROPS
    * ------------------------------------------------
-   */
+ */
 
   let props;
 
@@ -1074,6 +1233,9 @@ async function main() {
         videoType:
           props.videoType,
 
+        language:
+          props.language,
+
         voice:
           props.voice,
 
@@ -1142,8 +1304,9 @@ async function main() {
 
 
   /*
-   * Attach generated assets
-   * to their corresponding scenes.
+   * ------------------------------------------------
+   * ATTACH VISUAL ASSETS
+   * ------------------------------------------------
    */
 
   props.scenes =
@@ -1159,6 +1322,55 @@ async function main() {
 
         visualUrl:
           visualAssets[index]?.url ||
+          "",
+      })
+    );
+
+
+  /*
+   * ------------------------------------------------
+   * GENERATE AI VOICES
+   * ------------------------------------------------
+   */
+
+  console.log(
+    "Starting AI voice generation..."
+  );
+
+  const voiceAssets =
+    await generateAllVoices(
+      props
+    );
+
+  if (
+    voiceAssets.length !==
+    props.scenes.length
+  ) {
+    throw new Error(
+      "AI voice generation returned an incomplete asset list."
+    );
+  }
+
+
+  /*
+   * ------------------------------------------------
+   * ATTACH VOICE ASSETS
+   * ------------------------------------------------
+   */
+
+  props.scenes =
+    props.scenes.map(
+      (
+        scene,
+        index
+      ) => ({
+        ...scene,
+
+        voiceAsset:
+          voiceAssets[index],
+
+        voiceUrl:
+          voiceAssets[index]?.url ||
           "",
       })
     );
@@ -1299,8 +1511,7 @@ async function main() {
   /*
    * ------------------------------------------------
    * UPLOAD STATUS
-   * ------------------------------------------------
-   */
+   * ------------------------------------------------ */
 
   await updateStatus({
     status:
@@ -1320,8 +1531,7 @@ async function main() {
   /*
    * ------------------------------------------------
    * UPLOAD MP4
-   * ------------------------------------------------
-   */
+   * ------------------------------------------------ */
 
   const videoPath =
     await uploadVideo(
@@ -1340,8 +1550,7 @@ async function main() {
   /*
    * ------------------------------------------------
    * COMPLETED
-   * ------------------------------------------------
-   */
+   * ------------------------------------------------ */
 
   await updateStatus({
     status:
