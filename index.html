@@ -1531,6 +1531,47 @@ let musicPreviewAudio = null;
 
 
 /* ========================================================= */
+/* ERROR MESSAGE HELPER                                       */
+/* ========================================================= */
+/*
+ * Backend endpoints now return errors as:
+ *   { success: false, error: { code, message, retryAfterSeconds? } }
+ *
+ * This still tolerates the OLD flat shape some responses may briefly
+ * use during rollout: { success: false, error: "some string" }.
+ *
+ * The backend already picks a safe, user-facing message per error
+ * code (see lib/ai-client.js toApiError) — this function just reads
+ * it and adds a retry-after hint when present. It never surfaces
+ * stack traces, tokens, or raw provider payloads.
+ */
+function getErrorMessage(data) {
+  const err = data?.error;
+
+  if (err && typeof err === "object") {
+    let message = err.message || "Something went wrong. Please try again.";
+
+    if (err.retryAfterSeconds) {
+      message += ` Please try again in about ${err.retryAfterSeconds} seconds.`;
+    }
+
+    return message;
+  }
+
+  if (typeof err === "string" && err) {
+    return err;
+  }
+
+  return data?.details || "Something went wrong. Please try again.";
+}
+
+function getErrorCode(data) {
+  const err = data?.error;
+  return (err && typeof err === "object" && err.code) || null;
+}
+
+
+/* ========================================================= */
 /* PAGE NAVIGATION */
 /* ========================================================= */
 
@@ -1812,6 +1853,47 @@ function setGenerateButtonLoading(
   }
 }
 
+/*
+ * NEW: cooldown lock for the Generate button after a quota error.
+ * Prevents the user from immediately retrying into the same exhausted
+ * quota window (also reduces accidental repeated Gemini calls — see
+ * item 18 rate limiting).
+ */
+let generateCooldownTimer = null;
+
+function startGenerateCooldown(seconds) {
+  const button = document.getElementById("generateButton");
+  const text = document.getElementById("generateButtonText");
+  const icon = document.getElementById("generateButtonIcon");
+
+  if (!button || !Number.isFinite(seconds) || seconds <= 0) {
+    return;
+  }
+
+  if (generateCooldownTimer) {
+    clearInterval(generateCooldownTimer);
+  }
+
+  let remaining = Math.ceil(seconds);
+  button.disabled = true;
+  icon.textContent = "⏳";
+
+  generateCooldownTimer = setInterval(() => {
+    remaining -= 1;
+
+    if (remaining <= 0) {
+      clearInterval(generateCooldownTimer);
+      generateCooldownTimer = null;
+      button.disabled = false;
+      icon.textContent = "🚀";
+      text.textContent = "Generate Video";
+      return;
+    }
+
+    text.textContent = `Try again in ${remaining}s`;
+  }, 1000);
+}
+
 
 /* ========================================================= */
 /* MAIN GENERATION FLOW */
@@ -1879,47 +1961,9 @@ async function startGeneration(
       !scriptData.success
     ) {
 
-      const detailedError = [
-
-        scriptData.error,
-
-        scriptData.geminiError
-          ? `Gemini: ${scriptData.geminiError}`
-          : "",
-
-        scriptData.geminiHttpStatus
-          ? `HTTP: ${scriptData.geminiHttpStatus}`
-          : "",
-
-        scriptData.geminiStatusText
-          ? `Status: ${scriptData.geminiStatusText}`
-          : "",
-
-        scriptData.finishReason
-          ? `Finish: ${scriptData.finishReason}`
-          : "",
-
-        scriptData.parseError
-          ? `Parse: ${scriptData.parseError}`
-          : "",
-
-        scriptData.attempts
-          ? `Attempts: ${scriptData.attempts}`
-          : "",
-
-        scriptData.details
-          ? `Details: ${scriptData.details}`
-          : ""
-
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-
-      throw new Error(
-        detailedError ||
-        "AI script generation failed."
-      );
+      const error = new Error(getErrorMessage(scriptData));
+      error.code = getErrorCode(scriptData);
+      throw error;
     }
 
 
@@ -1989,11 +2033,9 @@ async function startGeneration(
       !renderData.success
     ) {
 
-      throw new Error(
-        renderData.error ||
-        renderData.details ||
-        "Render preparation failed."
-      );
+      const error = new Error(getErrorMessage(renderData));
+      error.code = getErrorCode(renderData);
+      throw error;
     }
 
 
@@ -2076,7 +2118,7 @@ async function startGeneration(
     ) {
 
       throw new Error(
-        completedData.error ||
+        getErrorMessage(completedData) ||
         "Video rendering did not complete."
       );
     }
@@ -2181,8 +2223,7 @@ async function waitForRenderCompletion(
     ) {
 
       throw new Error(
-        data.error ||
-        "Could not check video render status."
+        getErrorMessage(data)
       );
     }
 
@@ -2192,8 +2233,7 @@ async function waitForRenderCompletion(
     ) {
 
       throw new Error(
-        data.error ||
-        "Video rendering failed."
+        getErrorMessage(data)
       );
     }
 
@@ -2856,8 +2896,7 @@ async function generateRecommendedMusic(
     ) {
 
       throw new Error(
-        data.error ||
-        "Music generation failed."
+        getErrorMessage(data)
       );
     }
 
@@ -3696,8 +3735,7 @@ async function applySelectedMusic() {
     ) {
 
       throw new Error(
-        data.error ||
-        "Music apply job could not be started."
+        getErrorMessage(data)
       );
     }
 
@@ -3722,7 +3760,7 @@ async function applySelectedMusic() {
     ) {
 
       throw new Error(
-        completed.error ||
+        getErrorMessage(completed) ||
         "Updated MP4 was not created."
       );
     }
@@ -4230,13 +4268,21 @@ function showGenerationError(
 
 
   validation.textContent =
-    "Video generate nahi hua:\n" +
     message;
 
 
   validation.classList.remove(
     "hidden"
   );
+
+  /*
+   * If this was a quota/rate-limit error, lock the Generate button
+   * for a short cooldown instead of letting the person immediately
+   * retry into the same exhausted quota window.
+   */
+  if (error?.code === "GEMINI_QUOTA_EXCEEDED" || error?.code === "GEMINI_RATE_LIMITED" || error?.code === "RATE_LIMITED") {
+    startGenerateCooldown(15);
+  }
 
 
   window.scrollTo({
