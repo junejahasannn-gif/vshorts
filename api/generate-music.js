@@ -1,15 +1,16 @@
-import {
-  put,
-  issueSignedToken,
-  presignUrl,
-} from "@vercel/blob";
+import { put, issueSignedToken, presignUrl } from "@vercel/blob";
+import { toApiError } from "../lib/ai-client.js";
 
 export const maxDuration = 60;
 
-const MODEL = "lyria-3-clip-preview";
-
-const ENDPOINT =
-  "https://generativelanguage.googleapis.com/v1beta/interactions";
+// Confirmed correct against Google's official Lyria 3 docs
+// (https://ai.google.dev/gemini-api/docs/interactions/music-generation):
+// the Interactions API really does live at /v1beta/interactions and
+// lyria-3-clip-preview really is a valid model id. No endpoint change
+// needed here — only timeout + structured error handling were missing.
+const MODEL = process.env.GEMINI_MUSIC_MODEL || "lyria-3-clip-preview";
+const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
+const GEMINI_TIMEOUT_MS = 25000;
 
 const MUSIC_STYLES = {
   cinematic: {
@@ -20,7 +21,6 @@ const MUSIC_STYLES = {
       "Epic cinematic instrumental background music with orchestral strings, deep cinematic drums, subtle risers and atmospheric textures. Emotional and dramatic, but restrained enough for narration. Instrumental only, no vocals.",
     related: ["emotional", "energetic", "suspense"],
   },
-
   suspense: {
     label: "Dark Suspense",
     emoji: "👻",
@@ -29,7 +29,6 @@ const MUSIC_STYLES = {
       "Dark suspense instrumental background score with low drones, subtle pulses, tense strings, atmospheric textures and restrained percussion. Mysterious, uneasy and cinematic. Designed underneath spoken narration. Instrumental only, no vocals.",
     related: ["cinematic", "emotional", "action"],
   },
-
   action: {
     label: "Epic Action",
     emoji: "⚡",
@@ -38,7 +37,6 @@ const MUSIC_STYLES = {
       "High-energy cinematic action instrumental with punchy drums, powerful percussion, tense strings, deep bass and modern trailer elements. Exciting and powerful without overpowering narration. Instrumental only, no vocals.",
     related: ["energetic", "cinematic", "suspense"],
   },
-
   funny: {
     label: "Funny & Playful",
     emoji: "😂",
@@ -47,7 +45,6 @@ const MUSIC_STYLES = {
       "Light playful comedy instrumental background music with quirky percussion, cheerful rhythmic patterns, playful plucks and humorous timing. Fun and energetic while leaving clear space for spoken narration. Instrumental only, no vocals.",
     related: ["energetic", "cinematic", "calm"],
   },
-
   romantic: {
     label: "Soft Romantic",
     emoji: "❤️",
@@ -56,7 +53,6 @@ const MUSIC_STYLES = {
       "Soft romantic instrumental background music with warm piano, gentle acoustic guitar, delicate strings and emotional atmospheric pads. Intimate, heartfelt and subtle under narration. Instrumental only, no vocals.",
     related: ["emotional", "calm", "cinematic"],
   },
-
   emotional: {
     label: "Emotional",
     emoji: "💙",
@@ -65,7 +61,6 @@ const MUSIC_STYLES = {
       "Emotional cinematic instrumental with warm piano, soft strings, gentle atmospheric pads and subtle emotional swells. Heartfelt and moving while remaining quiet enough for spoken narration. Instrumental only, no vocals.",
     related: ["romantic", "cinematic", "calm"],
   },
-
   energetic: {
     label: "Energetic",
     emoji: "🔥",
@@ -74,7 +69,6 @@ const MUSIC_STYLES = {
       "Upbeat energetic instrumental background music with modern drums, bright synth textures, rhythmic bass and motivating momentum. Positive, dynamic and suitable underneath short-form video narration. Instrumental only, no vocals.",
     related: ["action", "funny", "cinematic"],
   },
-
   calm: {
     label: "Calm & Ambient",
     emoji: "🌙",
@@ -86,210 +80,51 @@ const MUSIC_STYLES = {
 };
 
 function clean(value) {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
+  if (value === null || value === undefined) return "";
   return String(value).trim();
 }
 
 function normalizeStyle(value) {
   const style = clean(value).toLowerCase();
-
-  return MUSIC_STYLES[style]
-    ? style
-    : "";
+  return MUSIC_STYLES[style] ? style : "";
 }
 
 function collectSceneText(scenes) {
-  if (!Array.isArray(scenes)) {
-    return "";
-  }
+  if (!Array.isArray(scenes)) return "";
 
   return scenes
     .map((scene) => {
-      const parts = [
-        scene?.caption,
-        scene?.narration,
-        scene?.dialogue,
-        scene?.visualPrompt,
-      ];
+      const parts = [scene?.caption, scene?.narration, scene?.dialogue, scene?.visualPrompt];
 
       if (Array.isArray(scene?.lines)) {
         for (const line of scene.lines) {
-          if (typeof line === "string") {
-            parts.push(line);
-          } else if (line && typeof line === "object") {
-            parts.push(line.text);
-          }
+          if (typeof line === "string") parts.push(line);
+          else if (line && typeof line === "object") parts.push(line.text);
         }
       }
 
-      return parts
-        .map(clean)
-        .filter(Boolean)
-        .join(" ");
+      return parts.map(clean).filter(Boolean).join(" ");
     })
     .filter(Boolean)
     .join(" ");
 }
 
-function detectMusicStyle({
-  scenes,
-  videoType,
-  requestedStyle,
-}) {
+function detectMusicStyle({ scenes, videoType, requestedStyle }) {
   const explicit = normalizeStyle(requestedStyle);
-
-  if (explicit) {
-    return explicit;
-  }
+  if (explicit) return explicit;
 
   const type = clean(videoType).toLowerCase();
   const text = collectSceneText(scenes).toLowerCase();
-
   const combined = `${type} ${text}`;
 
   const weightedRules = [
-    {
-      style: "suspense",
-      score: 0,
-      keywords: [
-        "horror",
-        "horror story",
-        "ghost",
-        "haunted",
-        "haunting",
-        "monster",
-        "demon",
-        "fear",
-        "scary",
-        "dark",
-        "suspense",
-        "mystery",
-        "secret",
-        "killer",
-        "crime",
-        "murder",
-        "chase",
-        "tension",
-        "भूत",
-        "डर",
-        "डराव",
-        "रहस्य",
-        "हत्या",
-      ],
-    },
-
-    {
-      style: "action",
-      score: 0,
-      keywords: [
-        "action",
-        "fight",
-        "battle",
-        "war",
-        "attack",
-        "hero",
-        "punch",
-        "fight scene",
-        "लड़ाई",
-        "युद्ध",
-        "हमला",
-      ],
-    },
-
-    {
-      style: "funny",
-      score: 0,
-      keywords: [
-        "funny",
-        "comedy",
-        "joke",
-        "jokes",
-        "laugh",
-        "meme",
-        "prank",
-        "humor",
-        "humour",
-        "हंसी",
-        "मजाक",
-        "कॉमेड",
-      ],
-    },
-
-    {
-      style: "romantic",
-      score: 0,
-      keywords: [
-        "romantic",
-        "romance",
-        "love",
-        "lover",
-        "couple",
-        "relationship",
-        "kiss",
-        "प्यार",
-        "मोहब्बत",
-        "इश्क",
-        "प्रेम",
-      ],
-    },
-
-    {
-      style: "emotional",
-      score: 0,
-      keywords: [
-        "sad",
-        "sadness",
-        "emotional",
-        "cry",
-        "crying",
-        "heart",
-        "loss",
-        "pain",
-        "family",
-        "दुख",
-        "भावुक",
-        "आंसू",
-      ],
-    },
-
-    {
-      style: "energetic",
-      score: 0,
-      keywords: [
-        "motivat",
-        "motivation",
-        "success",
-        "inspir",
-        "inspiration",
-        "goal",
-        "dream",
-        "hustle",
-        "success",
-        "मेहनत",
-        "सफलता",
-        "प्रेर",
-      ],
-    },
-
-    {
-      style: "calm",
-      score: 0,
-      keywords: [
-        "calm",
-        "peace",
-        "peaceful",
-        "relax",
-        "relaxing",
-        "meditat",
-        "nature",
-        "peace",
-        "शांत",
-        "सुकून",
-      ],
-    },
+    { style: "suspense", score: 0, keywords: ["horror", "horror story", "ghost", "haunted", "haunting", "monster", "demon", "fear", "scary", "dark", "suspense", "mystery", "secret", "killer", "crime", "murder", "chase", "tension", "भूत", "डर", "डराव", "रहस्य", "हत्या"] },
+    { style: "action", score: 0, keywords: ["action", "fight", "battle", "war", "attack", "hero", "punch", "fight scene", "लड़ाई", "युद्ध", "हमला"] },
+    { style: "funny", score: 0, keywords: ["funny", "comedy", "joke", "jokes", "laugh", "meme", "prank", "humor", "humour", "हंसी", "मजाक", "कॉमेड"] },
+    { style: "romantic", score: 0, keywords: ["romantic", "romance", "love", "lover", "couple", "relationship", "kiss", "प्यार", "मोहब्बत", "इश्क", "प्रेम"] },
+    { style: "emotional", score: 0, keywords: ["sad", "sadness", "emotional", "cry", "crying", "heart", "loss", "pain", "family", "दुख", "भावुक", "आंसू"] },
+    { style: "energetic", score: 0, keywords: ["motivat", "motivation", "success", "inspir", "inspiration", "goal", "dream", "hustle", "मेहनत", "सफलता", "प्रेर"] },
+    { style: "calm", score: 0, keywords: ["calm", "peace", "peaceful", "relax", "relaxing", "meditat", "nature", "शांत", "सुकून"] },
   ];
 
   for (const rule of weightedRules) {
@@ -302,48 +137,21 @@ function detectMusicStyle({
 
   weightedRules.sort((a, b) => b.score - a.score);
 
-  if (weightedRules[0]?.score > 0) {
-    return weightedRules[0].style;
-  }
+  if (weightedRules[0]?.score > 0) return weightedRules[0].style;
 
-  if (type.includes("funny") || type.includes("comedy")) {
-    return "funny";
-  }
-
-  if (type.includes("horror")) {
-    return "suspense";
-  }
-
-  if (type.includes("action")) {
-    return "action";
-  }
-
-  if (type.includes("romantic")) {
-    return "romantic";
-  }
-
-  if (type.includes("motiv")) {
-    return "energetic";
-  }
-
-  if (type.includes("emotional")) {
-    return "emotional";
-  }
+  if (type.includes("funny") || type.includes("comedy")) return "funny";
+  if (type.includes("horror")) return "suspense";
+  if (type.includes("action")) return "action";
+  if (type.includes("romantic")) return "romantic";
+  if (type.includes("motiv")) return "energetic";
+  if (type.includes("emotional")) return "emotional";
 
   return "cinematic";
 }
 
-function buildPrompt({
-  style,
-  scenes,
-  videoType,
-  duration,
-}) {
+function buildPrompt({ style, scenes, videoType, duration }) {
   const music = MUSIC_STYLES[style] || MUSIC_STYLES.cinematic;
-
-  const context = collectSceneText(scenes)
-    .slice(0, 1800);
-
+  const context = collectSceneText(scenes).slice(0, 1800);
   const type = clean(videoType) || "short-form video";
 
   return [
@@ -360,61 +168,49 @@ function buildPrompt({
   ].join("\n");
 }
 
-async function readJson(response) {
-  const raw = await response.text();
+function classifyStatus(status) {
+  if (status === 401 || status === 403) return "GEMINI_AUTH_ERROR";
+  if (status === 429) return "GEMINI_QUOTA_EXCEEDED";
+  if (status === 400) return "GEMINI_BAD_REQUEST";
+  if (status === 404) return "GEMINI_NOT_FOUND";
+  if (status >= 500) return "GEMINI_UPSTREAM_ERROR";
+  return "GEMINI_UNKNOWN_ERROR";
+}
 
-  if (!raw) {
-    return {};
-  }
+function extractRetryAfterSeconds(response, data) {
+  const header = response?.headers?.get?.("retry-after");
+  if (header && !Number.isNaN(Number(header))) return Number(header);
 
-  try {
-    return JSON.parse(raw);
-  } catch {
-    throw new Error(
-      `Music API returned invalid JSON. HTTP ${response.status}.`
-    );
+  const details = data?.error?.details;
+  if (Array.isArray(details)) {
+    for (const detail of details) {
+      const match =
+        typeof detail?.retryDelay === "string" &&
+        detail.retryDelay.match(/^([\d.]+)s$/);
+      if (match) return Math.ceil(Number(match[1]));
+    }
   }
+  return null;
 }
 
 function extractAudio(data) {
-  if (
-    data?.output_audio?.data
-  ) {
+  if (data?.output_audio?.data) {
     return {
       data: data.output_audio.data,
-      mimeType:
-        data.output_audio.mime_type ||
-        "audio/mpeg",
+      mimeType: data.output_audio.mime_type || "audio/mpeg",
     };
   }
 
-  const steps = Array.isArray(data?.steps)
-    ? data.steps
-    : [];
+  const steps = Array.isArray(data?.steps) ? data.steps : [];
 
   for (const step of steps) {
-    if (
-      step?.type &&
-      step.type !== "model_output"
-    ) {
-      continue;
-    }
+    if (step?.type && step.type !== "model_output") continue;
 
-    const content = Array.isArray(step?.content)
-      ? step.content
-      : [];
+    const content = Array.isArray(step?.content) ? step.content : [];
 
     for (const block of content) {
-      if (
-        block?.type === "audio" &&
-        block?.data
-      ) {
-        return {
-          data: block.data,
-          mimeType:
-            block.mime_type ||
-            "audio/mpeg",
-        };
+      if (block?.type === "audio" && block?.data) {
+        return { data: block.data, mimeType: block.mime_type || "audio/mpeg" };
       }
     }
   }
@@ -422,283 +218,168 @@ function extractAudio(data) {
   return null;
 }
 
-function getExtension(mimeType) {
-  const mime = clean(mimeType).toLowerCase();
-
-  if (
-    mime === "audio/mpeg" ||
-    mime === "audio/mp3"
-  ) {
-    return "mp3";
-  }
-
+function getExtension() {
   return "mp3";
 }
 
 function safePathPart(value) {
-  return clean(value)
-    .replace(/[^a-zA-Z0-9_-]/g, "_")
-    .slice(0, 120);
+  return clean(value).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 120);
 }
 
 async function createReadUrl(pathname) {
-  const validUntil =
-    Date.now() + 60 * 60 * 1000;
-
-  const token =
-    await issueSignedToken({
-      pathname,
-      operations: ["get"],
-      validUntil,
-    });
-
-  const { presignedUrl } =
-    await presignUrl(token, {
-      pathname,
-      operation: "get",
-      access: "private",
-      validUntil,
-      useCache: false,
-    });
-
+  const validUntil = Date.now() + 60 * 60 * 1000;
+  const token = await issueSignedToken({ pathname, operations: ["get"], validUntil });
+  const { presignedUrl } = await presignUrl(token, {
+    pathname,
+    operation: "get",
+    access: "private",
+    validUntil,
+    useCache: false,
+  });
   return presignedUrl;
 }
 
 function getRelatedStyles(style) {
-  const selected =
-    MUSIC_STYLES[style] ||
-    MUSIC_STYLES.cinematic;
+  const selected = MUSIC_STYLES[style] || MUSIC_STYLES.cinematic;
 
-  return selected.related.map(
-    (relatedStyle) => {
-      const item =
-        MUSIC_STYLES[relatedStyle];
-
-      return {
-        style: relatedStyle,
-        label: item.label,
-        emoji: item.emoji,
-        description: item.description,
-      };
-    }
-  );
+  return selected.related.map((relatedStyle) => {
+    const item = MUSIC_STYLES[relatedStyle];
+    return { style: relatedStyle, label: item.label, emoji: item.emoji, description: item.description };
+  });
 }
 
-export default async function handler(
-  req,
-  res
-) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
-    res.setHeader(
-      "Allow",
-      "POST"
-    );
-
+    res.setHeader("Allow", "POST");
     return res.status(405).json({
       success: false,
-      error: "Method not allowed.",
+      error: { code: "METHOD_NOT_ALLOWED", message: "Method not allowed." },
     });
   }
 
   try {
-    const apiKey =
-      process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
       return res.status(500).json({
         success: false,
-        error:
-          "GEMINI_API_KEY is not configured.",
+        error: { code: "GEMINI_AUTH_ERROR", message: "AI service authentication problem. Please check server configuration." },
       });
     }
 
-    const body =
-      req.body || {};
-
-    const jobId =
-      clean(body.jobId);
+    const body = req.body || {};
+    const jobId = clean(body.jobId);
 
     if (!jobId) {
       return res.status(400).json({
         success: false,
-        error:
-          "jobId is required.",
+        error: { code: "INVALID_INPUT", message: "jobId is required." },
       });
     }
 
-    const scenes =
-      Array.isArray(body.scenes)
-        ? body.scenes
-        : [];
+    const scenes = Array.isArray(body.scenes) ? body.scenes : [];
+    const duration = Number(body.duration) || 30;
+    const style = detectMusicStyle({ scenes, videoType: body.videoType, requestedStyle: body.musicStyle });
+    const music = MUSIC_STYLES[style];
+    const prompt = buildPrompt({ style, scenes, videoType: body.videoType, duration });
 
-    const duration =
-      Number(body.duration) || 30;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
-    const style =
-      detectMusicStyle({
-        scenes,
-        videoType:
-          body.videoType,
-        requestedStyle:
-          body.musicStyle,
+    let response;
+
+    try {
+      response = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({ model: MODEL, input: prompt }),
+        signal: controller.signal,
       });
+    } catch (error) {
+      clearTimeout(timeout);
 
-    const music =
-      MUSIC_STYLES[style];
+      if (error?.name === "AbortError") {
+        return res.status(504).json({
+          success: false,
+          error: { code: "GEMINI_TIMEOUT", message: "AI request timed out. Please try again." },
+        });
+      }
 
-    const prompt =
-      buildPrompt({
-        style,
-        scenes,
-        videoType:
-          body.videoType,
-        duration,
-      });
+      throw error;
+    }
 
-    const response =
-      await fetch(
-        ENDPOINT,
-        {
-          method: "POST",
+    clearTimeout(timeout);
 
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "x-goog-api-key":
-              apiKey,
-          },
-
-          body: JSON.stringify({
-            model: MODEL,
-            input: prompt,
-          }),
-        }
-      );
-
-    const data =
-      await readJson(
-        response
-      );
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(
-        data?.error?.message ||
-          `Gemini music generation failed with HTTP ${response.status}.`
-      );
+      const status = response.status;
+      const code = classifyStatus(status);
+      const message = data?.error?.message || `Gemini music generation failed with HTTP ${status}.`;
+
+      console.log(`[Gemini] music status=${status} code=${code}`);
+
+      const error = new Error(message);
+      error.code = code;
+      error.status = status;
+
+      if (code === "GEMINI_QUOTA_EXCEEDED") {
+        error.retryAfterSeconds = extractRetryAfterSeconds(response, data);
+      }
+
+      const { httpStatus, body: errBody } = toApiError(error);
+      return res.status(httpStatus).json(errBody);
     }
 
-    const audio =
-      extractAudio(data);
+    const audio = extractAudio(data);
 
     if (!audio?.data) {
-      console.error(
-        "GEMINI MUSIC RESPONSE:",
-        JSON.stringify(data).slice(
-          0,
-          8000
-        )
-      );
+      console.error("[Gemini] music response missing audio:", JSON.stringify(data).slice(0, 4000));
 
-      throw new Error(
-        "Gemini music generation did not return audio."
-      );
+      return res.status(502).json({
+        success: false,
+        error: { code: "GEMINI_EMPTY_RESPONSE", message: "The AI service returned no content. Please try again." },
+      });
     }
 
-    const buffer =
-      Buffer.from(
-        audio.data,
-        "base64"
-      );
+    const buffer = Buffer.from(audio.data, "base64");
 
     if (!buffer.length) {
-      throw new Error(
-        "Generated music file was empty."
-      );
+      return res.status(502).json({
+        success: false,
+        error: { code: "GEMINI_EMPTY_RESPONSE", message: "The AI service returned no content. Please try again." },
+      });
     }
 
-    const extension =
-      getExtension(
-        audio.mimeType
-      );
+    const extension = getExtension(audio.mimeType);
+    const pathname = `music/${safePathPart(jobId)}/${style}.${extension}`;
 
-    const pathname =
-      `music/${safePathPart(jobId)}/${style}.${extension}`;
+    await put(pathname, buffer, {
+      access: "private",
+      contentType: "audio/mpeg",
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
 
-    await put(
-      pathname,
-      buffer,
-      {
-        access: "private",
-        contentType:
-          "audio/mpeg",
-        addRandomSuffix:
-          false,
-        allowOverwrite:
-          true,
-      }
-    );
-
-    const url =
-      await createReadUrl(
-        pathname
-      );
-
-    const relatedStyles =
-      getRelatedStyles(
-        style
-      );
+    const url = await createReadUrl(pathname);
+    const relatedStyles = getRelatedStyles(style);
 
     return res.status(200).json({
       success: true,
-
       jobId,
-
       model: MODEL,
-
       musicStyle: style,
-
-      recommended: {
-        style,
-        label: music.label,
-        emoji: music.emoji,
-        description:
-          music.description,
-        url,
-        musicUrl: url,
-        pathname,
-      },
-
+      recommended: { style, label: music.label, emoji: music.emoji, description: music.description, url, musicUrl: url, pathname },
       relatedStyles,
-
-      asset: {
-        type: "music",
-        url,
-        musicUrl: url,
-        pathname,
-        mimeType:
-          "audio/mpeg",
-        sizeBytes:
-          buffer.length,
-      },
-
+      asset: { type: "music", url, musicUrl: url, pathname, mimeType: "audio/mpeg", sizeBytes: buffer.length },
       url,
       musicUrl: url,
-
-      expiresInSeconds:
-        60 * 60,
+      expiresInSeconds: 60 * 60,
     });
   } catch (error) {
-    console.error(
-      "generate-music error:",
-      error
-    );
+    console.error("[GenerateMusic] error:", error?.code || error?.message);
 
-    return res.status(500).json({
-      success: false,
-      error:
-        error?.message ||
-        "Music generation failed.",
-    });
+    const { httpStatus, body } = toApiError(error);
+    return res.status(httpStatus).json(body);
   }
 }
