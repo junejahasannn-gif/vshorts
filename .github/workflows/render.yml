@@ -26,6 +26,7 @@ run-name: Render ${{ inputs.jobId }}
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   render:
@@ -34,7 +35,6 @@ jobs:
     timeout-minutes: 60
 
     steps:
-
       # 1. Download repository
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -72,6 +72,10 @@ jobs:
           VIDEO_DURATION: ${{ inputs.duration }}
           PROPS_BASE64: ${{ inputs.propsBase64 }}
           VIRALTAP_WORKER_URL: https://vshorts-app.vercel.app/api/render-worker
-
+          # FIX: required so generate-visuals.js / generate-voice.js can
+          # verify this call actually came from the render pipeline, not
+          # a random visitor hitting those Gemini-backed endpoints
+          # directly. Must match the Vercel env var of the same name.
+          INTERNAL_WORKER_SECRET: ${{ secrets.INTERNAL_WORKER_SECRET }}
         run: |
           node scripts/render-runner.mjs
