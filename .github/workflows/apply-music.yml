@@ -53,11 +53,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # FIX: same bug as render.yml originally had. `cache: npm` requires
+      # a lockfile at Setup-Node time, BEFORE the "if package-lock.json
+      # exists" check below ever runs — so this failed with "Dependencies
+      # lock file is not found" whenever there's no committed lockfile.
+      # Disabling the built-in cache here (and doing the ci/install
+      # branch manually below) fixes it, matching render.yml.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          package-manager-cache: false
 
       - name: Install FFmpeg
         run: |
